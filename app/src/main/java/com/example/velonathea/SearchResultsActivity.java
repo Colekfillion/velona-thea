@@ -4,6 +4,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -20,6 +21,7 @@ import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.ByteArrayOutputStream;
@@ -54,51 +56,28 @@ public class SearchResultsActivity extends AppCompatActivity {
 
         MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
         SQLiteDatabase db = myOpenHelper.getWritableDatabase();
-        Cursor c;
+        String baseQuery = "SELECT image.id, image.name, image.file_name, image.author, image.link, tag.name AS tag_name " +
+                "FROM image " +
+                "JOIN image_tag ON image.id = image_tag.image_id " +
+                "JOIN tag ON image_tag.tag_id = tag.id ";
         switch(searchMode){
             case "tag":
-//                c = db.rawQuery("SELECT " + MyOpenHelper.IMAGE_TABLE + "." + MyOpenHelper.COL_IMAGE_NAME + ", " +
-//                                MyOpenHelper.IMAGE_TABLE + "." + MyOpenHelper.COL_IMAGE_FILENAME + ", " +
-//                                MyOpenHelper.IMAGE_TABLE + "." + MyOpenHelper.COL_IMAGE_AUTHOR + ", " +
-//                                MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_TAG_NAME +
-//                                    " AS " + MyOpenHelper.TAG_TABLE + "_" + MyOpenHelper.COL_TAG_NAME + " " +
-//                                "FROM " + MyOpenHelper.IMAGE_TABLE + " " +
-//                                "JOIN " + MyOpenHelper.IMAGE_TAG_TABLE + " ON " +
-//                                    MyOpenHelper.IMAGE_TABLE + "." + MyOpenHelper.COL_IMAGE_ID + " = " + MyOpenHelper.IMAGE_TAG_TABLE + "." + MyOpenHelper.COL_IMAGE_TAG_IMAGE_ID + " " +
-//                                "JOIN " + MyOpenHelper.TAG_TABLE + " ON " +
-//                                    MyOpenHelper.IMAGE_TAG_TABLE + "." + MyOpenHelper.COL_IMAGE_TAG_TAG_ID + " = " + MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_TAG_ID + " " +
-//                                "AND " + MyOpenHelper.TAG_TABLE + " LIKE \"" + searchFor + "\";", null);
-                c = db.rawQuery("SELECT image.id, image.name, image.file_name, image.author, image.link, tag.name AS tag_name " +
-                        "FROM image " +
-                        "JOIN image_tag ON image.id = image_tag.image_id " +
-                        "JOIN tag ON image_tag.tag_id = tag.id " +
-                        "AND tag.name LIKE ?" +
-                        "GROUP BY(image.file_name) LIMIT 10;", new String[] { searchFor });
+                baseQuery += "AND tag.name LIKE ?" +
+                        "GROUP BY(image.file_name) LIMIT 10;";
                 break;
             case "title":
-                c = db.rawQuery("SELECT image.id, image.name, image.file_name, image.author, image.link, tag.name AS tag_name " +
-                        "FROM image " +
-                        "JOIN image_tag ON image.id = image_tag.image_id " +
-                        "JOIN tag ON image_tag.tag_id = tag.id " +
-                        "AND image.name LIKE ?" +
-                        "GROUP BY(image.file_name) LIMIT 10;", new String[] { searchFor });
+                baseQuery += "AND image.name LIKE ?" +
+                        "GROUP BY(image.file_name) LIMIT 10;";
                 break;
             case "author":
-                c = db.rawQuery("SELECT image.id, image.name, image.file_name, image.author, image.link, tag.name AS tag_name " +
-                        "FROM image " +
-                        "JOIN image_tag ON image.id = image_tag.image_id " +
-                        "JOIN tag ON image_tag.tag_id = tag.id " +
-                        "AND image.author LIKE ?" +
-                        "GROUP BY(image.file_name) LIMIT 10;", new String[] { searchFor });
+                baseQuery += "AND image.author LIKE ?" +
+                        "GROUP BY(image.file_name) LIMIT 10;";
                 break;
             default:
-                c = db.rawQuery("SELECT image.id, image.name, image.file_name, image.author, image.link, tag.name AS tag_name " +
-                        "FROM image " +
-                        "JOIN image_tag ON image.id = image_tag.image_id " +
-                        "JOIN tag ON image_tag.tag_id = tag.id " +
-                        "GROUP BY(image.file_name) LIMIT 10;", null);
+                baseQuery += "GROUP BY(image.file_name) LIMIT 10;";
                 break;
         }
+        Cursor c = db.rawQuery(baseQuery, new String[] { searchFor });
         c.moveToFirst();
         while (!c.isAfterLast()) {
             String fileName = c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_FILENAME));
@@ -113,23 +92,15 @@ public class SearchResultsActivity extends AppCompatActivity {
         c.close();
 
         imageListView.setOnItemClickListener((list, item, position, id) -> {
+            //TODO: Design a new activity for viewing pictures
             Image image = imageList.get(position);
-            Toast.makeText(this, image.getName(), Toast.LENGTH_SHORT).show();
         });
 
-        imageListView.setOnItemLongClickListener((parent, view, position, id) -> {
-            Image image = imageList.get(position);
-            AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
-
-            alertDialogBuilder.setTitle(image.getName())
-
-                    .setMessage(image.getFileName() + "\n" + image.getAuthor() + "\n" + image.getLink())
-
-                    .setNeutralButton("Ok", (click, arg) -> { })
-
-                    .create().show();
-            return true;
-        });
+//        imageListView.setOnItemLongClickListener((parent, view, position, id) -> {
+//            Image image = imageList.get(position);
+//
+//            return true;
+//        });
     }
 
     private class ListAdapter extends BaseAdapter {
@@ -156,24 +127,27 @@ public class SearchResultsActivity extends AppCompatActivity {
             if (old == null) {
                 newView = inflater.inflate(R.layout.activity_sr_imagelayout, parent, false);
             }
-
+            //Setting image
             ImageView image = newView.findViewById(R.id.activity_sr_imageview);
             File f = new File(path + "/" + imageObj.getFileName());
             if (f.exists()) {
                 Bitmap bm = BitmapFactory.decodeFile(f.getAbsolutePath());
+                //compress the image
+                bm = resize(bm, bm.getWidth() / 4, bm.getHeight() / 4);
                 int bmSize = bm.getByteCount();
                 while (bmSize > (100 * 1024 * 1024)) {
                     bm = resize(bm, bm.getWidth() / 2, bm.getHeight() / 2);
                     bmSize = bm.getByteCount();
                 }
-//                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-//                bm.compress(Bitmap.CompressFormat.JPEG, 80, baos);
-
-                System.out.println(f.getAbsolutePath());
                 image.setImageBitmap(bm);
             } else {
+                //null if not on screen
                 image.setImageBitmap(null);
             }
+            ((TextView) newView.findViewById(R.id.image_name)).setText(imageObj.getName());
+            ((TextView) newView.findViewById(R.id.image_filename)).setText(imageObj.getFileName());
+            ((TextView) newView.findViewById(R.id.image_author)).setText(imageObj.getAuthor());
+
             return newView;
         }
     }
