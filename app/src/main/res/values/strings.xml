@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Velona Thea</string>
+    <string name="searchbar_hint">Search...</string>
+    <string name="button_tag">Search by tag</string>
+    <string name="button_title">Search by title</string>
+    <string name="button_author">Search by author</string>
+    <string name="button_load">Load from output.txt</string>
+    <string name="button_debug">Debug</string>
+    <string name="search_text">"Searching for "</string>
+</resources>
