@@ -35,5 +35,14 @@
         android:layout_toEndOf="@id/activity_sr_imageview"
         android:layout_below="@+id/image_filename"/>
 
+    <TextView
+        android:id="@+id/image_link"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Source"
+        android:textSize="11sp"
+        android:layout_toEndOf="@id/activity_sr_imageview"
+        android:layout_below="@+id/image_author"/>
+
 
 </RelativeLayout>

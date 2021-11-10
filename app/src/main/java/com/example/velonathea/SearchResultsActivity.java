@@ -1,38 +1,26 @@
 package com.example.velonathea;
 
-import androidx.appcompat.app.AlertDialog;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-
-import android.content.Context;
-import android.content.Intent;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.os.Environment;
-import android.text.Html;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.BaseAdapter;
-import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
-
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.util.ArrayList;
 
 public class SearchResultsActivity extends AppCompatActivity {
 
     public ArrayList<Image> imageList = new ArrayList<>();
-    public ListAdapter adapter;
-    public ListView imageListView;
     public String path;
 
     @Override
@@ -44,39 +32,38 @@ public class SearchResultsActivity extends AppCompatActivity {
         String searchMode = dataToPass.getString("searchMode");
         String searchFor = dataToPass.getString("searchFor");
 
-//        path = getExternalFilesDirs(Environment.DIRECTORY_DOWNLOADS)[1].getAbsolutePath().substring(0, path.lastIndexOf("/"));
-//        path = path.substring(0, path.lastIndexOf("/")).substring(0, path.lastIndexOf("/"));
-//        path = path.substring(0, path.lastIndexOf("/")).substring(0, path.lastIndexOf("/"));
-//        path += "/.main/Download";
-//        System.out.println(path);
-        path = "/storage/9C33-6BBD/.main/Download";
+        String buildModel = android.os.Build.MODEL;
+        System.out.println(buildModel);
+        if (buildModel.equals("SM-A520W")) {
+            path = "/storage/9C33-6BBD/.main/Download";
+        } else {
+            path = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath();
+        }
+        RecyclerView rv = findViewById(R.id.activity_sr_imagelist);
+        //recyclerView.setHasFixedSize(true);
 
-        imageListView = findViewById(R.id.activity_sr_imagelist);
-        imageListView.setAdapter(adapter = new ListAdapter());
+        RecyclerView.LayoutManager layoutManager = new GridLayoutManager(getApplicationContext(), 1);
+        rv.setLayoutManager(layoutManager);
+        rv.setAdapter(new MyAdapter());
 
         MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
-        SQLiteDatabase db = myOpenHelper.getWritableDatabase();
+        SQLiteDatabase db = myOpenHelper.getReadableDatabase();
         String baseQuery = "SELECT image.id, image.name, image.file_name, image.author, image.link, tag.name AS tag_name " +
                 "FROM image " +
                 "JOIN image_tag ON image.id = image_tag.image_id " +
                 "JOIN tag ON image_tag.tag_id = tag.id ";
         switch(searchMode){
             case "tag":
-                baseQuery += "AND tag.name LIKE ?" +
-                        "GROUP BY(image.file_name) LIMIT 10;";
+                baseQuery += "AND tag.name LIKE ? ";
                 break;
             case "title":
-                baseQuery += "AND image.name LIKE ?" +
-                        "GROUP BY(image.file_name) LIMIT 10;";
+                baseQuery += "AND image.name LIKE ? ";
                 break;
             case "author":
-                baseQuery += "AND image.author LIKE ?" +
-                        "GROUP BY(image.file_name) LIMIT 10;";
-                break;
-            default:
-                baseQuery += "GROUP BY(image.file_name) LIMIT 10;";
+                baseQuery += "AND image.author LIKE ? ";
                 break;
         }
+        baseQuery += "GROUP BY(image.file_name) LIMIT 10;";
         Cursor c = db.rawQuery(baseQuery, new String[] { searchFor });
         c.moveToFirst();
         while (!c.isAfterLast()) {
@@ -88,47 +75,24 @@ public class SearchResultsActivity extends AppCompatActivity {
             imageList.add(new Image(id, name, fileName, author, link));
             c.moveToNext();
         }
-        adapter.notifyDataSetChanged();
         c.close();
-
-        imageListView.setOnItemClickListener((list, item, position, id) -> {
-            //TODO: Design a new activity for viewing pictures
-            Image image = imageList.get(position);
-        });
-
-//        imageListView.setOnItemLongClickListener((parent, view, position, id) -> {
-//            Image image = imageList.get(position);
-//
-//            return true;
-//        });
     }
 
-    private class ListAdapter extends BaseAdapter {
+    class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder> {
 
+        @NonNull
         @Override
-        public int getCount() { return imageList.size(); }
-
-        @Override
-        public Object getItem(int i) { return imageList.get(i); }
-
-        @Override
-        public long getItemId(int i) {
-            Image image = ((Image) getItem(i));
-            //return imageList.indexOf(image);
-            return image.getId();
+        public MyAdapter.ViewHolder onCreateViewHolder(ViewGroup viewGroup, int i) {
+            View view = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.activity_sr_imagelayout, viewGroup, false);
+            return new ViewHolder(view);
         }
 
         @Override
-        public View getView(int i, View old, ViewGroup parent) {
-            View newView = old;
-            LayoutInflater inflater = getLayoutInflater();
-            Image imageObj = ((Image) getItem(i));
+        public void onBindViewHolder(MyAdapter.ViewHolder imageLayout, int i) {
+            Image imageObj = imageList.get(i);
+            imageLayout.image.setScaleType(ImageView.ScaleType.CENTER_CROP);
 
-            if (old == null) {
-                newView = inflater.inflate(R.layout.activity_sr_imagelayout, parent, false);
-            }
-            //Setting image
-            ImageView image = newView.findViewById(R.id.activity_sr_imageview);
+            //Set imageview to bitmap at path+image file name
             File f = new File(path + "/" + imageObj.getFileName());
             if (f.exists()) {
                 Bitmap bm = BitmapFactory.decodeFile(f.getAbsolutePath());
@@ -139,16 +103,38 @@ public class SearchResultsActivity extends AppCompatActivity {
                     bm = resize(bm, bm.getWidth() / 2, bm.getHeight() / 2);
                     bmSize = bm.getByteCount();
                 }
-                image.setImageBitmap(bm);
+                imageLayout.image.setImageBitmap(bm);
             } else {
                 //null if not on screen
-                image.setImageBitmap(null);
+                imageLayout.image.setImageBitmap(null);
             }
-            ((TextView) newView.findViewById(R.id.image_name)).setText(imageObj.getName());
-            ((TextView) newView.findViewById(R.id.image_filename)).setText(imageObj.getFileName());
-            ((TextView) newView.findViewById(R.id.image_author)).setText(imageObj.getAuthor());
+            imageLayout.name.setText(imageObj.getName());
+            imageLayout.fileName.setText(imageObj.getFileName());
+            imageLayout.author.setText(imageObj.getAuthor());
+            imageLayout.link.setText(imageObj.getLink());
+        }
 
-            return newView;
+        @Override
+        public int getItemCount() {
+            return imageList.size();
+        }
+
+        public class ViewHolder extends RecyclerView.ViewHolder {
+            private ImageView image;
+            private TextView name;
+            private TextView fileName;
+            private TextView author;
+            private TextView link;
+
+            //View is the parent layout, activity_sr_imagelayout
+            public ViewHolder(View view) {
+                super(view);
+                image = view.findViewById(R.id.activity_sr_imageview);
+                name = view.findViewById(R.id.image_name);
+                fileName = view.findViewById(R.id.image_filename);
+                author = view.findViewById(R.id.image_author);
+                link = view.findViewById(R.id.image_link);
+            }
         }
     }
 
@@ -194,9 +180,7 @@ public class SearchResultsActivity extends AppCompatActivity {
                 finalHeight = (int) ((float) maxWidth / ratioBitmap);
             }
             image = Bitmap.createScaledBitmap(image, finalWidth, finalHeight, true);
-            return image;
-        } else {
-            return image;
         }
+        return image;
     }
 }

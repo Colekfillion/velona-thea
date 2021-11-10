@@ -7,4 +7,7 @@
     <string name="button_load">Load from output.txt</string>
     <string name="button_debug">Debug</string>
     <string name="search_text">"Searching for "</string>
+    <string name="button_delete">Clear database</string>
+    <string name="config_menubutton">Config</string>
+    <string name="activity_config_searchperpage">Search results per page</string>
 </resources>
