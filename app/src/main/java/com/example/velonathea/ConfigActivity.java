@@ -9,7 +9,9 @@ import androidx.core.app.ActivityCompat;
 import android.Manifest;
 import android.app.Activity;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
@@ -19,6 +21,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
@@ -77,6 +80,11 @@ public class ConfigActivity extends AppCompatActivity {
             Toast.makeText(getApplicationContext(), "image:" + numImages + ".tag:" + numTags + ".imagetags:" + numImageTags, Toast.LENGTH_LONG).show();
         });
 
+        Button chooseDirButton = findViewById(R.id.activity_config_choosedirbutton;
+        chooseDirButton.setOnClickListener(v -> {
+
+        });
+
         Button deleteButton = findViewById(R.id.activity_config_deletebutton);
         deleteButton.setOnClickListener(v -> {
             MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
@@ -85,6 +93,10 @@ public class ConfigActivity extends AppCompatActivity {
             db.delete("image", null, null);
             db.delete("tag", null, null);
         });
+
+        EditText resultsPerPage = findViewById(R.id.activity_config_searchperpage);
+        SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
+        resultsPerPage.setText(String.valueOf(prefs.getInt("resultsPerPage", 10)));
     }
 
     private static class LoadRowsFromFile extends AsyncTask<String, Integer, String> {
@@ -211,5 +223,16 @@ public class ConfigActivity extends AppCompatActivity {
                 Toast.makeText(getApplicationContext(), "Permission Denied", Toast.LENGTH_LONG).show();
             }
         }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
+        SharedPreferences.Editor edit = prefs.edit();
+
+        EditText resultsPerPage = (EditText)findViewById(R.id.activity_config_searchperpage);
+        edit.putInt("resultsPerPage", Integer.parseInt(resultsPerPage.getText().toString()));
+        edit.apply();
     }
 }

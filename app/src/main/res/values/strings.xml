@@ -10,4 +10,8 @@
     <string name="button_delete">Clear database</string>
     <string name="config_menubutton">Config</string>
     <string name="activity_config_searchperpage">Search results per page</string>
+    <string name="activity_config_textviewresultsperpage">Search results per page:</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+    <string name="choose_root_directory">Choose root directory</string>
 </resources>

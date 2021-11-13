@@ -12,6 +12,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.VelonaThea">
         <activity
+            android:name=".ChooseDirActivity"
+            android:exported="false" />
+        <activity
             android:name=".ConfigActivity"
             android:exported="false" />
         <activity android:name=".SearchResultsActivity" />
