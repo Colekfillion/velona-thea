@@ -1,12 +1,16 @@
 package com.example.velonathea;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.app.Activity;
+import android.app.KeyguardManager;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -32,7 +36,19 @@ public class SearchResultsActivity extends AppCompatActivity {
     private String path;
     private String searchMode;
     private String searchFor;
-    private RecyclerView rv;
+    private MyAdapter adapter;
+    private boolean isVerified = false;
+    private final ActivityResultLauncher<Intent> mainActivity = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    System.out.println("testing, isverified? " + isVerified);
+                    isVerified = true;
+                    main();
+                } else {
+                    finish();
+                }
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,29 +56,43 @@ public class SearchResultsActivity extends AppCompatActivity {
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE,
                 WindowManager.LayoutParams.FLAG_SECURE);
         setContentView(R.layout.activity_search_results);
+    }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (!isVerified) {
+            KeyguardManager km = (KeyguardManager) this.getSystemService(Context.KEYGUARD_SERVICE);
+            Intent i = km.createConfirmDeviceCredentialIntent("Velona Thea", "This app requires you to authenticate.");
+            mainActivity.launch(i);
+        } else {
+            main();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        isVerified = false;
+    }
+
+    private void main() {
         Bundle dataToPass = getIntent().getExtras();
         searchMode = dataToPass.getString("searchMode");
         searchFor = dataToPass.getString("searchFor");
 
-        String buildModel = android.os.Build.MODEL;
-        System.out.println(buildModel);
-        if (buildModel.equals("SM-A520W")) {
-            path = "/storage/9C33-6BBD/.main/Download";
-        } else {
-            path = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath();
-        }
+        SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
+        path = prefs.getString("path", Environment.DIRECTORY_PICTURES);
 
         RecyclerView rv = findViewById(R.id.activity_sr_imagelist);
         rv.setHasFixedSize(true);
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getApplicationContext());
         rv.setLayoutManager(layoutManager);
-        MyAdapter adapter = new MyAdapter();
-        rv.setAdapter(adapter);
+        rv.setAdapter(adapter = new MyAdapter());
 
         AtomicInteger pageNum = new AtomicInteger(1);
         search(0);
-        SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
+
         Button nextButton = findViewById(R.id.nextButton);
         nextButton.setOnClickListener(v -> {
             pageNum.incrementAndGet();
@@ -171,7 +201,6 @@ public class SearchResultsActivity extends AppCompatActivity {
         int resultsPerPage = prefs.getInt("resultsPerPage", 10);
         baseQuery += "GROUP BY(image.file_name) LIMIT " + resultsPerPage +
                 " OFFSET " + offset + ";";
-        System.out.println(baseQuery);
         Cursor c = db.rawQuery(baseQuery, new String[] { searchFor });
         c.moveToFirst();
 
@@ -187,7 +216,9 @@ public class SearchResultsActivity extends AppCompatActivity {
             String name = c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_NAME));
             String author = c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_AUTHOR));
             String link = c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_LINK));
-            imageList.add(new Image(id, name, fileName, author, link));
+            if (new File(path + "/" + fileName).exists()) {
+                imageList.add(new Image(id, name, fileName, author, link));
+            }
             c.moveToNext();
         }
         c.close();

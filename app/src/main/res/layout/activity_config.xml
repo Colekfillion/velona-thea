@@ -22,6 +22,12 @@
         android:layout_height="wrap_content"
         android:text="@string/button_debug" />
 
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/show_hidden_files_switch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/show_hidden_files"/>
+
     <Button
         android:id="@+id/activity_config_choosedirbutton"
         android:layout_width="match_parent"

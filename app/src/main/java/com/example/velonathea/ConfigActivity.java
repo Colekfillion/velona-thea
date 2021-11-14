@@ -3,7 +3,9 @@ package com.example.velonathea;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SwitchCompat;
 import androidx.core.app.ActivityCompat;
 
 import android.Manifest;
@@ -60,6 +62,20 @@ public class ConfigActivity extends AppCompatActivity {
                     }
                 });
 
+        ActivityResultLauncher<Intent> chooseDirActivity = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == Activity.RESULT_OK) {
+                        Intent data = result.getData();
+                        if (data != null) {
+                            SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
+                            SharedPreferences.Editor edit = prefs.edit();
+                            edit.putString("path", data.getStringExtra("path"));
+                            edit.apply();
+                        }
+                    }
+                });
+
         //Loads db rows from text file
         Button loadButton = findViewById(R.id.activity_config_loadbutton);
         loadButton.setOnClickListener(v -> {
@@ -80,9 +96,10 @@ public class ConfigActivity extends AppCompatActivity {
             Toast.makeText(getApplicationContext(), "image:" + numImages + ".tag:" + numTags + ".imagetags:" + numImageTags, Toast.LENGTH_LONG).show();
         });
 
-        Button chooseDirButton = findViewById(R.id.activity_config_choosedirbutton;
+        Button chooseDirButton = findViewById(R.id.activity_config_choosedirbutton);
         chooseDirButton.setOnClickListener(v -> {
-
+            Intent i = new Intent(this, ChooseDirActivity.class);
+            chooseDirActivity.launch(i);
         });
 
         Button deleteButton = findViewById(R.id.activity_config_deletebutton);
@@ -97,6 +114,9 @@ public class ConfigActivity extends AppCompatActivity {
         EditText resultsPerPage = findViewById(R.id.activity_config_searchperpage);
         SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
         resultsPerPage.setText(String.valueOf(prefs.getInt("resultsPerPage", 10)));
+
+        SwitchCompat showHiddenFiles = findViewById(R.id.show_hidden_files_switch);
+        showHiddenFiles.setChecked(prefs.getBoolean("showHiddenFiles", false));
     }
 
     private static class LoadRowsFromFile extends AsyncTask<String, Integer, String> {
@@ -225,6 +245,17 @@ public class ConfigActivity extends AppCompatActivity {
         }
     }
 
+//    @Override
+//    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+//        super.onActivityResult(requestCode, resultCode, data);
+//        if (requestCode == 1 && data != null) {
+//            SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
+//            SharedPreferences.Editor edit = prefs.edit();
+//            edit.putString("path", data.getStringExtra("path"));
+//            edit.apply();
+//        }
+//    }
+
     @Override
     protected void onPause() {
         super.onPause();
@@ -233,6 +264,9 @@ public class ConfigActivity extends AppCompatActivity {
 
         EditText resultsPerPage = (EditText)findViewById(R.id.activity_config_searchperpage);
         edit.putInt("resultsPerPage", Integer.parseInt(resultsPerPage.getText().toString()));
+
+        SwitchCompat showHiddenFiles = findViewById(R.id.show_hidden_files_switch);
+        edit.putBoolean("showHiddenFiles", showHiddenFiles.isChecked());
         edit.apply();
     }
 }

@@ -1,9 +1,16 @@
 package com.example.velonathea;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
+import android.app.Activity;
+import android.app.KeyguardManager;
+import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -30,7 +37,6 @@ public class MainActivity extends AppCompatActivity {
         Button titleButton = findViewById(R.id.activity_main_searchtitlebutton);
         titleButton.setOnClickListener(v -> searchIntent("title", searchBar.getText().toString()));
 
-
     }
 
     //Given search mode and text, go to SearchResultsActivity
@@ -51,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+
         if (item.getItemId() == R.id.config_menubutton) {
             Intent i = new Intent(this, ConfigActivity.class);
             startActivity(i);
