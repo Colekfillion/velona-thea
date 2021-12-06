@@ -1,14 +1,10 @@
 package com.example.velonathea;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import android.app.Activity;
-import android.app.KeyguardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -18,6 +14,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.SystemClock;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,30 +22,41 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SearchResultsActivity extends AppCompatActivity {
 
-    private ArrayList<Image> imageList = new ArrayList<>();
-    private String path;
-    private String searchMode;
-    private String searchFor;
+    private String path, searchMode, searchFor;
+    private int pageNum, maxCacheSize;
+    private final ArrayList<Image> imageList = new ArrayList<>();
+    private final LinkedHashMap<String, Bitmap> imageCache = new LinkedHashMap<String, Bitmap>() {
+        //Keep the cache size down for performance. Removes oldest entry if size is above max cache size
+        @Override
+        protected boolean removeEldestEntry(final Map.Entry eldest) {
+            return size() > maxCacheSize;
+        }
+    };
+    private RecyclerView rv;
     private MyAdapter adapter;
-    private boolean isVerified = false;
-    private final ActivityResultLauncher<Intent> mainActivity = registerForActivityResult(
-            new ActivityResultContracts.StartActivityForResult(),
-            result -> {
-                if (result.getResultCode() == Activity.RESULT_OK) {
-                    System.out.println("testing, isverified? " + isVerified);
-                    isVerified = true;
-                    main();
-                } else {
-                    finish();
-                }
-            });
+
+//    private boolean isVerified = false;
+//    private final ActivityResultLauncher<Intent> mainActivity = registerForActivityResult(
+//            new ActivityResultContracts.StartActivityForResult(),
+//            result -> {
+//                if (result.getResultCode() == Activity.RESULT_OK) {
+//                    isVerified = true;
+//                    //run main
+//                } else {
+//                    finish();
+//                }
+//            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,58 +64,60 @@ public class SearchResultsActivity extends AppCompatActivity {
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE,
                 WindowManager.LayoutParams.FLAG_SECURE);
         setContentView(R.layout.activity_search_results);
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (!isVerified) {
-            KeyguardManager km = (KeyguardManager) this.getSystemService(Context.KEYGUARD_SERVICE);
-            Intent i = km.createConfirmDeviceCredentialIntent("Velona Thea", "This app requires you to authenticate.");
-            mainActivity.launch(i);
-        } else {
-            main();
-        }
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        isVerified = false;
-    }
-
-    private void main() {
-        Bundle dataToPass = getIntent().getExtras();
-        searchMode = dataToPass.getString("searchMode");
-        searchFor = dataToPass.getString("searchFor");
 
         SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
-        path = prefs.getString("path", Environment.DIRECTORY_PICTURES);
+        Bundle dataToPass = getIntent().getExtras();
 
-        RecyclerView rv = findViewById(R.id.activity_sr_imagelist);
+        //Setting global variables
+        searchMode = dataToPass.getString("searchMode");
+        searchFor = dataToPass.getString("searchFor");
+        path = prefs.getString("path", Environment.DIRECTORY_PICTURES);
+        maxCacheSize = prefs.getInt("resultsPerPage", 10) * 5;
+
+        //Recyclerview configuration
+        rv = findViewById(R.id.activity_sr_imagelist);
         rv.setHasFixedSize(true);
+        rv.setItemViewCacheSize(20);
+        rv.setDrawingCacheEnabled(true);
+        rv.setDrawingCacheQuality(View.DRAWING_CACHE_QUALITY_HIGH);
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getApplicationContext());
         rv.setLayoutManager(layoutManager);
         rv.setAdapter(adapter = new MyAdapter());
 
-        AtomicInteger pageNum = new AtomicInteger(1);
+        //Initial search
         search(0);
 
+        //Buttons to change page
         Button nextButton = findViewById(R.id.nextButton);
         nextButton.setOnClickListener(v -> {
-            pageNum.incrementAndGet();
-            adapter.notifyItemRangeRemoved(0, imageList.size());
-            search(pageNum.get() * prefs.getInt("resultsPerPage", 10));
-            adapter.notifyItemRangeInserted(0, imageList.size());
+            pageNum += 1;
+            performSearch();
         });
         Button prevButton = findViewById(R.id.previousButton);
         prevButton.setOnClickListener(v -> {
-            pageNum.decrementAndGet();
-            adapter.notifyItemRangeRemoved(0, imageList.size());
-            search(pageNum.get() * prefs.getInt("resultsPerPage", 10));
-            adapter.notifyItemRangeInserted(0, imageList.size());
+            pageNum -= 1;
+            performSearch();
         });
     }
+
+    private void performSearch() {
+        SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
+        adapter.notifyItemRangeRemoved(0, imageList.size());
+        search(pageNum * prefs.getInt("resultsPerPage", 10));
+        adapter.notifyItemRangeInserted(0, imageList.size());
+    }
+
+//    @Override
+//    protected void onResume() {
+//        super.onResume();
+//        if (!isVerified) {
+//            KeyguardManager km = (KeyguardManager) this.getSystemService(Context.KEYGUARD_SERVICE);
+//            Intent i = km.createConfirmDeviceCredentialIntent("Velona Thea", "This app requires you to authenticate.");
+//            mainActivity.launch(i);
+//        } else {
+//            //run main method
+//        }
+//    }
 
     class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder> {
 
@@ -115,34 +125,64 @@ public class SearchResultsActivity extends AppCompatActivity {
         @Override
         public MyAdapter.ViewHolder onCreateViewHolder(ViewGroup viewGroup, int i) {
             View view = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.activity_sr_imagelayout, viewGroup, false);
+            //Show image in fullscreen on click
+            view.setOnClickListener(v -> {
+                int position = rv.getChildLayoutPosition(view);
+                Image image = imageList.get(position);
+                Bundle dataToPass = new Bundle();
+                dataToPass.putString("fileName", image.getFileName());
+                Intent ii = new Intent(SearchResultsActivity.this, FullImageActivity.class);
+                ii.putExtras(dataToPass);
+                startActivity(ii);
+            });
+
+            //Show image details on long click
+            view.setOnLongClickListener(v -> {
+                int position = rv.getChildLayoutPosition(view);
+                Image image = imageList.get(position);
+                Bundle dataToPass = new Bundle();
+                dataToPass.putString("fileName", image.getFileName());
+                Intent ii = new Intent(SearchResultsActivity.this, ImageDetailsActivity.class);
+                ii.putExtras(dataToPass);
+                startActivity(ii);
+                return true;
+            });
             return new ViewHolder(view);
         }
 
+        //For creating each row of the recyclerview
         @Override
         public void onBindViewHolder(MyAdapter.ViewHolder imageLayout, int i) {
             Image imageObj = imageList.get(i);
             imageLayout.image.setScaleType(ImageView.ScaleType.CENTER_CROP);
 
-            //Set imageview to bitmap at path+image file name
-            File f = new File(path + "/" + imageObj.getFileName());
-            if (f.exists()) {
-                Bitmap bm = BitmapFactory.decodeFile(f.getAbsolutePath());
-                //compress the image
-                bm = resize(bm, bm.getWidth() / 4, bm.getHeight() / 4);
-                int bmSize = bm.getByteCount();
-                while (bmSize > (100 * 1024 * 1024)) {
-                    bm = resize(bm, bm.getWidth() / 2, bm.getHeight() / 2);
-                    bmSize = bm.getByteCount();
-                }
+            Bitmap bm;
+            //Load from image cache if image has been loaded before
+            if (imageCache.containsKey(imageObj.getFileName())) {
+                bm = imageCache.get(imageObj.getFileName());
                 imageLayout.image.setImageBitmap(bm);
+            //Load image from file
             } else {
-                //null if not on screen
-                imageLayout.image.setImageBitmap(null);
+                File f = new File(path + "/" + imageObj.getFileName());
+                if (f.exists()) {
+                    BitmapFactory.Options options = new BitmapFactory.Options();
+                    options.inPreferredConfig = Bitmap.Config.RGB_565;
+                    bm = BitmapFactory.decodeFile(f.getAbsolutePath(), options);
+                    //compress the image
+                    bm = resize(bm, bm.getWidth() / 4, bm.getHeight() / 4);
+                    int bmSize = bm.getByteCount();
+                    while (bmSize > (100 * 1024 * 1024)) {
+                        bm = resize(bm, bm.getWidth() / 2, bm.getHeight() / 2);
+                        bmSize = bm.getByteCount();
+                    }
+                    imageLayout.image.setImageBitmap(bm);
+                    imageCache.put(imageObj.getFileName(), bm);
+                } else {
+                    //null if file doesn't exist
+                    imageLayout.image.setImageBitmap(null);
+                }
             }
-            imageLayout.name.setText(imageObj.getName());
             imageLayout.fileName.setText(imageObj.getFileName());
-            imageLayout.author.setText(imageObj.getAuthor());
-            imageLayout.link.setText(imageObj.getLink());
         }
 
         @Override
@@ -161,10 +201,7 @@ public class SearchResultsActivity extends AppCompatActivity {
             public ViewHolder(View view) {
                 super(view);
                 image = view.findViewById(R.id.activity_sr_imageview);
-                name = view.findViewById(R.id.image_name);
                 fileName = view.findViewById(R.id.image_filename);
-                author = view.findViewById(R.id.image_author);
-                link = view.findViewById(R.id.image_link);
             }
         }
     }
@@ -173,36 +210,61 @@ public class SearchResultsActivity extends AppCompatActivity {
 
         imageList.clear();
 
+        //Setting visibility of previous button if on the first page
         Button prevButton = findViewById(R.id.previousButton);
         if (offset != 0) {
             prevButton.setVisibility(View.VISIBLE);
         } else {
             prevButton.setVisibility(View.INVISIBLE);
         }
+        SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
+        int resultsPerPage = prefs.getInt("resultsPerPage", 10);
 
         MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
         SQLiteDatabase db = myOpenHelper.getReadableDatabase();
-        String baseQuery = "SELECT image.id, image.name, image.file_name, image.author, image.link, tag.name AS tag_name " +
-                "FROM image " +
-                "JOIN image_tag ON image.id = image_tag.image_id " +
-                "JOIN tag ON image_tag.tag_id = tag.id ";
+        String query = "";
         switch(searchMode){
             case "tag":
-                baseQuery += "AND tag.name LIKE ? ";
+                //alternate query with no change in performance
+//                query = "SELECT image.id, image.file_name " +
+//                        "FROM tag " +
+//                        "JOIN image_tag ON image_tag.tag_id = tag.id " +
+//                        "JOIN image ON image.id = image_tag.image_id " +
+//                        "WHERE tag.name LIKE ? " +
+//                        "GROUP BY (image.file_name) " +
+//                        "LIMIT " + resultsPerPage + " " +
+//                        "OFFSET " + offset + ";";
+
+                query = "SELECT image.id, image.file_name " +
+                        "FROM image " +
+                        "JOIN image_tag ON image.id = image_tag.image_id " +
+                        "JOIN tag ON image_tag.tag_id = tag.id " +
+                        "AND tag.name LIKE ? " +
+                        "GROUP BY (image.file_name) " +
+                        "LIMIT " + resultsPerPage + " " +
+                        "OFFSET " + offset + ";";
                 break;
             case "title":
-                baseQuery += "AND image.name LIKE ? ";
+                query = "SELECT image.id, image.file_name " +
+                        "FROM image " +
+                        "WHERE image.name LIKE ? " +
+                        "GROUP BY (image.file_name) LIMIT " + resultsPerPage + " " +
+                        "OFFSET " + offset + ";";
                 break;
             case "author":
-                baseQuery += "AND image.author LIKE ? ";
+                query = "SELECT image.id, image.file_name " +
+                        "FROM image " +
+                        "WHERE image.author LIKE ? " +
+                        "GROUP BY (image.file_name) LIMIT " + resultsPerPage + " " +
+                        "OFFSET " + offset + ";";
                 break;
         }
-        SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
-        int resultsPerPage = prefs.getInt("resultsPerPage", 10);
-        baseQuery += "GROUP BY(image.file_name) LIMIT " + resultsPerPage +
-                " OFFSET " + offset + ";";
-        Cursor c = db.rawQuery(baseQuery, new String[] { searchFor });
+
+        Cursor c = db.rawQuery(query, new String[] { searchFor });
+        long dbStartTime = SystemClock.elapsedRealtime();
         c.moveToFirst();
+        long dbTimeToExecute = SystemClock.elapsedRealtime() - dbStartTime;
+        Toast.makeText(getApplicationContext(), "time to execute: " + dbTimeToExecute + "ms", Toast.LENGTH_LONG).show();
 
         Button nextButton = findViewById(R.id.nextButton);
         if (c.getCount() < resultsPerPage) {
@@ -210,14 +272,12 @@ public class SearchResultsActivity extends AppCompatActivity {
         } else {
             nextButton.setVisibility(View.VISIBLE);
         }
+
         while (!c.isAfterLast()) {
             String fileName = c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_FILENAME));
             int id = (int) c.getLong(c.getColumnIndex(MyOpenHelper.COL_IMAGE_ID));
-            String name = c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_NAME));
-            String author = c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_AUTHOR));
-            String link = c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_LINK));
             if (new File(path + "/" + fileName).exists()) {
-                imageList.add(new Image(id, name, fileName, author, link));
+                imageList.add(new Image(id, fileName));
             }
             c.moveToNext();
         }
@@ -238,6 +298,11 @@ public class SearchResultsActivity extends AppCompatActivity {
             this.fileName = fileName;
             this.author = author;
             this.link = link;
+        }
+
+        public Image(int id, String fileName) {
+            this.id = id;
+            this.fileName = fileName;
         }
 
         public int getId() { return id; }

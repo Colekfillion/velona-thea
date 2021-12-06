@@ -36,7 +36,6 @@ public class MainActivity extends AppCompatActivity {
         authorButton.setOnClickListener(v -> searchIntent("author", searchBar.getText().toString()));
         Button titleButton = findViewById(R.id.activity_main_searchtitlebutton);
         titleButton.setOnClickListener(v -> searchIntent("title", searchBar.getText().toString()));
-
     }
 
     //Given search mode and text, go to SearchResultsActivity

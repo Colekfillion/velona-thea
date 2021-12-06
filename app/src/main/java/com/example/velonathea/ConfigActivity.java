@@ -31,11 +31,15 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 public class ConfigActivity extends AppCompatActivity {
 
     private static LoadRowsFromFile lrff;
-    SQLiteDatabase db;
+    private SQLiteDatabase db;
+    private static boolean busy = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +59,7 @@ public class ConfigActivity extends AppCompatActivity {
                     if (result.getResultCode() == Activity.RESULT_OK) {
                         Intent data = result.getData();
                         if (data != null && data.getData() != null) {
+                            busy = true;
                             Uri uri = data.getData();
                             lrff = new LoadRowsFromFile(this, uri);
                             lrff.execute();
@@ -79,36 +84,42 @@ public class ConfigActivity extends AppCompatActivity {
         //Loads db rows from text file
         Button loadButton = findViewById(R.id.activity_config_loadbutton);
         loadButton.setOnClickListener(v -> {
-            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-            intent.setType("*/*");
-            loadRowsActivity.launch(intent);
+            if (!busy) {
+                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                intent.setType("*/*");
+                loadRowsActivity.launch(intent);
+            }
+        });
+
+        Button deleteButton = findViewById(R.id.activity_config_deletebutton);
+        deleteButton.setOnClickListener(v -> {
+            if (!busy) {
+                MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
+                SQLiteDatabase db = myOpenHelper.getWritableDatabase();
+                db.delete("image_tag", null, null);
+                db.delete("image", null, null);
+                db.delete("tag", null, null);
+            }
         });
 
         //Shows row count of each table in DB in a toast
         Button debugButton = findViewById(R.id.activity_config_debugbutton);
         debugButton.setOnClickListener(v -> {
-            MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
-            SQLiteDatabase db = myOpenHelper.getWritableDatabase();
+            if (!busy) {
+                MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
+                SQLiteDatabase db = myOpenHelper.getReadableDatabase();
 
-            long numImages = DatabaseUtils.queryNumEntries(db, MyOpenHelper.IMAGE_TABLE);
-            long numTags = DatabaseUtils.queryNumEntries(db, MyOpenHelper.TAG_TABLE);
-            long numImageTags = DatabaseUtils.queryNumEntries(db, MyOpenHelper.IMAGE_TAG_TABLE);
-            Toast.makeText(getApplicationContext(), "image:" + numImages + ".tag:" + numTags + ".imagetags:" + numImageTags, Toast.LENGTH_LONG).show();
+                long numImages = DatabaseUtils.queryNumEntries(db, MyOpenHelper.IMAGE_TABLE);
+                long numTags = DatabaseUtils.queryNumEntries(db, MyOpenHelper.TAG_TABLE);
+                long numImageTags = DatabaseUtils.queryNumEntries(db, MyOpenHelper.IMAGE_TAG_TABLE);
+                Toast.makeText(getApplicationContext(), "image:" + numImages + ".tag:" + numTags + ".imagetags:" + numImageTags, Toast.LENGTH_LONG).show();
+            }
         });
 
         Button chooseDirButton = findViewById(R.id.activity_config_choosedirbutton);
         chooseDirButton.setOnClickListener(v -> {
             Intent i = new Intent(this, ChooseDirActivity.class);
             chooseDirActivity.launch(i);
-        });
-
-        Button deleteButton = findViewById(R.id.activity_config_deletebutton);
-        deleteButton.setOnClickListener(v -> {
-            MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
-            SQLiteDatabase db = myOpenHelper.getWritableDatabase();
-            db.delete("image_tag", null, null);
-            db.delete("image", null, null);
-            db.delete("tag", null, null);
         });
 
         EditText resultsPerPage = findViewById(R.id.activity_config_searchperpage);
@@ -149,6 +160,7 @@ public class ConfigActivity extends AppCompatActivity {
                 //Prepare for inserting rows into db
                 MyOpenHelper myOpenHelper = new MyOpenHelper(actRef.get().getApplicationContext(), MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
                 SQLiteDatabase db = myOpenHelper.getWritableDatabase();
+                db.beginTransaction();
                 ContentValues newRowValues = new ContentValues();
 
                 String[] rows = content.split("\n");
@@ -181,7 +193,9 @@ public class ConfigActivity extends AppCompatActivity {
 
                     //If there are tags
                     if (!tagsList.equals("")) {
-                        String[] tags = tagsList.split(" ");
+
+                        String[] tagsArray = tagsList.split(" ");
+                        Set<String> tags = new HashSet<>(Arrays.asList(tagsArray));
                         for (String tag : tags) {
 
                             //Check if tag exists
@@ -207,6 +221,8 @@ public class ConfigActivity extends AppCompatActivity {
                     }
                     publishProgress((int) (((double) i / (double) numRows) * 1000));
                 }
+                db.setTransactionSuccessful();
+                db.endTransaction();
             }
             return "Done";
         }
@@ -232,6 +248,7 @@ public class ConfigActivity extends AppCompatActivity {
             if (activity == null || activity.isFinishing()) return;
             ProgressBar pb = activity.findViewById(R.id.activity_config_progressbar);
             pb.setVisibility(View.INVISIBLE);
+            busy = false;
         }
     }
 

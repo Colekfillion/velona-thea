@@ -12,6 +12,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.VelonaThea">
         <activity
+            android:name=".ImageDetailsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".FullImageActivity"
+            android:exported="false" />
+        <activity
             android:name=".ChooseDirActivity"
             android:exported="false" />
         <activity

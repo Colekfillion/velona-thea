@@ -46,6 +46,8 @@ public class MyOpenHelper extends SQLiteOpenHelper {
                 "FOREIGN KEY(" + COL_IMAGE_TAG_IMAGE_ID + ") REFERENCES " + IMAGE_TABLE + "(" + COL_IMAGE_ID + "), " +
                 "FOREIGN KEY(" + COL_IMAGE_TAG_TAG_ID + ") REFERENCES " + TAG_TABLE + "(" + COL_TAG_ID + "));");
         db.execSQL("CREATE INDEX " + TAG_TABLE + "_name_index ON " + TAG_TABLE + "(" + COL_TAG_NAME + ");");
+        db.execSQL("CREATE INDEX " + IMAGE_TABLE + "_filename_index ON " + IMAGE_TABLE + "(" + COL_IMAGE_FILENAME + ");");
+        db.execSQL("CREATE INDEX " + IMAGE_TAG_TABLE + "_image_tag_id_index ON " + IMAGE_TAG_TABLE + "(" + COL_IMAGE_TAG_IMAGE_ID + ", " + COL_IMAGE_TAG_TAG_ID + ");");
     }
 
     @Override
