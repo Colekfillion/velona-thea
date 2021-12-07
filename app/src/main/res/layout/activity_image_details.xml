@@ -7,32 +7,51 @@
     android:orientation="vertical"
     tools:context=".ImageDetailsActivity">
 
-    <TextView
-            android:id="@+id/image_details_filename"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="File name"
-            android:textSize="21sp"/>
-
-    <TextView
-        android:id="@+id/image_details_name"
-        android:layout_width="wrap_content"
+    <EditText
+        android:id="@+id/image_details_filename"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="19sp"
-        android:text="Image name"/>
+        android:text="File name"
+        android:hint="File name"
+        android:importantForAutofill="no"
+        android:inputType="text"/>
 
-    <TextView
+    <EditText
+        android:id="@+id/image_details_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Image name"
+        android:hint="Name"
+        android:importantForAutofill="no"
+        android:inputType="text"/>
+
+    <EditText
         android:id="@+id/image_details_author"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Author"
-        android:textSize="17sp"/>
+        android:hint="Author"
+        android:importantForAutofill="no"
+        android:inputType="text"/>
 
-    <TextView
+    <EditText
         android:id="@+id/image_details_link"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Link"
-        android:textSize="15sp"/>
+        android:hint="Link"
+        android:importantForAutofill="no"
+        android:inputType="text"/>
+
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="20dp"/>
+
+    <Button
+        android:id="@+id/updateImageDataButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/ok"
+        android:layout_gravity="end"/>
 
 </LinearLayout>

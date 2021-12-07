@@ -39,4 +39,10 @@
             android:layout_height="wrap_content"
             android:text="@string/button_author" />
 
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/activity_main_random_order_switch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/random_order"/>
+
 </LinearLayout>

@@ -11,11 +11,29 @@
         android:layout_alignParentStart="true" />
 
     <TextView
-        android:id="@+id/image_filename"
+        android:id="@+id/sr_image_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="13sp"
+        android:text="Image name"
+        android:layout_toEndOf="@id/activity_sr_imageview"/>
+
+    <TextView
+        android:id="@+id/sr_image_filename"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="File name"
         android:textSize="13sp"
-        android:layout_toEndOf="@id/activity_sr_imageview"/>
+        android:layout_toEndOf="@id/activity_sr_imageview"
+        android:layout_below="@+id/sr_image_name"/>
+
+    <TextView
+        android:id="@+id/sr_image_author"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Author"
+        android:textSize="12sp"
+        android:layout_toEndOf="@id/activity_sr_imageview"
+        android:layout_below="@+id/sr_image_filename"/>
 
 </RelativeLayout>

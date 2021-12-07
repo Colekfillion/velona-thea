@@ -16,4 +16,6 @@
     <string name="choose_root_directory">Choose root directory</string>
     <string name="ok">Ok</string>
     <string name="show_hidden_files">Show hidden files</string>
+    <string name="random_order">Random order</string>
+    <string name="image_cache_size">Image cache size</string>
 </resources>

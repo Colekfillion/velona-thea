@@ -12,8 +12,11 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.os.SystemClock;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -34,7 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class SearchResultsActivity extends AppCompatActivity {
 
     private String path, searchMode, searchFor;
-    private int pageNum, maxCacheSize;
+    private int maxCacheSize;
     private final ArrayList<Image> imageList = new ArrayList<>();
     private final LinkedHashMap<String, Bitmap> imageCache = new LinkedHashMap<String, Bitmap>() {
         //Keep the cache size down for performance. Removes oldest entry if size is above max cache size
@@ -45,6 +48,7 @@ public class SearchResultsActivity extends AppCompatActivity {
     };
     private RecyclerView rv;
     private MyAdapter adapter;
+    private int numAsyncThreads = 0;
 
 //    private boolean isVerified = false;
 //    private final ActivityResultLauncher<Intent> mainActivity = registerForActivityResult(
@@ -72,7 +76,7 @@ public class SearchResultsActivity extends AppCompatActivity {
         searchMode = dataToPass.getString("searchMode");
         searchFor = dataToPass.getString("searchFor");
         path = prefs.getString("path", Environment.DIRECTORY_PICTURES);
-        maxCacheSize = prefs.getInt("resultsPerPage", 10) * 5;
+        maxCacheSize = prefs.getInt("maxCacheSize", 20);
 
         //Recyclerview configuration
         rv = findViewById(R.id.activity_sr_imagelist);
@@ -84,26 +88,84 @@ public class SearchResultsActivity extends AppCompatActivity {
         rv.setLayoutManager(layoutManager);
         rv.setAdapter(adapter = new MyAdapter());
 
-        //Initial search
-        search(0);
+        boolean randomOrder = prefs.getBoolean("randomOrder", false);
 
-        //Buttons to change page
-        Button nextButton = findViewById(R.id.nextButton);
-        nextButton.setOnClickListener(v -> {
-            pageNum += 1;
-            performSearch();
-        });
-        Button prevButton = findViewById(R.id.previousButton);
-        prevButton.setOnClickListener(v -> {
-            pageNum -= 1;
-            performSearch();
-        });
-    }
+        MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
+        SQLiteDatabase db = myOpenHelper.getReadableDatabase();
+        String query = "";
+        Cursor c;
+        switch(searchMode){
+            case "tag":
+                //alternate query with no change in performance
+//                query = "SELECT image.id, image.file_name " +
+//                        "FROM tag " +
+//                        "JOIN image_tag ON image_tag.tag_id = tag.id " +
+//                        "JOIN image ON image.id = image_tag.image_id " +
+//                        "WHERE tag.name LIKE ? " +
+//                        "GROUP BY (image.file_name) " +
+//                        "LIMIT " + resultsPerPage + " " +
+//                        "OFFSET " + offset + ";";
 
-    private void performSearch() {
-        SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
-        adapter.notifyItemRangeRemoved(0, imageList.size());
-        search(pageNum * prefs.getInt("resultsPerPage", 10));
+                //For querying the view
+//                query = "SELECT id, file_name " +
+//                        "FROM v_image_tags " +
+//                        "WHERE tags LIKE ? " +
+//                        "LIMIT " + resultsPerPage + " " +
+//                        "OFFSET " + offset + ";";
+
+                query = "SELECT image.id, image.file_name, image.name, image.author " +
+                        "FROM image " +
+                        "JOIN image_tag ON image.id = image_tag.image_id " +
+                        "JOIN tag ON image_tag.tag_id = tag.id " +
+                        "AND tag.name LIKE ? " +
+                        "GROUP BY (image.file_name) ";
+                break;
+            case "title":
+                query = "SELECT image.id, image.file_name, image.name, image.author " +
+                        "FROM image " +
+                        "WHERE image.name LIKE ? " +
+                        "GROUP BY (image.file_name) ";
+                break;
+            case "author":
+                //Query to check if that exact author exists
+                c = db.rawQuery("SELECT author " +
+                        "FROM image " +
+                        "WHERE author = ? " +
+                        "GROUP BY author " +
+                        "LIMIT 1;", new String[] { searchFor });
+                //If exact author doesn't exist, use LIKE clause
+                if (c.getCount() == 0) {
+                    query = "SELECT image.id, image.file_name, image.name, image.author " +
+                            "FROM image " +
+                            "WHERE image.author LIKE ? " +
+                            "GROUP BY (image.file_name) ";
+                } else {
+                    query = "SELECT image.id, image.file_name, image.name, image.author " +
+                            "FROM image " +
+                            "WHERE image.author = ? " +
+                            "GROUP BY (image.file_name) ";
+                }
+                break;
+        }
+        if (randomOrder) {
+            query += "ORDER BY RANDOM(); ";
+        } else {
+            query += ";";
+        }
+        c = db.rawQuery(query, new String[] { searchFor });
+        c.moveToFirst();
+
+        while (!c.isAfterLast()) {
+            String fileName = c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_FILENAME));
+            int id = (int) c.getLong(c.getColumnIndex(MyOpenHelper.COL_IMAGE_ID));
+            String name = c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_NAME));
+            String author = c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_AUTHOR));
+            imageList.add(new Image(id, name, fileName, author));
+
+            c.moveToNext();
+        }
+        c.close();
+        db.close();
         adapter.notifyItemRangeInserted(0, imageList.size());
     }
 
@@ -156,33 +218,20 @@ public class SearchResultsActivity extends AppCompatActivity {
             Image imageObj = imageList.get(i);
             imageLayout.image.setScaleType(ImageView.ScaleType.CENTER_CROP);
 
-            Bitmap bm;
+            imageLayout.fileName.setText(imageObj.getFileName());
+            imageLayout.name.setText(imageObj.getName());
+            imageLayout.author.setText(imageObj.getAuthor());
             //Load from image cache if image has been loaded before
             if (imageCache.containsKey(imageObj.getFileName())) {
-                bm = imageCache.get(imageObj.getFileName());
-                imageLayout.image.setImageBitmap(bm);
+                System.out.println("Getting from cache, image " + imageObj.getFileName());
+                imageLayout.image.setImageBitmap(imageCache.get(imageObj.getFileName()));
             //Load image from file
             } else {
-                File f = new File(path + "/" + imageObj.getFileName());
-                if (f.exists()) {
-                    BitmapFactory.Options options = new BitmapFactory.Options();
-                    options.inPreferredConfig = Bitmap.Config.RGB_565;
-                    bm = BitmapFactory.decodeFile(f.getAbsolutePath(), options);
-                    //compress the image
-                    bm = resize(bm, bm.getWidth() / 4, bm.getHeight() / 4);
-                    int bmSize = bm.getByteCount();
-                    while (bmSize > (100 * 1024 * 1024)) {
-                        bm = resize(bm, bm.getWidth() / 2, bm.getHeight() / 2);
-                        bmSize = bm.getByteCount();
-                    }
-                    imageLayout.image.setImageBitmap(bm);
-                    imageCache.put(imageObj.getFileName(), bm);
-                } else {
-                    //null if file doesn't exist
-                    imageLayout.image.setImageBitmap(null);
-                }
+                imageLayout.image.setImageBitmap(null);
+                new ImageLoaderTask(imageLayout).execute(imageObj.getFileName());
+                numAsyncThreads++;
+                System.out.println(numAsyncThreads);
             }
-            imageLayout.fileName.setText(imageObj.getFileName());
         }
 
         @Override
@@ -201,88 +250,11 @@ public class SearchResultsActivity extends AppCompatActivity {
             public ViewHolder(View view) {
                 super(view);
                 image = view.findViewById(R.id.activity_sr_imageview);
-                fileName = view.findViewById(R.id.image_filename);
+                fileName = view.findViewById(R.id.sr_image_filename);
+                name = view.findViewById(R.id.sr_image_name);
+                author = view.findViewById(R.id.sr_image_author);
             }
         }
-    }
-
-    private void search(int offset) {
-
-        imageList.clear();
-
-        //Setting visibility of previous button if on the first page
-        Button prevButton = findViewById(R.id.previousButton);
-        if (offset != 0) {
-            prevButton.setVisibility(View.VISIBLE);
-        } else {
-            prevButton.setVisibility(View.INVISIBLE);
-        }
-        SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
-        int resultsPerPage = prefs.getInt("resultsPerPage", 10);
-
-        MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
-        SQLiteDatabase db = myOpenHelper.getReadableDatabase();
-        String query = "";
-        switch(searchMode){
-            case "tag":
-                //alternate query with no change in performance
-//                query = "SELECT image.id, image.file_name " +
-//                        "FROM tag " +
-//                        "JOIN image_tag ON image_tag.tag_id = tag.id " +
-//                        "JOIN image ON image.id = image_tag.image_id " +
-//                        "WHERE tag.name LIKE ? " +
-//                        "GROUP BY (image.file_name) " +
-//                        "LIMIT " + resultsPerPage + " " +
-//                        "OFFSET " + offset + ";";
-
-                query = "SELECT image.id, image.file_name " +
-                        "FROM image " +
-                        "JOIN image_tag ON image.id = image_tag.image_id " +
-                        "JOIN tag ON image_tag.tag_id = tag.id " +
-                        "AND tag.name LIKE ? " +
-                        "GROUP BY (image.file_name) " +
-                        "LIMIT " + resultsPerPage + " " +
-                        "OFFSET " + offset + ";";
-                break;
-            case "title":
-                query = "SELECT image.id, image.file_name " +
-                        "FROM image " +
-                        "WHERE image.name LIKE ? " +
-                        "GROUP BY (image.file_name) LIMIT " + resultsPerPage + " " +
-                        "OFFSET " + offset + ";";
-                break;
-            case "author":
-                query = "SELECT image.id, image.file_name " +
-                        "FROM image " +
-                        "WHERE image.author LIKE ? " +
-                        "GROUP BY (image.file_name) LIMIT " + resultsPerPage + " " +
-                        "OFFSET " + offset + ";";
-                break;
-        }
-
-        Cursor c = db.rawQuery(query, new String[] { searchFor });
-        long dbStartTime = SystemClock.elapsedRealtime();
-        c.moveToFirst();
-        long dbTimeToExecute = SystemClock.elapsedRealtime() - dbStartTime;
-        Toast.makeText(getApplicationContext(), "time to execute: " + dbTimeToExecute + "ms", Toast.LENGTH_LONG).show();
-
-        Button nextButton = findViewById(R.id.nextButton);
-        if (c.getCount() < resultsPerPage) {
-            nextButton.setVisibility(View.INVISIBLE);
-        } else {
-            nextButton.setVisibility(View.VISIBLE);
-        }
-
-        while (!c.isAfterLast()) {
-            String fileName = c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_FILENAME));
-            int id = (int) c.getLong(c.getColumnIndex(MyOpenHelper.COL_IMAGE_ID));
-            if (new File(path + "/" + fileName).exists()) {
-                imageList.add(new Image(id, fileName));
-            }
-            c.moveToNext();
-        }
-        c.close();
-        db.close();
     }
 
     private class Image {
@@ -300,9 +272,11 @@ public class SearchResultsActivity extends AppCompatActivity {
             this.link = link;
         }
 
-        public Image(int id, String fileName) {
+        public Image(int id, String name, String fileName, String author) {
             this.id = id;
+            this.name = name != null ? name : fileName.substring(0, fileName.lastIndexOf("."));
             this.fileName = fileName;
+            this.author = author;
         }
 
         public int getId() { return id; }
@@ -334,5 +308,66 @@ public class SearchResultsActivity extends AppCompatActivity {
             image = Bitmap.createScaledBitmap(image, finalWidth, finalHeight, true);
         }
         return image;
+    }
+
+    private class ImageLoaderTask extends AsyncTask<String, Bitmap, Bitmap> {
+
+        private final MyAdapter.ViewHolder view;
+        private String fileName;
+
+        public ImageLoaderTask(MyAdapter.ViewHolder view) {
+            this.view = view;
+        }
+
+        public boolean validate() {
+            if (!fileName.equals(view.fileName.getText().toString())) {
+                numAsyncThreads--;
+                System.out.println(numAsyncThreads);
+                cancel(true);
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        protected Bitmap doInBackground(String... strings) {
+            Bitmap bm = null;
+            fileName = strings[0];
+            if (validate()) {
+                return bm;
+            }
+            File f = new File(path + "/" + fileName);
+            if (f.exists()) {
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inPreferredConfig = Bitmap.Config.RGB_565;
+                if (validate()) {
+                    return bm;
+                }
+                bm = BitmapFactory.decodeFile(f.getAbsolutePath(), options);
+                //compress the image
+                bm = resize(bm, bm.getWidth() / 4, bm.getHeight() / 4);
+                int bmSize = bm.getByteCount();
+                while (bmSize > (100 * 1024 * 1024)) {
+                    if (validate()) {
+                        return bm;
+                    }
+                    bm = resize(bm, bm.getWidth() / 2, bm.getHeight() / 2);
+                    bmSize = bm.getByteCount();
+                }
+                imageCache.put(fileName, bm);
+            }
+            return bm;
+        }
+
+        @Override
+        protected void onPostExecute(Bitmap bm) {
+            if (view.fileName.getText().toString().equals(fileName)) {
+                view.image.setImageBitmap(bm);
+            } else {
+                view.image.setImageBitmap(null);
+            }
+            numAsyncThreads--;
+            System.out.println(numAsyncThreads);
+        }
     }
 }

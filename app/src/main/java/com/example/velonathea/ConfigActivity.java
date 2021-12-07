@@ -46,13 +46,6 @@ public class ConfigActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_config);
 
-        //Request read permissions if not granted
-        if(ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.READ_EXTERNAL_STORAGE)!= PackageManager.PERMISSION_GRANTED){
-            ActivityCompat.requestPermissions(this, new String[]{
-                    Manifest.permission.READ_EXTERNAL_STORAGE
-            },1);
-        }
-
         ActivityResultLauncher<Intent> loadRowsActivity = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
@@ -122,9 +115,9 @@ public class ConfigActivity extends AppCompatActivity {
             chooseDirActivity.launch(i);
         });
 
-        EditText resultsPerPage = findViewById(R.id.activity_config_searchperpage);
+        EditText imageCacheSize = findViewById(R.id.activity_config_maxcachesize);
         SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
-        resultsPerPage.setText(String.valueOf(prefs.getInt("resultsPerPage", 10)));
+        imageCacheSize.setText(String.valueOf(prefs.getInt("maxCacheSize", 20)));
 
         SwitchCompat showHiddenFiles = findViewById(R.id.show_hidden_files_switch);
         showHiddenFiles.setChecked(prefs.getBoolean("showHiddenFiles", false));
@@ -161,6 +154,10 @@ public class ConfigActivity extends AppCompatActivity {
                 MyOpenHelper myOpenHelper = new MyOpenHelper(actRef.get().getApplicationContext(), MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
                 SQLiteDatabase db = myOpenHelper.getWritableDatabase();
                 db.beginTransaction();
+                //Dropping indexes for performance
+                for (String query : MyOpenHelper.DROP_INDEX_QUERIES) {
+                    db.execSQL(query);
+                }
                 ContentValues newRowValues = new ContentValues();
 
                 String[] rows = content.split("\n");
@@ -221,6 +218,10 @@ public class ConfigActivity extends AppCompatActivity {
                     }
                     publishProgress((int) (((double) i / (double) numRows) * 1000));
                 }
+                //Recreating the indexes
+                for (String query : MyOpenHelper.CREATE_INDEX_QUERIES) {
+                    db.execSQL(query);
+                }
                 db.setTransactionSuccessful();
                 db.endTransaction();
             }
@@ -252,16 +253,6 @@ public class ConfigActivity extends AppCompatActivity {
         }
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == 1) {
-            if (grantResults[0]!=PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(getApplicationContext(), "Permission Denied", Toast.LENGTH_LONG).show();
-            }
-        }
-    }
-
 //    @Override
 //    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
 //        super.onActivityResult(requestCode, resultCode, data);
@@ -279,8 +270,8 @@ public class ConfigActivity extends AppCompatActivity {
         SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
         SharedPreferences.Editor edit = prefs.edit();
 
-        EditText resultsPerPage = (EditText)findViewById(R.id.activity_config_searchperpage);
-        edit.putInt("resultsPerPage", Integer.parseInt(resultsPerPage.getText().toString()));
+        EditText imageCacheSize = (EditText)findViewById(R.id.activity_config_maxcachesize);
+        edit.putInt("maxCacheSize", Integer.parseInt(imageCacheSize.getText().toString()));
 
         SwitchCompat showHiddenFiles = findViewById(R.id.show_hidden_files_switch);
         edit.putBoolean("showHiddenFiles", showHiddenFiles.isChecked());

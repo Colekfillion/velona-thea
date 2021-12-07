@@ -2,14 +2,17 @@ package com.example.velonathea;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.SystemClock;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -22,22 +25,22 @@ public class ImageDetailsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_image_details);
 
-        MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
-        SQLiteDatabase db = myOpenHelper.getReadableDatabase();
+        SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
+        String path = prefs.getString("path", Environment.DIRECTORY_PICTURES);
 
-        TextView fileNameView = findViewById(R.id.image_details_filename);
-        TextView nameView = findViewById(R.id.image_details_name);
-        TextView authorView = findViewById(R.id.image_details_author);
-        TextView linkView = findViewById(R.id.image_details_link);
+        MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
+        SQLiteDatabase db = myOpenHelper.getWritableDatabase();
+
+        EditText fileNameView = findViewById(R.id.image_details_filename);
+        EditText nameView = findViewById(R.id.image_details_name);
+        EditText authorView = findViewById(R.id.image_details_author);
+        EditText linkView = findViewById(R.id.image_details_link);
 
         Bundle dataToPass = getIntent().getExtras();
         String fileName = dataToPass.getString("fileName");
 
         Cursor c = db.rawQuery("SELECT name, author, link FROM image WHERE file_name = ? LIMIT 1;", new String[] { fileName });
-        long dbStartTime = SystemClock.elapsedRealtime();
         c.moveToFirst();
-        long dbTimeToExecute = SystemClock.elapsedRealtime() - dbStartTime;
-        Toast.makeText(getApplicationContext(), "time to execute: " + dbTimeToExecute + "ms", Toast.LENGTH_LONG).show();
 
         String name = c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_NAME));
         String author = c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_AUTHOR));
@@ -48,6 +51,43 @@ public class ImageDetailsActivity extends AppCompatActivity {
         nameView.setText(name);
 
         c.close();
-        db.close();
+
+        Button updateImageDataButton = findViewById(R.id.updateImageDataButton);
+        updateImageDataButton.setOnClickListener(v -> {
+
+            String newFileName = fileNameView.getText().toString();
+            String newName = nameView.getText().toString();
+            String newAuthor = authorView.getText().toString();
+            String newLink = linkView.getText().toString();
+
+            //Making sure data has changed to reduce unnecessary updates
+            ContentValues cv = new ContentValues();
+            boolean hasChanged = false;
+            if (!fileName.equals(newFileName)) {
+                cv.put(MyOpenHelper.COL_IMAGE_FILENAME, newFileName);
+                hasChanged = true;
+            }
+            if (!name.equals(newName)) {
+                cv.put(MyOpenHelper.COL_IMAGE_NAME, newName);
+                hasChanged = true;
+            }
+            if (!author.equals(newAuthor)) {
+                cv.put(MyOpenHelper.COL_IMAGE_AUTHOR, newAuthor);
+                hasChanged = true;
+            }
+            if (!link.equals(newLink)) {
+                cv.put(MyOpenHelper.COL_IMAGE_LINK, newLink);
+                hasChanged = true;
+            }
+
+            if (hasChanged) {
+                db.update(MyOpenHelper.IMAGE_TABLE, cv, "id = (SELECT id FROM image WHERE file_name = ?)", new String[]{fileName});
+                Toast.makeText(getApplicationContext(), "updated", Toast.LENGTH_LONG).show();
+                db.close();
+                finish();
+            } else {
+                Toast.makeText(getApplicationContext(), "no change", Toast.LENGTH_LONG).show();
+            }
+        });
     }
 }

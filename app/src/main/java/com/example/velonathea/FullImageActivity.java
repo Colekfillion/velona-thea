@@ -11,6 +11,7 @@ import android.os.Environment;
 import android.view.WindowManager;
 
 import java.io.File;
+import java.util.ArrayList;
 
 public class FullImageActivity extends AppCompatActivity {
 
