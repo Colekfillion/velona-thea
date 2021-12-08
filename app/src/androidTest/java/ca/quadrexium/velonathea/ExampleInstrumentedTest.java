@@ -1,4 +1,4 @@
-package com.example.velonathea;
+package ca.quadrexium.velonathea;
 
 import android.content.Context;
 

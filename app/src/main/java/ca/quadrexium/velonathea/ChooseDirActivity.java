@@ -1,13 +1,10 @@
-package com.example.velonathea;
-
-import androidx.appcompat.app.AppCompatActivity;
+package ca.quadrexium.velonathea;
 
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Environment;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,21 +15,19 @@ import android.widget.TextView;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Objects;
 
-public class ChooseDirActivity extends AppCompatActivity {
+public class ChooseDirActivity extends BaseActivity {
 
-    private ArrayList<Folder> dirList = new ArrayList<>();
+    private final ArrayList<Folder> dirList = new ArrayList<>();
     private ListAdapter adapter;
-    File startingDir = Environment.getExternalStorageDirectory();
-    File rootDir = startingDir;
+    private final File startingDir = Environment.getExternalStorageDirectory();
+    private File rootDir = startingDir;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_choose_dir);
 
-        ListView listView = findViewById(R.id.dir_listview);
+        ListView listView = findViewById(R.id.activity_choose_dir_lv_dirs);
         listView.setAdapter(adapter = new ListAdapter());
 
         listDirs();
@@ -43,13 +38,18 @@ public class ChooseDirActivity extends AppCompatActivity {
             listDirs();
         });
 
-        Button confirmDirButton = findViewById(R.id.confirmDirButton);
+        Button confirmDirButton = findViewById(R.id.activity_choose_dir_btn_confirm);
         confirmDirButton.setOnClickListener(v -> {
             Intent i = new Intent();
             i.putExtra("path", rootDir.getAbsolutePath());
             setResult(RESULT_OK, i);
             finish();
         });
+    }
+
+    @Override
+    protected int getLayoutResourceId() {
+        return R.layout.activity_choose_dir;
     }
 
     private void listDirs() {
@@ -117,11 +117,11 @@ public class ChooseDirActivity extends AppCompatActivity {
 
             //Initialize new view based on message_send layout
             if (old == null) {
-                newView = inflater.inflate(R.layout.row_dir, parent, false);
+                newView = inflater.inflate(R.layout.row_choose_dir_lv_dirs, parent, false);
             }
 
             //Find message widget and set it to the corresponding message text in the arraylist
-            TextView name = newView.findViewById(R.id.row_textview);
+            TextView name = newView.findViewById(R.id.activity_choose_dir_tv_dir);
             name.setText(f.getName());
 
             return newView;

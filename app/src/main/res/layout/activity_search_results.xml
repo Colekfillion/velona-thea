@@ -4,8 +4,10 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <include layout="@layout/toolbar"/>
+
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/activity_sr_imagelist"
+        android:id="@+id/activity_search_results_recyclerview_media"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 

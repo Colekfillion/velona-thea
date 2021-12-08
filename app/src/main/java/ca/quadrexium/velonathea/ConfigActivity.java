@@ -1,20 +1,15 @@
-package com.example.velonathea;
+package ca.quadrexium.velonathea;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
-import androidx.core.app.ActivityCompat;
 
-import android.Manifest;
 import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
@@ -38,41 +33,40 @@ import java.util.Set;
 public class ConfigActivity extends AppCompatActivity {
 
     private static LoadRowsFromFile lrff;
-    private SQLiteDatabase db;
     private static boolean busy = false;
+
+    private final ActivityResultLauncher<Intent> chooseDirActivity = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    Intent data = result.getData();
+                    if (data != null) {
+                        SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
+                        SharedPreferences.Editor edit = prefs.edit();
+                        edit.putString("path", data.getStringExtra("path"));
+                        edit.apply();
+                    }
+                }
+            });
+
+    private final ActivityResultLauncher<Intent> loadRowsActivity = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    Intent data = result.getData();
+                    if (data != null && data.getData() != null) {
+                        busy = true;
+                        Uri uri = data.getData();
+                        lrff = new LoadRowsFromFile(this, uri);
+                        lrff.execute();
+                    }
+                }
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_config);
-
-        ActivityResultLauncher<Intent> loadRowsActivity = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (result.getResultCode() == Activity.RESULT_OK) {
-                        Intent data = result.getData();
-                        if (data != null && data.getData() != null) {
-                            busy = true;
-                            Uri uri = data.getData();
-                            lrff = new LoadRowsFromFile(this, uri);
-                            lrff.execute();
-                        }
-                    }
-                });
-
-        ActivityResultLauncher<Intent> chooseDirActivity = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (result.getResultCode() == Activity.RESULT_OK) {
-                        Intent data = result.getData();
-                        if (data != null) {
-                            SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
-                            SharedPreferences.Editor edit = prefs.edit();
-                            edit.putString("path", data.getStringExtra("path"));
-                            edit.apply();
-                        }
-                    }
-                });
 
         //Loads db rows from text file
         Button loadButton = findViewById(R.id.activity_config_loadbutton);
@@ -84,6 +78,7 @@ public class ConfigActivity extends AppCompatActivity {
             }
         });
 
+        //Deletes all data from the database
         Button deleteButton = findViewById(R.id.activity_config_deletebutton);
         deleteButton.setOnClickListener(v -> {
             if (!busy) {
@@ -109,14 +104,16 @@ public class ConfigActivity extends AppCompatActivity {
             }
         });
 
+        //Launches the chooseDirActivity
         Button chooseDirButton = findViewById(R.id.activity_config_choosedirbutton);
         chooseDirButton.setOnClickListener(v -> {
             Intent i = new Intent(this, ChooseDirActivity.class);
             chooseDirActivity.launch(i);
         });
 
-        EditText imageCacheSize = findViewById(R.id.activity_config_maxcachesize);
         SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
+
+        EditText imageCacheSize = findViewById(R.id.activity_config_maxcachesize);
         imageCacheSize.setText(String.valueOf(prefs.getInt("maxCacheSize", 20)));
 
         SwitchCompat showHiddenFiles = findViewById(R.id.show_hidden_files_switch);
@@ -252,17 +249,6 @@ public class ConfigActivity extends AppCompatActivity {
             busy = false;
         }
     }
-
-//    @Override
-//    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-//        super.onActivityResult(requestCode, resultCode, data);
-//        if (requestCode == 1 && data != null) {
-//            SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
-//            SharedPreferences.Editor edit = prefs.edit();
-//            edit.putString("path", data.getStringExtra("path"));
-//            edit.apply();
-//        }
-//    }
 
     @Override
     protected void onPause() {

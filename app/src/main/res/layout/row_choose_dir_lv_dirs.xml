@@ -4,7 +4,7 @@
     android:layout_height="match_parent">
 
     <TextView
-        android:id="@+id/row_textview"
+        android:id="@+id/activity_choose_dir_tv_dir"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingVertical="6dp"/>

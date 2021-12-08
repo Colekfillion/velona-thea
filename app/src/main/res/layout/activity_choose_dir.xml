@@ -8,7 +8,7 @@
     tools:context=".ChooseDirActivity">
 
     <LinearLayout
-        android:id="@+id/choosedirlayout"
+        android:id="@+id/activity_choose_dir_ll_confirm"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true">
@@ -19,7 +19,7 @@
             android:layout_weight="1" />
 
         <Button
-            android:id="@+id/confirmDirButton"
+            android:id="@+id/activity_choose_dir_btn_confirm"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/ok"/>
@@ -30,11 +30,11 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:layout_above="@id/choosedirlayout"
+        android:layout_above="@id/activity_choose_dir_ll_confirm"
         android:layout_alignParentTop="true" >
 
         <ListView
-            android:id="@+id/dir_listview"
+            android:id="@+id/activity_choose_dir_lv_dirs"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 
