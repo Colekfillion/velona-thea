@@ -86,7 +86,7 @@ public class FullImageActivity extends BaseActivity {
         try {
             image.setImageBitmap(bm);
         } catch (NullPointerException e) {
-
+            //TODO: Find a template image bitmap, like a loading icon, and set it here
         }
     }
 

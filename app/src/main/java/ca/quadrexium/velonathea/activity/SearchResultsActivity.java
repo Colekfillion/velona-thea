@@ -142,8 +142,8 @@ public class SearchResultsActivity extends BaseActivity {
 
         while (!c.isAfterLast()) {
             Media media = new Media.Builder()
-                    .id((int) c.getLong(c.getColumnIndex(MyOpenHelper.COL_IMAGE_ID)))
-                    .name(c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_NAME)))
+                    .id((int) c.getLong(c.getColumnIndex(MyOpenHelper.COL_ID)))
+                    .name(c.getString(c.getColumnIndex(MyOpenHelper.COL_NAME)))
                     .fileName(c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_FILENAME)))
                     .author(c.getString(c.getColumnIndex(MyOpenHelper.AUTHOR_TABLE + "_name")))
                     .build();
