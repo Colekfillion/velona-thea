@@ -17,7 +17,7 @@ import ca.quadrexium.velonathea.pojo.Media;
 public class MyOpenHelper extends SQLiteOpenHelper {
 
     public final static String DATABASE_NAME = "image_database";
-    public final static int DATABASE_VERSION = 3;
+    public final static int DATABASE_VERSION = 4;
 
     public final static String COL_ID = "id";
     public final static String COL_NAME = "name";
@@ -43,7 +43,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
     };
     public final static String[] CREATE_INDEX_QUERIES = new String[] {
             "CREATE UNIQUE INDEX " + TAG_TABLE + "_name_index ON " + TAG_TABLE + "(" + COL_NAME + ");",
-            "CREATE UNIQUE INDEX " + IMAGE_TABLE + "_filename_index ON " + IMAGE_TABLE + "(" + COL_IMAGE_FILENAME + ");",
+            "CREATE INDEX " + IMAGE_TABLE + "_filename_index ON " + IMAGE_TABLE + "(" + COL_IMAGE_FILENAME + ");",
             "CREATE UNIQUE INDEX " + IMAGE_TAG_TABLE + "_image_tag_id_index ON " + IMAGE_TAG_TABLE + "(" + COL_IMAGE_TAG_IMAGE_ID + ", " + COL_IMAGE_TAG_TAG_ID + ");",
             "CREATE UNIQUE INDEX " + AUTHOR_TABLE + "_name_index ON " + AUTHOR_TABLE + "(" + COL_NAME + ");"
     };
