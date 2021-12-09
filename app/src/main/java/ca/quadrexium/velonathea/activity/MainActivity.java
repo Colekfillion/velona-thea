@@ -1,4 +1,4 @@
-package ca.quadrexium.velonathea;
+package ca.quadrexium.velonathea.activity;
 
 import androidx.appcompat.widget.SwitchCompat;
 import android.content.Intent;
@@ -6,6 +6,8 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
+
+import ca.quadrexium.velonathea.R;
 
 public class MainActivity extends BaseActivity {
 

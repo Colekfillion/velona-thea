@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context=".ImageDetailsActivity">
+    tools:context=".activity.ImageDetailsActivity">
 
     <EditText
         android:id="@+id/activity_image_details_et_filename"

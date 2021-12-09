@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context=".ChooseDirActivity">
+    tools:context=".activity.ChooseDirActivity">
 
     <LinearLayout
         android:id="@+id/activity_choose_dir_ll_confirm"

@@ -4,9 +4,10 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".FullImageActivity">
+    tools:context=".activity.FullImageActivity"
+    android:background="@color/black">
 
-    <ca.quadrexium.velonathea.ZoomableImageView
+    <ca.quadrexium.velonathea.view.ZoomableImageView
         android:id="@+id/activity_full_image_zimgv_image"
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>

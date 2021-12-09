@@ -12,23 +12,23 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.VelonaThea">
         <activity
-            android:name="ca.quadrexium.velonathea.BaseActivity"
+            android:name="ca.quadrexium.velonathea.activity.BaseActivity"
             android:exported="false" />
         <activity
-            android:name="ca.quadrexium.velonathea.ImageDetailsActivity"
+            android:name="ca.quadrexium.velonathea.activity.ImageDetailsActivity"
             android:exported="false" />
         <activity
-            android:name="ca.quadrexium.velonathea.FullImageActivity"
+            android:name="ca.quadrexium.velonathea.activity.FullImageActivity"
             android:exported="false" />
         <activity
-            android:name="ca.quadrexium.velonathea.ChooseDirActivity"
+            android:name="ca.quadrexium.velonathea.activity.ChooseDirActivity"
             android:exported="false" />
         <activity
-            android:name="ca.quadrexium.velonathea.ConfigActivity"
+            android:name="ca.quadrexium.velonathea.activity.ConfigActivity"
             android:exported="false" />
-        <activity android:name="ca.quadrexium.velonathea.SearchResultsActivity" />
+        <activity android:name="ca.quadrexium.velonathea.activity.SearchResultsActivity" />
         <activity
-            android:name="ca.quadrexium.velonathea.MainActivity"
+            android:name="ca.quadrexium.velonathea.activity.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

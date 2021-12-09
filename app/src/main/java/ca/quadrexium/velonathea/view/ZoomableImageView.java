@@ -1,4 +1,4 @@
-package ca.quadrexium.velonathea;
+package ca.quadrexium.velonathea.view;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -28,7 +28,7 @@ public class ZoomableImageView extends androidx.appcompat.widget.AppCompatImageV
     float width, height;
     float saveScale = 1f;
     float right, bottom, origWidth, origHeight, bmWidth, bmHeight;
-    static OnTouchListener otl;
+    public static OnTouchListener otl;
 
     ScaleGestureDetector mScaleDetector;
     Context context;

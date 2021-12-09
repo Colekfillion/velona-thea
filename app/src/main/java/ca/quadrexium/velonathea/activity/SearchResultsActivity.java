@@ -1,9 +1,8 @@
-package ca.quadrexium.velonathea;
+package ca.quadrexium.velonathea.activity;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -29,6 +28,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import ca.quadrexium.velonathea.R;
+import ca.quadrexium.velonathea.database.MyOpenHelper;
 import ca.quadrexium.velonathea.pojo.Media;
 
 public class SearchResultsActivity extends BaseActivity {
@@ -97,63 +98,46 @@ public class SearchResultsActivity extends BaseActivity {
         Cursor c;
         switch(searchMode){
             case "tag":
-                //alternate query with no change in performance
-//                query = "SELECT image.id, image.file_name " +
-//                        "FROM tag " +
-//                        "JOIN image_tag ON image_tag.tag_id = tag.id " +
-//                        "JOIN image ON image.id = image_tag.image_id " +
-//                        "WHERE tag.name LIKE ? " +
-//                        "GROUP BY (image.file_name) " +
-//                        "LIMIT " + resultsPerPage + " " +
-//                        "OFFSET " + offset + ";";
-
-                //For querying the view
-//                query = "SELECT id, file_name " +
-//                        "FROM v_image_tags " +
-//                        "WHERE tags LIKE ? " +
-//                        "LIMIT " + resultsPerPage + " " +
-//                        "OFFSET " + offset + ";";
-
-                query = "SELECT image.id, image.file_name, image.name, image.author " +
+                query = "SELECT image.id, image.file_name, image.name, author.name AS author_name " +
                         "FROM image " +
                         "JOIN image_tag ON image.id = image_tag.image_id " +
+                        "JOIN author ON author.id = image.author_id " +
                         "JOIN tag ON image_tag.tag_id = tag.id " +
-                        "AND tag.name LIKE ? " +
-                        "GROUP BY (image.file_name) ";
+                        "AND tag.name LIKE ? ";
                 break;
             case "title":
-                query = "SELECT image.id, image.file_name, image.name, image.author " +
+                query = "SELECT image.id, image.file_name, image.name, author.name AS author_name " +
                         "FROM image " +
-                        "WHERE image.name LIKE ? " +
-                        "GROUP BY (image.file_name) ";
+                        "JOIN author ON author.id = image.author_id " +
+                        "WHERE image.name LIKE ? ";
                 break;
             case "author":
                 //Query to check if that exact author exists
                 c = db.rawQuery("SELECT author " +
-                        "FROM image " +
-                        "WHERE author = ? " +
-                        "GROUP BY author " +
-                        "LIMIT 1;", new String[] {searchFor});
+                        "FROM author " +
+                        "WHERE name = ? " +
+                        "LIMIT 1;", new String[] { searchFor });
                 //If exact author doesn't exist, use LIKE clause
                 if (c.getCount() == 0) {
-                    query = "SELECT image.id, image.file_name, image.name, image.author " +
+                    query = "SELECT image.id, image.file_name, image.name, author.name AS author_name " +
                             "FROM image " +
-                            "WHERE image.author LIKE ? " +
-                            "GROUP BY (image.file_name) ";
+                            "JOIN author ON author.id = image.author_id " +
+                            "WHERE author_name LIKE ? ";
                 } else {
-                    query = "SELECT image.id, image.file_name, image.name, image.author " +
+                    query = "SELECT image.id, image.file_name, image.name, author.name AS author_name " +
                             "FROM image " +
-                            "WHERE image.author = ? " +
-                            "GROUP BY (image.file_name) ";
+                            "JOIN author ON author.id = image.author_id " +
+                            "WHERE author_name = ? ";
                 }
                 break;
         }
+        query += "GROUP BY (image.file_name) ";
         if (randomOrder) {
             query += "ORDER BY RANDOM(); ";
         } else {
             query += ";";
         }
-        c = db.rawQuery(query, new String[] {searchFor});
+        c = db.rawQuery(query, new String[] { searchFor });
         c.moveToFirst();
 
         while (!c.isAfterLast()) {
@@ -161,7 +145,7 @@ public class SearchResultsActivity extends BaseActivity {
                     .id((int) c.getLong(c.getColumnIndex(MyOpenHelper.COL_IMAGE_ID)))
                     .name(c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_NAME)))
                     .fileName(c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_FILENAME)))
-                    .author(c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_AUTHOR)))
+                    .author(c.getString(c.getColumnIndex(MyOpenHelper.AUTHOR_TABLE + "_name")))
                     .build();
             mediaList.add(media);
             c.moveToNext();

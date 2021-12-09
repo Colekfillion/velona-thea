@@ -1,4 +1,4 @@
-package ca.quadrexium.velonathea;
+package ca.quadrexium.velonathea.activity;
 
 import android.content.Context;
 import android.content.Intent;
@@ -15,6 +15,8 @@ import android.widget.TextView;
 
 import java.io.File;
 import java.util.ArrayList;
+
+import ca.quadrexium.velonathea.R;
 
 public class ChooseDirActivity extends BaseActivity {
 

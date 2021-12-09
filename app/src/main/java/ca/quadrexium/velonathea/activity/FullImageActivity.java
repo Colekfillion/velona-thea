@@ -1,10 +1,8 @@
-package ca.quadrexium.velonathea;
-
-import androidx.appcompat.app.AppCompatActivity;
+package ca.quadrexium.velonathea.activity;
 
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Point;
 import android.os.Bundle;
@@ -15,13 +13,15 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.Toast;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import ca.quadrexium.velonathea.R;
+import ca.quadrexium.velonathea.view.ZoomableImageView;
 
 public class FullImageActivity extends BaseActivity {
 
@@ -51,21 +51,18 @@ public class FullImageActivity extends BaseActivity {
         image.setMaxZoom(8f);
         loadImage(fileNames.get(position.get()));
 
-        iteratorOtl = new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                if (event.getAction() == MotionEvent.ACTION_UP) {
-                    v.performClick();
-                    float x = event.getX();
-                    if (x / screenWidth > 0.8 && position.get() < fileNames.size()-1) {
-                        position.getAndIncrement();
-                    } else if (x / screenWidth < 0.2 && position.get() > 0) {
-                        position.getAndDecrement();
-                    }
-                    loadImage(fileNames.get(position.get()));
+        iteratorOtl = (v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                v.performClick();
+                float x = event.getX();
+                if (x / screenWidth > 0.8 && position.get() < fileNames.size()-1) {
+                    position.getAndIncrement();
+                } else if (x / screenWidth < 0.2 && position.get() > 0) {
+                    position.getAndDecrement();
                 }
-                return true;
+                loadImage(fileNames.get(position.get()));
             }
+            return true;
         };
     }
 
@@ -76,11 +73,20 @@ public class FullImageActivity extends BaseActivity {
 
     private void loadImage(String fileName) {
         File f = new File(path + "/" + fileName);
+        Bitmap bm = null;
         if (f.exists()) {
-            image.setImageBitmap(BitmapFactory.decodeFile(f.getAbsolutePath()));
+            try {
+                bm = BitmapFactory.decodeFile(f.getAbsolutePath());
+            } catch (RuntimeException e) {
+                Toast.makeText(getApplicationContext(), "Cannot draw " + fileName + ", image too large", Toast.LENGTH_SHORT).show();
+            }
         } else {
-            image.setImageBitmap(null);
             Toast.makeText(getApplicationContext(), "File " + fileName + " not found", Toast.LENGTH_SHORT).show();
+        }
+        try {
+            image.setImageBitmap(bm);
+        } catch (NullPointerException e) {
+
         }
     }
 
@@ -92,7 +98,6 @@ public class FullImageActivity extends BaseActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-
         if (item.getItemId() == R.id.menu_togglezoom) {
             boolean isChecked = item.isChecked();
             if (isChecked) {
