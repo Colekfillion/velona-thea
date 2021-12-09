@@ -113,7 +113,7 @@ public class SearchResultsActivity extends BaseActivity {
                 break;
             case "author":
                 //Query to check if that exact author exists
-                c = db.rawQuery("SELECT author " +
+                c = db.rawQuery("SELECT name " +
                         "FROM author " +
                         "WHERE name = ? " +
                         "LIMIT 1;", new String[] { searchFor });
@@ -133,7 +133,7 @@ public class SearchResultsActivity extends BaseActivity {
         }
         query += "GROUP BY (image.file_name) ";
         if (randomOrder) {
-            query += "ORDER BY RANDOM(); ";
+            query += "ORDER BY RANDOM();";
         } else {
             query += ";";
         }
@@ -145,7 +145,7 @@ public class SearchResultsActivity extends BaseActivity {
                     .id((int) c.getLong(c.getColumnIndex(MyOpenHelper.COL_ID)))
                     .name(c.getString(c.getColumnIndex(MyOpenHelper.COL_NAME)))
                     .fileName(c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_FILENAME)))
-                    .author(c.getString(c.getColumnIndex(MyOpenHelper.AUTHOR_TABLE + "_name")))
+                    .author(c.getString(c.getColumnIndex(MyOpenHelper.AUTHOR_TABLE + "_" + MyOpenHelper.COL_NAME)))
                     .build();
             mediaList.add(media);
             c.moveToNext();
@@ -170,8 +170,10 @@ public class SearchResultsActivity extends BaseActivity {
                 int position = rv.getChildLayoutPosition(view);
                 Bundle dataToPass = new Bundle();
                 ArrayList<String> fileNames = new ArrayList<>();
-                int maxFileNames = Math.min(mediaList.size(), 1000);
-                for (int ii = 0; ii < maxFileNames; ii++) {
+                int maxFileNames = 1000;
+                int minPosition = Math.max(0, position-(maxFileNames/5));
+                int maxPosition = (int) Math.min(mediaList.size(), position+(Math.round(maxFileNames*0.8)));
+                for (int ii = minPosition; ii < maxPosition; ii++) {
                     fileNames.add(mediaList.get(ii).getFileName());
                 }
                 dataToPass.putStringArrayList("fileNames", fileNames);

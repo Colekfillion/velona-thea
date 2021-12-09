@@ -251,7 +251,7 @@ public class ConfigActivity extends BaseActivity {
         SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
         SharedPreferences.Editor edit = prefs.edit();
 
-        EditText imageCacheSize = (EditText)findViewById(R.id.activity_config_maxcachesize);
+        EditText imageCacheSize = findViewById(R.id.activity_config_maxcachesize);
         edit.putInt("maxCacheSize", Integer.parseInt(imageCacheSize.getText().toString()));
 
         SwitchCompat showHiddenFiles = findViewById(R.id.show_hidden_files_switch);

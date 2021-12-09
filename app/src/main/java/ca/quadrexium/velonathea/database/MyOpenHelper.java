@@ -29,9 +29,9 @@ public class MyOpenHelper extends SQLiteOpenHelper {
 
     public final static String TAG_TABLE = "tag";
 
-    public final static String IMAGE_TAG_TABLE = "image_tag";
-    public final static String COL_IMAGE_TAG_IMAGE_ID = "image_id";
-    public final static String COL_IMAGE_TAG_TAG_ID = "tag_id";
+    public final static String IMAGE_TAG_TABLE = IMAGE_TABLE + "_" + TAG_TABLE;
+    public final static String COL_IMAGE_TAG_IMAGE_ID = IMAGE_TABLE + "_" + COL_ID;
+    public final static String COL_IMAGE_TAG_TAG_ID = TAG_TABLE + "_" + COL_ID;
 
     public final static String AUTHOR_TABLE = "author";
 
