@@ -49,6 +49,7 @@ public class FullMediaActivity extends BaseActivity {
         Bundle data = getIntent().getExtras();
         ArrayList<String> fileNames = data.getStringArrayList("fileNames");
         AtomicInteger position = new AtomicInteger(data.getInt("position"));
+        System.out.println("position: " + position);
 
         Display display = getWindowManager().getDefaultDisplay();
         Point size = new Point();
@@ -87,6 +88,7 @@ public class FullMediaActivity extends BaseActivity {
     private void loadMedia(String fileName) {
         String extension = fileName.substring(fileName.lastIndexOf("."));
         if (Constants.IMAGE_EXTENSIONS.contains(extension)) {
+            System.out.println(fileName + " is image");
             isImage = true;
             image.setVisibility(View.VISIBLE);
             video.setVisibility(View.GONE);
@@ -112,6 +114,7 @@ public class FullMediaActivity extends BaseActivity {
                 image.setImageDrawable(AppCompatResources.getDrawable(this, R.drawable.null_icon));
             }
         } else if (Constants.VIDEO_EXTENSIONS.contains(extension)) {
+            System.out.println(fileName + " is video");
             isImage = false;
             video.setVisibility(View.VISIBLE);
             image.setVisibility(View.GONE);
@@ -124,6 +127,7 @@ public class FullMediaActivity extends BaseActivity {
             video.start();
             video.setOnCompletionListener(mp -> video.start());
         } else if (extension.equals(".gif")) {
+            System.out.println(fileName + " is a gif");
             isImage = false;
             gif.setVisibility(View.VISIBLE);
             image.setVisibility(View.GONE);

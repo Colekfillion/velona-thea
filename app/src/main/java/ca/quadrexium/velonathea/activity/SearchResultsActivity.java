@@ -222,7 +222,8 @@ public class SearchResultsActivity extends BaseActivity {
                     fileNames.add(mediaList.get(ii).getFileName());
                 }
                 dataToPass.putStringArrayList("fileNames", fileNames);
-                dataToPass.putInt("position", position);
+                dataToPass.putInt("position", position-minPosition);
+                System.out.println("position in sra: " + position);
                 Intent ii = new Intent(SearchResultsActivity.this, FullMediaActivity.class);
                 ii.putExtras(dataToPass);
                 startActivity(ii);
