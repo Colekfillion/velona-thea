@@ -127,9 +127,7 @@ public class ConfigActivity extends BaseActivity {
     }
 
     @Override
-    protected int getLayoutResourceId() {
-        return R.layout.activity_config;
-    }
+    protected int getLayoutResourceId() { return R.layout.activity_config; }
 
     private static class LoadRowsFromFile extends AsyncTask<String, Integer, String> {
 

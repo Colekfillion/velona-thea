@@ -8,7 +8,7 @@
         <include layout="@layout/toolbar"/>
 
         <EditText
-            android:id="@+id/activity_main_searchbar"
+            android:id="@+id/activity_main_et_search"
             android:inputType="text"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -16,25 +16,31 @@
             android:importantForAutofill="no" />
 
         <Button
-            android:id="@+id/activity_main_searchtagbutton"
+            android:id="@+id/activity_main_btn_tagsearch"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/button_tag" />
 
         <Button
-            android:id="@+id/activity_main_searchtitlebutton"
+            android:id="@+id/activity_main_btn_namesearch"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/button_title" />
 
         <Button
-            android:id="@+id/activity_main_searchauthorbutton"
+            android:id="@+id/activity_main_btn_authorsearch"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/button_author" />
 
+        <Button
+            android:id="@+id/activity_main_btn_unsortedsearch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/only_unsorted_files" />
+
         <androidx.appcompat.widget.SwitchCompat
-            android:id="@+id/activity_main_random_order_switch"
+            android:id="@+id/activity_main_swtch_random"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/random_order"/>

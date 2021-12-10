@@ -19,4 +19,5 @@
     <string name="random_order">Random order</string>
     <string name="image_cache_size">Image cache size</string>
     <string name="update">Update</string>
+    <string name="only_unsorted_files">Only unsorted files</string>
 </resources>

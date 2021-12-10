@@ -14,22 +14,27 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.ThumbnailUtils;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import ca.quadrexium.velonathea.R;
 import ca.quadrexium.velonathea.database.MyOpenHelper;
+import ca.quadrexium.velonathea.pojo.Constants;
 import ca.quadrexium.velonathea.pojo.Media;
 
 public class SearchResultsActivity extends BaseActivity {
@@ -92,67 +97,107 @@ public class SearchResultsActivity extends BaseActivity {
         rv.setLayoutManager(layoutManager);
         rv.setAdapter(adapter = new MyAdapter());
 
-        MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
-        SQLiteDatabase db = myOpenHelper.getReadableDatabase();
-        String query = "";
-        Cursor c;
-        switch(searchMode){
-            case "tag":
-                query = "SELECT image.id, image.file_name, image.name, author.name AS author_name " +
-                        "FROM image " +
-                        "JOIN image_tag ON image.id = image_tag.image_id " +
-                        "JOIN author ON author.id = image.author_id " +
-                        "JOIN tag ON image_tag.tag_id = tag.id " +
-                        "AND tag.name LIKE ? ";
-                break;
-            case "title":
-                query = "SELECT image.id, image.file_name, image.name, author.name AS author_name " +
-                        "FROM image " +
-                        "JOIN author ON author.id = image.author_id " +
-                        "WHERE image.name LIKE ? ";
-                break;
-            case "author":
-                //Query to check if that exact author exists
-                c = db.rawQuery("SELECT name " +
-                        "FROM author " +
-                        "WHERE name = ? " +
-                        "LIMIT 1;", new String[] { searchFor });
-                //If exact author doesn't exist, use LIKE clause
-                if (c.getCount() == 0) {
+        if (!searchMode.equals("unsorted")) {
+            MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
+            SQLiteDatabase db = myOpenHelper.getReadableDatabase();
+            String query = "";
+            Cursor c;
+            switch(searchMode){
+                case "tag":
+                    query = "SELECT image.id, image.file_name, image.name, author.name AS author_name " +
+                            "FROM image " +
+                            "JOIN image_tag ON image.id = image_tag.image_id " +
+                            "JOIN author ON author.id = image.author_id " +
+                            "JOIN tag ON image_tag.tag_id = tag.id " +
+                            "AND tag.name LIKE ? ";
+                    break;
+                case "title":
                     query = "SELECT image.id, image.file_name, image.name, author.name AS author_name " +
                             "FROM image " +
                             "JOIN author ON author.id = image.author_id " +
-                            "WHERE author_name LIKE ? ";
-                } else {
-                    query = "SELECT image.id, image.file_name, image.name, author.name AS author_name " +
-                            "FROM image " +
-                            "JOIN author ON author.id = image.author_id " +
-                            "WHERE author_name = ? ";
-                }
-                break;
-        }
-        query += "GROUP BY (image.file_name) ";
-        if (randomOrder) {
-            query += "ORDER BY RANDOM();";
-        } else {
-            query += ";";
-        }
-        c = db.rawQuery(query, new String[] { searchFor });
-        c.moveToFirst();
+                            "WHERE image.name LIKE ? ";
+                    break;
+                case "author":
+                    //Query to check if that exact author exists
+                    c = db.rawQuery("SELECT name " +
+                            "FROM author " +
+                            "WHERE name = ? " +
+                            "LIMIT 1;", new String[] { searchFor });
+                    //If exact author doesn't exist, use LIKE clause
+                    if (c.getCount() == 0) {
+                        query = "SELECT image.id, image.file_name, image.name, author.name AS author_name " +
+                                "FROM image " +
+                                "JOIN author ON author.id = image.author_id " +
+                                "WHERE author_name LIKE ? ";
+                    } else {
+                        query = "SELECT image.id, image.file_name, image.name, author.name AS author_name " +
+                                "FROM image " +
+                                "JOIN author ON author.id = image.author_id " +
+                                "WHERE author_name = ? ";
+                    }
+                    break;
+            }
+            query += "GROUP BY (image.file_name) ";
+            if (randomOrder) {
+                query += "ORDER BY RANDOM();";
+            } else {
+                query += ";";
+            }
+            c = db.rawQuery(query, new String[] { searchFor });
+            c.moveToFirst();
 
-        while (!c.isAfterLast()) {
-            Media media = new Media.Builder()
-                    .id((int) c.getLong(c.getColumnIndex(MyOpenHelper.COL_ID)))
-                    .name(c.getString(c.getColumnIndex(MyOpenHelper.COL_NAME)))
-                    .fileName(c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_FILENAME)))
-                    .author(c.getString(c.getColumnIndex(MyOpenHelper.AUTHOR_TABLE + "_" + MyOpenHelper.COL_NAME)))
-                    .build();
-            mediaList.add(media);
-            c.moveToNext();
+            while (!c.isAfterLast()) {
+                Media media = new Media.Builder()
+                        .id((int) c.getLong(c.getColumnIndex(MyOpenHelper.COL_ID)))
+                        .name(c.getString(c.getColumnIndex(MyOpenHelper.COL_NAME)))
+                        .fileName(c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_FILENAME)))
+                        .author(c.getString(c.getColumnIndex(MyOpenHelper.AUTHOR_TABLE + "_" + MyOpenHelper.COL_NAME)))
+                        .build();
+                mediaList.add(media);
+                c.moveToNext();
+            }
+            c.close();
+            db.close();
+        } else {
+            File rootPath = new File(path);
+            File[] files = rootPath.listFiles(File::isFile);
+            HashSet<String> fileNames = new HashSet<>();
+            for (File file : files) {
+                fileNames.add(file.getName());
+            }
+            HashSet<String> dbFileNames = new HashSet<>();
+            MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
+            SQLiteDatabase db = myOpenHelper.getWritableDatabase();
+            Cursor c = db.rawQuery("SELECT file_name FROM image;", null);
+            c.moveToFirst();
+
+            while (!c.isAfterLast()) {
+                dbFileNames.add(c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_FILENAME)));
+                c.moveToNext();
+            }
+            c.close();
+            fileNames.removeAll(dbFileNames);
+            db.beginTransaction();
+            for (String fileName : fileNames) {
+                if (Constants.VIDEO_EXTENSIONS.contains(fileName.substring(fileName.lastIndexOf("."))) ||
+                        Constants.IMAGE_EXTENSIONS.contains(fileName.substring(fileName.lastIndexOf(".")))) {
+
+                    Media media = new Media.Builder()
+                            .id(-1)
+                            .name(fileName.substring(0, fileName.lastIndexOf(".")))
+                            .fileName(fileName)
+                            .author("unknown")
+                            .build();
+                    media.setId(myOpenHelper.insertMedia(db, media));
+                    mediaList.add(media);
+                }
+            }
+            db.setTransactionSuccessful();
+            db.endTransaction();
+            db.close();
         }
-        c.close();
-        db.close();
         adapter.notifyItemRangeInserted(0, mediaList.size());
+        Toast.makeText(getApplicationContext(), mediaList.size() + " results", Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -178,7 +223,7 @@ public class SearchResultsActivity extends BaseActivity {
                 }
                 dataToPass.putStringArrayList("fileNames", fileNames);
                 dataToPass.putInt("position", position);
-                Intent ii = new Intent(SearchResultsActivity.this, FullImageActivity.class);
+                Intent ii = new Intent(SearchResultsActivity.this, FullMediaActivity.class);
                 ii.putExtras(dataToPass);
                 startActivity(ii);
             });
@@ -191,7 +236,7 @@ public class SearchResultsActivity extends BaseActivity {
                 dataToPass.putParcelable("media", media);
                 System.out.println("position: " + position);
                 dataToPass.putInt("position", position);
-                Intent ii = new Intent(SearchResultsActivity.this, ImageDetailsActivity.class);
+                Intent ii = new Intent(SearchResultsActivity.this, MediaDetailsActivity.class);
                 ii.putExtras(dataToPass);
                 fullImageActivity.launch(ii);
                 return true;
@@ -290,19 +335,31 @@ public class SearchResultsActivity extends BaseActivity {
             if (validate()) { return bm; }
             File f = new File(path + "/" + fileName);
             if (f.exists()) {
-                BitmapFactory.Options options = new BitmapFactory.Options();
-                options.inPreferredConfig = Bitmap.Config.RGB_565;
-                if (validate()) { return bm; }
-                bm = BitmapFactory.decodeFile(f.getAbsolutePath(), options);
-                //compress the image
-                bm = resize(bm, bm.getWidth() / 4, bm.getHeight() / 4);
-                int bmSize = bm.getByteCount();
-                while (bmSize > (100 * 1024 * 1024)) {
+                //Image
+                if (Constants.IMAGE_EXTENSIONS.contains(fileName.substring(fileName.lastIndexOf("."))) ||
+                        fileName.substring(fileName.lastIndexOf(".")).equals(".gif")) {
                     if (validate()) { return bm; }
-                    bm = resize(bm, bm.getWidth() / 2, bm.getHeight() / 2);
-                    bmSize = bm.getByteCount();
+
+                    BitmapFactory.Options options = new BitmapFactory.Options();
+                    options.inPreferredConfig = Bitmap.Config.RGB_565;
+                    bm = BitmapFactory.decodeFile(f.getAbsolutePath(), options);
+                    bm = resize(bm, bm.getWidth() / 4, bm.getHeight() / 4);
+
+                    int bmSize = bm.getByteCount(); //we compress the image
+                    while (bmSize > (100 * 1024 * 1024)) {
+                        if (validate()) { return bm; }
+
+                        bm = resize(bm, bm.getWidth() / 2, bm.getHeight() / 2);
+                        bmSize = bm.getByteCount();
+                    }
+                    imageCache.put(fileName, bm);
+                //Video
+                } else if (Constants.VIDEO_EXTENSIONS.contains(fileName.substring(fileName.lastIndexOf(".")))) {
+                    if (validate()) { return bm; }
+                    //thumbnails can be created easier for videos
+                    bm = ThumbnailUtils.createVideoThumbnail(path + "/" + fileName, MediaStore.Video.Thumbnails.MICRO_KIND);
+                    imageCache.put(fileName, bm);
                 }
-                imageCache.put(fileName, bm);
             }
             return bm;
         }

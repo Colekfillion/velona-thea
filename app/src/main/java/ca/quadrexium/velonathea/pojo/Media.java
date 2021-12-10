@@ -24,6 +24,7 @@ public class Media implements Parcelable {
     public String getAuthor() { return author; }
     public String getLink() { return link; }
 
+    public void setId(int id) { this.id = id; }
     public void setName(String name) { this.name = name; }
     public void setFileName(String fileName) { this.fileName = fileName; }
     public void setAuthor(String author) { this.author = author; }
@@ -33,7 +34,7 @@ public class Media implements Parcelable {
         private int id = 0;
         private String name;
         private String fileName;
-        private String author;
+        private String author = "unknown";
         private String link;
 
         public Builder id(int id) {

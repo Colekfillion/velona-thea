@@ -4,13 +4,26 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".activity.FullImageActivity"
+    tools:context=".activity.FullMediaActivity"
     android:background="@color/black">
 
     <ca.quadrexium.velonathea.view.ZoomableImageView
         android:id="@+id/activity_full_image_zimgv_image"
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
+
+    <VideoView
+        android:id="@+id/activity_full_image_vv_video"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:visibility="gone"/>
+
+    <pl.droidsonroids.gif.GifImageView
+        android:id="@+id/activity_full_image_giv_gif"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
 
     <include layout="@layout/activity_full_image_tb_listenersetting"/>
 

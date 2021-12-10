@@ -15,10 +15,10 @@
             android:name="ca.quadrexium.velonathea.activity.BaseActivity"
             android:exported="false" />
         <activity
-            android:name="ca.quadrexium.velonathea.activity.ImageDetailsActivity"
+            android:name="ca.quadrexium.velonathea.activity.MediaDetailsActivity"
             android:exported="false" />
         <activity
-            android:name="ca.quadrexium.velonathea.activity.FullImageActivity"
+            android:name="ca.quadrexium.velonathea.activity.FullMediaActivity"
             android:exported="false" />
         <activity
             android:name="ca.quadrexium.velonathea.activity.ChooseDirActivity"

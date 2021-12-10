@@ -12,7 +12,7 @@ import ca.quadrexium.velonathea.R;
 import ca.quadrexium.velonathea.database.MyOpenHelper;
 import ca.quadrexium.velonathea.pojo.Media;
 
-public class ImageDetailsActivity extends BaseActivity {
+public class MediaDetailsActivity extends BaseActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

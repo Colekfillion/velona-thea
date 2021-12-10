@@ -18,22 +18,22 @@ public class MainActivity extends BaseActivity {
 
         SharedPreferences prefs = getSharedPreferences("preferences", MODE_PRIVATE);
 
-        EditText searchBar = findViewById(R.id.activity_main_searchbar);
-        SwitchCompat randomOrder = findViewById(R.id.activity_main_random_order_switch);
+        EditText searchBar = findViewById(R.id.activity_main_et_search);
+        SwitchCompat randomOrder = findViewById(R.id.activity_main_swtch_random);
         randomOrder.setChecked(prefs.getBoolean("randomOrder", false));
 
-        Button tagButton = findViewById(R.id.activity_main_searchtagbutton);
+        Button tagButton = findViewById(R.id.activity_main_btn_tagsearch);
         tagButton.setOnClickListener(v -> searchIntent("tag", searchBar.getText().toString()));
-        Button authorButton = findViewById(R.id.activity_main_searchauthorbutton);
+        Button authorButton = findViewById(R.id.activity_main_btn_authorsearch);
         authorButton.setOnClickListener(v -> searchIntent("author", searchBar.getText().toString()));
-        Button titleButton = findViewById(R.id.activity_main_searchtitlebutton);
+        Button titleButton = findViewById(R.id.activity_main_btn_namesearch);
         titleButton.setOnClickListener(v -> searchIntent("title", searchBar.getText().toString()));
+        Button unsortedButton = findViewById(R.id.activity_main_btn_unsortedsearch);
+        unsortedButton.setOnClickListener(v -> searchIntent("unsorted", ""));
     }
 
     @Override
-    protected int getLayoutResourceId() {
-        return R.layout.activity_main;
-    }
+    protected int getLayoutResourceId() { return R.layout.activity_main; }
 
     @Override
     protected void onPause() {
@@ -42,7 +42,7 @@ public class MainActivity extends BaseActivity {
         SharedPreferences prefs = getSharedPreferences("preferences", MODE_PRIVATE);
         SharedPreferences.Editor edit = prefs.edit();
 
-        SwitchCompat randomOrder = findViewById(R.id.activity_main_random_order_switch);
+        SwitchCompat randomOrder = findViewById(R.id.activity_main_swtch_random);
         edit.putBoolean("randomOrder", randomOrder.isChecked());
         edit.apply();
     }
