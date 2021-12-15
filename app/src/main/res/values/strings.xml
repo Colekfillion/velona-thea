@@ -20,4 +20,5 @@
     <string name="image_cache_size">Image cache size</string>
     <string name="update">Update</string>
     <string name="only_unsorted_files">Only unsorted files</string>
+    <string name="import_media_in_root_directory">Import media in root directory</string>
 </resources>

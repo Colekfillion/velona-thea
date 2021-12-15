@@ -8,6 +8,8 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.widget.Toast;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -18,7 +20,7 @@ import ca.quadrexium.velonathea.pojo.Media;
 public class MyOpenHelper extends SQLiteOpenHelper {
 
     public final static String DATABASE_NAME = "image_database";
-    public final static int DATABASE_VERSION = 4;
+    public final static int DATABASE_VERSION = 5;
 
     public final static String COL_ID = "id";
     public final static String COL_NAME = "name";
@@ -33,6 +35,11 @@ public class MyOpenHelper extends SQLiteOpenHelper {
     public final static String IMAGE_TAG_TABLE = IMAGE_TABLE + "_" + TAG_TABLE;
     public final static String COL_IMAGE_TAG_IMAGE_ID = IMAGE_TABLE + "_" + COL_ID;
     public final static String COL_IMAGE_TAG_TAG_ID = TAG_TABLE + "_" + COL_ID;
+
+    private final String IMAGE_BASE_QUERY = "SELECT image.id, image.file_name, image.name, author.name AS author_name " +
+            "FROM image " +
+            "JOIN author ON author.id = image.author_id ";
+    private final String IMAGE_GROUP_BY = "GROUP BY (image.file_name) ";
 
     public final static String AUTHOR_TABLE = "author";
 
@@ -119,7 +126,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         return authorId;
     }
 
-    public synchronized int getTagId(SQLiteDatabase db, String tag) {
+    public synchronized int getTagIdOrInsert(SQLiteDatabase db, String tag) {
         Cursor tagCursor = db.rawQuery("SELECT id FROM tag WHERE name = ? LIMIT 1;", new String[]{ tag } );
         int tagId;
         //If tag does not exist, insert tag into database
@@ -134,6 +141,19 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         tagCursor.close();
         return tagId;
     }
+
+//    public synchronized int getTagId(SQLiteDatabase db, String tag) {
+//        Cursor tagCursor = db.rawQuery("SELECT id FROM tag WHERE name = ? LIMIT 1;", new String[]{ tag } );
+//        int tagId;
+//        if (tagCursor.getCount() == 0) {
+//            tagId = -1;
+//        } else {
+//            tagCursor.moveToFirst();
+//            tagId = (int) tagCursor.getLong(tagCursor.getColumnIndex(COL_ID));
+//        }
+//        tagCursor.close();
+//        return tagId;
+//    }
 
     public synchronized int insertMedia(SQLiteDatabase db, Media media) {
         int authorId = getAuthorId(db, media.getAuthor());
@@ -161,5 +181,75 @@ public class MyOpenHelper extends SQLiteOpenHelper {
             return true;
         }
         return false;
+    }
+
+    public synchronized ArrayList<Media> getMediaListByTags(SQLiteDatabase db, String tag, String[] orderBy) {
+        String query = IMAGE_BASE_QUERY +
+                "JOIN image_tag ON image.id = image_tag.image_id " +
+                "JOIN tag ON image_tag.tag_id = tag.id " +
+                "AND tag.name LIKE ? " +
+                IMAGE_GROUP_BY +
+                "ORDER BY ";
+        for (int i = 0; i < orderBy.length; i++) {
+            String orderArg = orderBy[i];
+            query += orderArg;
+            if (i != orderBy.length-1) {
+                query += ", ";
+            }
+        }
+
+        Cursor c = db.rawQuery(query, new String[] { tag });
+        return getMediaList(c);
+    }
+
+    public synchronized ArrayList<Media> getMediaListByTitle(SQLiteDatabase db, String name, String[] orderBy) {
+        String query = IMAGE_BASE_QUERY +
+                "WHERE image.name LIKE ? " +
+                IMAGE_GROUP_BY +
+                "ORDER BY ";
+        for (int i = 0; i < orderBy.length; i++) {
+            String orderArg = orderBy[i];
+            query += orderArg;
+            if (i != orderBy.length-1) {
+                query += ", ";
+            }
+        }
+
+        Cursor c = db.rawQuery(query, new String[] { name });
+        return getMediaList(c);
+    }
+
+    public synchronized ArrayList<Media> getMediaListByAuthor(SQLiteDatabase db, String author, String[] orderBy) {
+        String query = IMAGE_BASE_QUERY +
+                "WHERE author_name LIKE ? " +
+                IMAGE_GROUP_BY +
+                "ORDER BY ";
+        for (int i = 0; i < orderBy.length; i++) {
+            String orderArg = orderBy[i];
+            query += orderArg;
+            if (i != orderBy.length-1) {
+                query += ", ";
+            }
+        }
+
+        Cursor c = db.rawQuery(query, new String[] { author });
+        return getMediaList(c);
+    }
+
+    private synchronized ArrayList<Media> getMediaList(Cursor c) {
+        ArrayList<Media> mediaList = new ArrayList<>();
+        c.moveToFirst();
+        while (!c.isAfterLast()) {
+            Media media = new Media.Builder()
+                    .id((int) c.getInt(c.getColumnIndex(MyOpenHelper.COL_ID)))
+                    .name(c.getString(c.getColumnIndex(MyOpenHelper.COL_NAME)))
+                    .fileName(c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_FILENAME)))
+                    .author(c.getString(c.getColumnIndex(MyOpenHelper.AUTHOR_TABLE + "_" + MyOpenHelper.COL_NAME)))
+                    .build();
+            mediaList.add(media);
+            c.moveToNext();
+        }
+        c.close();
+        return mediaList;
     }
 }

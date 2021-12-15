@@ -7,8 +7,8 @@
     tools:context=".activity.FullMediaActivity"
     android:background="@color/black">
 
-    <ca.quadrexium.velonathea.view.ZoomableImageView
-        android:id="@+id/activity_full_image_zimgv_image"
+    <com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
+        android:id="@+id/activity_full_image_iv_image"
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 

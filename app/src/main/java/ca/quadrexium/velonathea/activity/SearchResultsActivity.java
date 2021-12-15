@@ -81,6 +81,7 @@ public class SearchResultsActivity extends BaseActivity {
         //Setting global variables
         path = prefs.getString("path", Environment.DIRECTORY_PICTURES);
         maxCacheSize = prefs.getInt("maxCacheSize", 20);
+        boolean showHiddenFiles = prefs.getBoolean("showHiddenFiles", false);
 
         //Local variables
         String searchMode = dataToPass.getString("searchMode");
@@ -97,107 +98,31 @@ public class SearchResultsActivity extends BaseActivity {
         rv.setLayoutManager(layoutManager);
         rv.setAdapter(adapter = new MyAdapter());
 
-        if (!searchMode.equals("unsorted")) {
-            MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
-            SQLiteDatabase db = myOpenHelper.getReadableDatabase();
-            String query = "";
-            Cursor c;
-            switch(searchMode){
+        MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
+        SQLiteDatabase db = myOpenHelper.getReadableDatabase();
+        ArrayList<String> orderBy = new ArrayList<>();
+        if (randomOrder) {
+            orderBy.add("RANDOM()");
+        }
+        if (showHiddenFiles || !path.contains(".")) {
+            switch (searchMode) {
                 case "tag":
-                    query = "SELECT image.id, image.file_name, image.name, author.name AS author_name " +
-                            "FROM image " +
-                            "JOIN image_tag ON image.id = image_tag.image_id " +
-                            "JOIN author ON author.id = image.author_id " +
-                            "JOIN tag ON image_tag.tag_id = tag.id " +
-                            "AND tag.name LIKE ? ";
+                    orderBy.add(MyOpenHelper.IMAGE_TABLE + "." + MyOpenHelper.COL_NAME);
+                    mediaList.addAll(myOpenHelper.getMediaListByTags(db, searchFor, orderBy.toArray(new String[0])));
                     break;
                 case "title":
-                    query = "SELECT image.id, image.file_name, image.name, author.name AS author_name " +
-                            "FROM image " +
-                            "JOIN author ON author.id = image.author_id " +
-                            "WHERE image.name LIKE ? ";
+                    orderBy.add(MyOpenHelper.IMAGE_TABLE + "." + MyOpenHelper.COL_NAME);
+                    mediaList.addAll(myOpenHelper.getMediaListByTitle(db, searchFor, orderBy.toArray(new String[0])));
                     break;
                 case "author":
-                    //Query to check if that exact author exists
-                    c = db.rawQuery("SELECT name " +
-                            "FROM author " +
-                            "WHERE name = ? " +
-                            "LIMIT 1;", new String[] { searchFor });
-                    //If exact author doesn't exist, use LIKE clause
-                    if (c.getCount() == 0) {
-                        query = "SELECT image.id, image.file_name, image.name, author.name AS author_name " +
-                                "FROM image " +
-                                "JOIN author ON author.id = image.author_id " +
-                                "WHERE author_name LIKE ? ";
-                    } else {
-                        query = "SELECT image.id, image.file_name, image.name, author.name AS author_name " +
-                                "FROM image " +
-                                "JOIN author ON author.id = image.author_id " +
-                                "WHERE author_name = ? ";
-                    }
+                    orderBy.add(MyOpenHelper.AUTHOR_TABLE + "." + MyOpenHelper.COL_NAME);
+                    mediaList.addAll(myOpenHelper.getMediaListByAuthor(db, searchFor, orderBy.toArray(new String[0])));
                     break;
             }
-            query += "GROUP BY (image.file_name) ";
-            if (randomOrder) {
-                query += "ORDER BY RANDOM();";
-            } else {
-                query += ";";
-            }
-            c = db.rawQuery(query, new String[] { searchFor });
-            c.moveToFirst();
-
-            while (!c.isAfterLast()) {
-                Media media = new Media.Builder()
-                        .id((int) c.getLong(c.getColumnIndex(MyOpenHelper.COL_ID)))
-                        .name(c.getString(c.getColumnIndex(MyOpenHelper.COL_NAME)))
-                        .fileName(c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_FILENAME)))
-                        .author(c.getString(c.getColumnIndex(MyOpenHelper.AUTHOR_TABLE + "_" + MyOpenHelper.COL_NAME)))
-                        .build();
-                mediaList.add(media);
-                c.moveToNext();
-            }
-            c.close();
-            db.close();
-        } else {
-            File rootPath = new File(path);
-            File[] files = rootPath.listFiles(File::isFile);
-            HashSet<String> fileNames = new HashSet<>();
-            for (File file : files) {
-                fileNames.add(file.getName());
-            }
-            HashSet<String> dbFileNames = new HashSet<>();
-            MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
-            SQLiteDatabase db = myOpenHelper.getWritableDatabase();
-            Cursor c = db.rawQuery("SELECT file_name FROM image;", null);
-            c.moveToFirst();
-
-            while (!c.isAfterLast()) {
-                dbFileNames.add(c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_FILENAME)));
-                c.moveToNext();
-            }
-            c.close();
-            fileNames.removeAll(dbFileNames);
-            db.beginTransaction();
-            for (String fileName : fileNames) {
-                if (Constants.VIDEO_EXTENSIONS.contains(fileName.substring(fileName.lastIndexOf("."))) ||
-                        Constants.IMAGE_EXTENSIONS.contains(fileName.substring(fileName.lastIndexOf(".")))) {
-
-                    Media media = new Media.Builder()
-                            .id(-1)
-                            .name(fileName.substring(0, fileName.lastIndexOf(".")))
-                            .fileName(fileName)
-                            .author("unknown")
-                            .build();
-                    media.setId(myOpenHelper.insertMedia(db, media));
-                    mediaList.add(media);
-                }
-            }
-            db.setTransactionSuccessful();
-            db.endTransaction();
-            db.close();
+            adapter.notifyItemRangeInserted(0, mediaList.size());
         }
-        adapter.notifyItemRangeInserted(0, mediaList.size());
         Toast.makeText(getApplicationContext(), mediaList.size() + " results", Toast.LENGTH_SHORT).show();
+        db.close();
     }
 
     @Override

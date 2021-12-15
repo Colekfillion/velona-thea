@@ -11,6 +11,12 @@
         android:text="@string/button_load" />
 
     <Button
+        android:id="@+id/activity_config_btn_importunsorted"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/import_media_in_root_directory" />
+
+    <Button
         android:id="@+id/activity_config_deletebutton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

@@ -28,8 +28,6 @@ public class MainActivity extends BaseActivity {
         authorButton.setOnClickListener(v -> searchIntent("author", searchBar.getText().toString()));
         Button titleButton = findViewById(R.id.activity_main_btn_namesearch);
         titleButton.setOnClickListener(v -> searchIntent("title", searchBar.getText().toString()));
-        Button unsortedButton = findViewById(R.id.activity_main_btn_unsortedsearch);
-        unsortedButton.setOnClickListener(v -> searchIntent("unsorted", ""));
     }
 
     @Override
