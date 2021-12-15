@@ -71,6 +71,6 @@ public class MediaDetailsActivity extends BaseActivity {
 
     @Override
     protected int getLayoutResourceId() {
-        return R.layout.activity_image_details;
+        return R.layout.activity_media_details;
     }
 }

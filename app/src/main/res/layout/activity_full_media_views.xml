@@ -8,23 +8,21 @@
     android:background="@color/black">
 
     <com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
-        android:id="@+id/activity_full_image_iv_image"
+        android:id="@+id/activity_full_media_iv_image"
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 
     <VideoView
-        android:id="@+id/activity_full_image_vv_video"
+        android:id="@+id/activity_full_media_vv_video"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
         android:visibility="gone"/>
 
     <pl.droidsonroids.gif.GifImageView
-        android:id="@+id/activity_full_image_giv_gif"
+        android:id="@+id/activity_full_media_giv_gif"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:visibility="gone" />
-
-    <include layout="@layout/activity_full_image_tb_listenersetting"/>
 
 </RelativeLayout>
