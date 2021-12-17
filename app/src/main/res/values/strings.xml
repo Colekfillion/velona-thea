@@ -21,4 +21,8 @@
     <string name="update">Update</string>
     <string name="only_unsorted_files">Only unsorted files</string>
     <string name="import_media_in_root_directory">Import media in root directory</string>
+    <string name="go">Go</string>
+    <string name="tag_like">Tag like...</string>
+    <string name="author_name">Author name</string>
+    <string name="image_title">Image title</string>
 </resources>

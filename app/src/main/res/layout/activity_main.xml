@@ -8,35 +8,40 @@
         <include layout="@layout/toolbar"/>
 
         <EditText
-            android:id="@+id/activity_main_et_search"
+            android:id="@+id/activity_main_et_title_search"
             android:inputType="text"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/searchbar_hint"
+            android:hint="@string/image_title"
+            android:importantForAutofill="no" />
+
+        <EditText
+            android:id="@+id/activity_main_et_author_search"
+            android:inputType="text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/author_name"
+            android:importantForAutofill="no" />
+
+        <EditText
+            android:id="@+id/activity_main_et_tag_search"
+            android:inputType="text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/tag_like"
             android:importantForAutofill="no" />
 
         <Button
-            android:id="@+id/activity_main_btn_tagsearch"
+            android:id="@+id/activity_main_btn_search"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/button_tag" />
-
-        <Button
-            android:id="@+id/activity_main_btn_namesearch"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/button_title" />
-
-        <Button
-            android:id="@+id/activity_main_btn_authorsearch"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/button_author" />
+            android:text="@string/go" />
 
         <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/activity_main_swtch_random"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/random_order"/>
+
 
 </LinearLayout>

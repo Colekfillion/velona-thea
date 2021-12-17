@@ -18,16 +18,23 @@ public class MainActivity extends BaseActivity {
 
         SharedPreferences prefs = getSharedPreferences("preferences", MODE_PRIVATE);
 
-        EditText searchBar = findViewById(R.id.activity_main_et_search);
         SwitchCompat randomOrder = findViewById(R.id.activity_main_swtch_random);
         randomOrder.setChecked(prefs.getBoolean("randomOrder", false));
 
-        Button tagButton = findViewById(R.id.activity_main_btn_tagsearch);
-        tagButton.setOnClickListener(v -> searchIntent("tag", searchBar.getText().toString()));
-        Button authorButton = findViewById(R.id.activity_main_btn_authorsearch);
-        authorButton.setOnClickListener(v -> searchIntent("author", searchBar.getText().toString()));
-        Button titleButton = findViewById(R.id.activity_main_btn_namesearch);
-        titleButton.setOnClickListener(v -> searchIntent("title", searchBar.getText().toString()));
+        EditText etTitle = findViewById(R.id.activity_main_et_title_search);
+        EditText etAuthor = findViewById(R.id.activity_main_et_author_search);
+        EditText etTag = findViewById(R.id.activity_main_et_tag_search);
+
+        Button btnSearch = findViewById(R.id.activity_main_btn_search);
+        btnSearch.setOnClickListener(v -> {
+            Bundle dataToPass = new Bundle();
+            Intent i = new Intent(this, SearchResultsActivity.class);
+            dataToPass.putString("title", etTitle.getText().toString());
+            dataToPass.putString("author", etAuthor.getText().toString());
+            dataToPass.putString("tag", etTag.getText().toString());
+            i.putExtras(dataToPass);
+            startActivity(i);
+        });
     }
 
     @Override
@@ -43,15 +50,5 @@ public class MainActivity extends BaseActivity {
         SwitchCompat randomOrder = findViewById(R.id.activity_main_swtch_random);
         edit.putBoolean("randomOrder", randomOrder.isChecked());
         edit.apply();
-    }
-
-    //Given search mode and text, go to SearchResultsActivity
-    private void searchIntent(String searchMode, String searchFor) {
-        Bundle dataToPass = new Bundle();
-        Intent i = new Intent(this, SearchResultsActivity.class);
-        dataToPass.putString("searchMode", searchMode);
-        dataToPass.putString("searchFor", searchFor.toLowerCase());
-        i.putExtras(dataToPass);
-        startActivity(i);
     }
 }

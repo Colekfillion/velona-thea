@@ -6,14 +6,18 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Pair;
 import android.widget.Toast;
 
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import ca.quadrexium.velonathea.pojo.Media;
 
@@ -40,6 +44,8 @@ public class MyOpenHelper extends SQLiteOpenHelper {
             "FROM image " +
             "JOIN author ON author.id = image.author_id ";
     private final String IMAGE_GROUP_BY = "GROUP BY (image.file_name) ";
+    private final String TAG_JOIN = "JOIN image_tag ON image.id = image_tag.image_id " +
+            "JOIN tag ON image_tag.tag_id = tag.id ";
 
     public final static String AUTHOR_TABLE = "author";
 
@@ -183,60 +189,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         return false;
     }
 
-    public synchronized ArrayList<Media> getMediaListByTags(SQLiteDatabase db, String tag, String[] orderBy) {
-        String query = IMAGE_BASE_QUERY +
-                "JOIN image_tag ON image.id = image_tag.image_id " +
-                "JOIN tag ON image_tag.tag_id = tag.id " +
-                "AND tag.name LIKE ? " +
-                IMAGE_GROUP_BY +
-                "ORDER BY ";
-        for (int i = 0; i < orderBy.length; i++) {
-            String orderArg = orderBy[i];
-            query += orderArg;
-            if (i != orderBy.length-1) {
-                query += ", ";
-            }
-        }
-
-        Cursor c = db.rawQuery(query, new String[] { tag });
-        return getMediaList(c);
-    }
-
-    public synchronized ArrayList<Media> getMediaListByTitle(SQLiteDatabase db, String name, String[] orderBy) {
-        String query = IMAGE_BASE_QUERY +
-                "WHERE image.name LIKE ? " +
-                IMAGE_GROUP_BY +
-                "ORDER BY ";
-        for (int i = 0; i < orderBy.length; i++) {
-            String orderArg = orderBy[i];
-            query += orderArg;
-            if (i != orderBy.length-1) {
-                query += ", ";
-            }
-        }
-
-        Cursor c = db.rawQuery(query, new String[] { name });
-        return getMediaList(c);
-    }
-
-    public synchronized ArrayList<Media> getMediaListByAuthor(SQLiteDatabase db, String author, String[] orderBy) {
-        String query = IMAGE_BASE_QUERY +
-                "WHERE author_name LIKE ? " +
-                IMAGE_GROUP_BY +
-                "ORDER BY ";
-        for (int i = 0; i < orderBy.length; i++) {
-            String orderArg = orderBy[i];
-            query += orderArg;
-            if (i != orderBy.length-1) {
-                query += ", ";
-            }
-        }
-
-        Cursor c = db.rawQuery(query, new String[] { author });
-        return getMediaList(c);
-    }
-
-    private synchronized ArrayList<Media> getMediaList(Cursor c) {
+    private synchronized ArrayList<Media> parseMediaListFromCursor(Cursor c) {
         ArrayList<Media> mediaList = new ArrayList<>();
         c.moveToFirst();
         while (!c.isAfterLast()) {
@@ -251,5 +204,35 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         }
         c.close();
         return mediaList;
+    }
+
+    public synchronized ArrayList<Media> getMediaList(SQLiteDatabase db, TreeMap<String, String> whereFilters, String[] orderBy) {
+        StringBuilder query = new StringBuilder(IMAGE_BASE_QUERY);
+        if (whereFilters.containsKey(MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_NAME)) {
+            query.append(TAG_JOIN);
+        }
+        if (whereFilters.size() != 0) {
+            query.append("WHERE ");
+            for (Map.Entry<String, String> entry : whereFilters.entrySet()) {
+                query.append(entry.getKey()).append(" LIKE \"").append(entry.getValue()).append("\" ");
+                if (!entry.equals(whereFilters.lastEntry())) {
+                    query.append("AND ");
+                }
+            }
+        }
+        query.append(IMAGE_GROUP_BY);
+        if (orderBy.length != 0) {
+            query.append("ORDER BY ");
+            for (int i = 0; i < orderBy.length; i++) {
+                String orderArg = orderBy[i];
+                query.append(orderArg);
+                if (i != orderBy.length-1) {
+                    query.append(", ");
+                }
+            }
+        }
+
+        Cursor c = db.rawQuery(query.toString(), null);
+        return parseMediaListFromCursor(c);
     }
 }

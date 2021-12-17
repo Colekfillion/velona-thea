@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 import ca.quadrexium.velonathea.R;
 import ca.quadrexium.velonathea.database.MyOpenHelper;
@@ -76,7 +77,7 @@ public class SearchResultsActivity extends BaseActivity {
         createToolbar(R.id.activity_main_toolbar);
 
         SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
-        Bundle dataToPass = getIntent().getExtras();
+        Bundle data = getIntent().getExtras();
 
         //Setting global variables
         path = prefs.getString("path", Environment.DIRECTORY_PICTURES);
@@ -84,8 +85,9 @@ public class SearchResultsActivity extends BaseActivity {
         boolean showHiddenFiles = prefs.getBoolean("showHiddenFiles", false);
 
         //Local variables
-        String searchMode = dataToPass.getString("searchMode");
-        String searchFor = "%" + dataToPass.getString("searchFor") + "%"; //% padding for string matching
+        String title = data.getString("title");
+        String author = data.getString("author");
+        String tag = data.getString("tag");
         boolean randomOrder = prefs.getBoolean("randomOrder", false);
 
         //Recyclerview configuration
@@ -105,20 +107,18 @@ public class SearchResultsActivity extends BaseActivity {
             orderBy.add("RANDOM()");
         }
         if (showHiddenFiles || !path.contains(".")) {
-            switch (searchMode) {
-                case "tag":
-                    orderBy.add(MyOpenHelper.IMAGE_TABLE + "." + MyOpenHelper.COL_NAME);
-                    mediaList.addAll(myOpenHelper.getMediaListByTags(db, searchFor, orderBy.toArray(new String[0])));
-                    break;
-                case "title":
-                    orderBy.add(MyOpenHelper.IMAGE_TABLE + "." + MyOpenHelper.COL_NAME);
-                    mediaList.addAll(myOpenHelper.getMediaListByTitle(db, searchFor, orderBy.toArray(new String[0])));
-                    break;
-                case "author":
-                    orderBy.add(MyOpenHelper.AUTHOR_TABLE + "." + MyOpenHelper.COL_NAME);
-                    mediaList.addAll(myOpenHelper.getMediaListByAuthor(db, searchFor, orderBy.toArray(new String[0])));
-                    break;
+            TreeMap<String, String> whereFilters = new TreeMap<>();
+            if (!title.equals("")) {
+                whereFilters.put(MyOpenHelper.IMAGE_TABLE + "." + MyOpenHelper.COL_NAME, "%" + title + "%");
             }
+            if (!author.equals("")) {
+                whereFilters.put(MyOpenHelper.AUTHOR_TABLE + "_" + MyOpenHelper.COL_NAME, "%" + author + "%");
+            }
+            if (!tag.equals("")) {
+                whereFilters.put(MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_NAME, "%" + tag + "%");
+            }
+
+            mediaList.addAll(myOpenHelper.getMediaList(db, whereFilters, orderBy.toArray(new String[0])));
             adapter.notifyItemRangeInserted(0, mediaList.size());
         }
         Toast.makeText(getApplicationContext(), mediaList.size() + " results", Toast.LENGTH_SHORT).show();
