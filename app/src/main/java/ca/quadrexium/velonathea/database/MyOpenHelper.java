@@ -189,6 +189,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         return false;
     }
 
+    //Creates a media list from a given cursor
     private synchronized ArrayList<Media> parseMediaListFromCursor(Cursor c) {
         ArrayList<Media> mediaList = new ArrayList<>();
         c.moveToFirst();
