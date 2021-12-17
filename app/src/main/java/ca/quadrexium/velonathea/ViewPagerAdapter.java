@@ -2,6 +2,7 @@ package ca.quadrexium.velonathea;
 
 import android.content.Context;
 import android.graphics.BitmapFactory;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -74,7 +75,12 @@ public class ViewPagerAdapter extends PagerAdapter {
 
             videoView.setVideoPath(path + "/" + fileName);
             videoView.start();
-            videoView.setOnCompletionListener(mp -> videoView.start());
+            videoView.setOnCompletionListener(mpa -> videoView.start());
+
+//            videoView.setOnPreparedListener(mp -> videoView.setOnClickListener(v -> {
+//                mp.setLooping(true);
+//            }));
+
         } else if (extension.equals(".gif")) {
             gifImageView.setVisibility(View.VISIBLE);
 
