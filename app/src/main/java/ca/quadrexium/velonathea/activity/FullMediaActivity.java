@@ -51,54 +51,73 @@ public class FullMediaActivity extends BaseActivity {
     @Override
     protected int getLayoutResourceId() { return R.layout.activity_full_media; }
 
-    public class ViewPagerAdapter extends RecyclerView.Adapter<ViewPagerAdapter.ViewHolder> {
+    public class ViewPagerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         @NonNull
         @Override
-        public ViewPagerAdapter.ViewHolder onCreateViewHolder(ViewGroup viewGroup, int viewType) {
-            View view = LayoutInflater.from(viewGroup.getContext()).inflate(
-                    R.layout.activity_full_media_views, viewGroup, false);
-            return new ViewHolder(view);
+        public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType) {
+            View view;
+            switch(viewType) {
+                case 0:
+                    view = LayoutInflater.from(viewGroup.getContext()).inflate(
+                            R.layout.full_image, viewGroup, false);
+                    return new ViewHolderImage(view);
+                case 1:
+                    view = LayoutInflater.from(viewGroup.getContext()).inflate(
+                            R.layout.full_video, viewGroup, false);
+                    return new ViewHolderVideo(view);
+                case 2:
+                    view = LayoutInflater.from(viewGroup.getContext()).inflate(
+                            R.layout.full_gif, viewGroup, false);
+                    return new ViewHolderGif(view);
+            }
+            throw new IllegalStateException("Media is not an image, video, or gif");
         }
 
         @Override
-        public void onBindViewHolder(@NonNull ViewPagerAdapter.ViewHolder holder, int position) {
-
-            holder.imageView.setVisibility(View.GONE);
-            holder.videoView.setVisibility(View.GONE);
-            holder.gifImageView.setVisibility(View.GONE);
-
-            String fileName = fileNames.get(position);
-            String extension = fileName.substring(fileName.lastIndexOf("."));
-
+        public int getItemViewType(int position) {
+            String extension = fileNames.get(position).substring(fileNames.get(position).lastIndexOf("."));
             if (Constants.IMAGE_EXTENSIONS.contains(extension)) {
-                holder.imageView.setVisibility(View.VISIBLE);
-
-                holder.imageView.setImage(ImageSource.uri(Uri.fromFile(new File(path + "/" + fileName))));
+                return 0;
             } else if (Constants.VIDEO_EXTENSIONS.contains(extension)) {
-                holder.videoView.setVisibility(View.VISIBLE);
-
-                holder.videoView.setVideoPath(path + "/" + fileName);
-                holder.videoView.start();
-                holder.videoView.setOnCompletionListener(mpa -> holder.videoView.start());
-
-//            videoView.setOnPreparedListener(mp -> videoView.setOnClickListener(v -> {
-//                mp.setLooping(true);
-//            }));
-
+                return 1;
             } else if (extension.equals(".gif")) {
-                holder.gifImageView.setVisibility(View.VISIBLE);
+                return 2;
+            }
+            throw new IllegalStateException("Media is not an image, video, or gif");
+        }
 
-                File f = new File(path + "/" + fileName);
-                if (f.exists()) {
-                    GifDrawable gifDrawable;
-                    try {
-                        gifDrawable = new GifDrawable(f);
-                        holder.gifImageView.setImageDrawable(gifDrawable);
-                        gifDrawable.start();
-                    } catch (Exception e) {
-                        holder.gifImageView.setImageBitmap(BitmapFactory.decodeFile(f.getAbsolutePath()));
-                    }
+        @Override
+        public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+
+            File f = new File(path + "/" + fileNames.get(position));
+            if (f.exists()) {
+                switch (holder.getItemViewType()) {
+                    case 0:
+                        ViewHolderImage holderImage = (ViewHolderImage) holder;
+
+                        holderImage.imageView.setImage(ImageSource.uri(Uri.fromFile(f)));
+                        break;
+                    case 1:
+                        assert holder instanceof ViewHolderVideo;
+                        ViewHolderVideo holderVideo = (ViewHolderVideo) holder;
+
+                        holderVideo.videoView.setVideoPath(f.getAbsolutePath());
+                        holderVideo.videoView.start();
+                        holderVideo.videoView.setOnCompletionListener(mpa -> holderVideo.videoView.start());
+                        break;
+                    case 2:
+                        assert holder instanceof ViewHolderGif;
+                        ViewHolderGif holderGif = (ViewHolderGif) holder;
+
+                        try {
+                            GifDrawable gifDrawable = new GifDrawable(f);
+                            holderGif.gifImageView.setImageDrawable(gifDrawable);
+                            gifDrawable.start();
+                        } catch (Exception e) {
+                            holderGif.gifImageView.setImageBitmap(BitmapFactory.decodeFile(f.getAbsolutePath()));
+                        }
+                        break;
                 }
             }
         }
@@ -106,15 +125,29 @@ public class FullMediaActivity extends BaseActivity {
         @Override
         public int getItemCount() { return fileNames.size(); }
 
-        public class ViewHolder extends RecyclerView.ViewHolder {
+        public class ViewHolderImage extends RecyclerView.ViewHolder {
             private final SubsamplingScaleImageView imageView;
-            private final VideoView videoView;
-            private final GifImageView gifImageView;
 
-            public ViewHolder(View view) {
+            public ViewHolderImage(View view) {
                 super(view);
                 imageView = view.findViewById(R.id.activity_full_media_iv_image);
+            }
+        }
+
+        public class ViewHolderVideo extends RecyclerView.ViewHolder {
+            private final VideoView videoView;
+
+            public ViewHolderVideo(View view) {
+                super(view);
                 videoView = view.findViewById(R.id.activity_full_media_vv_video);
+            }
+        }
+
+        public class ViewHolderGif extends RecyclerView.ViewHolder {
+            private final GifImageView gifImageView;
+
+            public ViewHolderGif(View view) {
+                super(view);
                 gifImageView = view.findViewById(R.id.activity_full_media_giv_gif);
             }
         }
