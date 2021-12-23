@@ -88,6 +88,30 @@ public class FullMediaActivity extends BaseActivity {
         }
 
         @Override
+        public void onViewAttachedToWindow(@NonNull RecyclerView.ViewHolder holder) {
+            if (holder.getItemViewType() == 1) {
+                assert holder instanceof ViewHolderVideo;
+                ViewHolderVideo holderVideo = (ViewHolderVideo) holder;
+
+                holderVideo.videoView.start();
+                holderVideo.videoView.setOnCompletionListener(mpa -> holderVideo.videoView.start());
+            }
+        }
+
+        @Override
+        public void onViewDetachedFromWindow(@NonNull RecyclerView.ViewHolder holder) {
+            if (holder.getItemViewType() == 1) {
+                assert holder instanceof ViewHolderVideo;
+                ViewHolderVideo holderVideo = (ViewHolderVideo) holder;
+
+                if (holderVideo.videoView.isPlaying()) {
+                    holderVideo.videoView.stopPlayback();
+                    holderVideo.videoView.seekTo(0);
+                }
+            }
+        }
+
+        @Override
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
 
             File f = new File(path + "/" + fileNames.get(position));
@@ -106,8 +130,6 @@ public class FullMediaActivity extends BaseActivity {
 
                         System.out.println(fileNames.get(position) + " is video");
                         holderVideo.videoView.setVideoURI(Uri.fromFile(f));
-                        holderVideo.videoView.start();
-                        holderVideo.videoView.setOnCompletionListener(mpa -> holderVideo.videoView.start());
                         break;
                     case 2:
                         assert holder instanceof ViewHolderGif;
