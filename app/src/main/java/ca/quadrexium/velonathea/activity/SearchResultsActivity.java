@@ -242,8 +242,6 @@ public class SearchResultsActivity extends BaseActivity {
 
         private final MyAdapter.ViewHolder view;
         private String fileName;
-        private float dpHeight;
-        private float dpWidth;
         private float screenDensity;
 
         public ImageLoaderTask(MyAdapter.ViewHolder view) {
@@ -264,15 +262,13 @@ public class SearchResultsActivity extends BaseActivity {
         protected void onPreExecute() {
             DisplayMetrics displayMetrics = getApplicationContext().getResources().getDisplayMetrics();
             screenDensity = displayMetrics.density;
-            dpHeight = displayMetrics.heightPixels / screenDensity;
-            dpWidth = displayMetrics.widthPixels / screenDensity;
         }
 
         @Override
         protected Bitmap doInBackground(String... strings) {
             Bitmap bm = null;
             fileName = strings[0];
-            if (validate()) { return bm; }
+            if (validate()) { return bm; } //get used to this
             File f = new File(path + "/" + fileName);
             if (f.exists()) {
                 //Image and gif (gifs can be loaded like a bitmap)
@@ -280,21 +276,23 @@ public class SearchResultsActivity extends BaseActivity {
                         fileName.substring(fileName.lastIndexOf(".")).equals(".gif")) {
                     if (validate()) { return bm; }
 
+                    //Just decoding the dimensions of the target image
                     BitmapFactory.Options options = new BitmapFactory.Options();
                     options.inJustDecodeBounds = true;
                     BitmapFactory.decodeFile(f.getAbsolutePath(), options);
                     if (validate()) { return bm; }
-                    int width = Math.round(options.outWidth / screenDensity);
+                    int height = Math.round(options.outHeight / screenDensity); //height as dp
 
-                    int sampleSize = 1;
-                    if (width != 80) {
-                        sampleSize = Math.round(width / 80f);
+                    int sampleSize = 1; //how much smaller the image should be loaded
+                    if (height != 80) {
+                        //if the height is 160dp, image will be loaded half as big
+                        sampleSize = Math.round(height / 80f);
                     }
 
+                    //Loading the image with subsampling to save memory (smaller version of image)
                     options.inJustDecodeBounds = false;
                     options.inSampleSize = sampleSize;
-                    options.inPreferredConfig = Bitmap.Config.RGB_565;
-
+                    options.inPreferredConfig = Bitmap.Config.RGB_565; //less colours
                     if (validate()) { return bm; }
                     bm = BitmapFactory.decodeFile(f.getAbsolutePath(), options);
                     imageCache.put(fileName, bm);
