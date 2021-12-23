@@ -91,18 +91,21 @@ public class FullMediaActivity extends BaseActivity {
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
 
             File f = new File(path + "/" + fileNames.get(position));
+            System.out.println("On file " + fileNames.get(position));
             if (f.exists()) {
                 switch (holder.getItemViewType()) {
                     case 0:
                         ViewHolderImage holderImage = (ViewHolderImage) holder;
 
+                        System.out.println(fileNames.get(position) + " is image");
                         holderImage.imageView.setImage(ImageSource.uri(Uri.fromFile(f)));
                         break;
                     case 1:
                         assert holder instanceof ViewHolderVideo;
                         ViewHolderVideo holderVideo = (ViewHolderVideo) holder;
 
-                        holderVideo.videoView.setVideoPath(f.getAbsolutePath());
+                        System.out.println(fileNames.get(position) + " is video");
+                        holderVideo.videoView.setVideoURI(Uri.fromFile(f));
                         holderVideo.videoView.start();
                         holderVideo.videoView.setOnCompletionListener(mpa -> holderVideo.videoView.start());
                         break;
@@ -110,6 +113,7 @@ public class FullMediaActivity extends BaseActivity {
                         assert holder instanceof ViewHolderGif;
                         ViewHolderGif holderGif = (ViewHolderGif) holder;
 
+                        System.out.println(fileNames.get(position) + " is gif");
                         try {
                             GifDrawable gifDrawable = new GifDrawable(f);
                             holderGif.gifImageView.setImageDrawable(gifDrawable);
@@ -117,6 +121,28 @@ public class FullMediaActivity extends BaseActivity {
                         } catch (Exception e) {
                             holderGif.gifImageView.setImageBitmap(BitmapFactory.decodeFile(f.getAbsolutePath()));
                         }
+                        break;
+                }
+            } else {
+                System.out.println("Cannot find " + fileNames.get(position));
+                switch (holder.getItemViewType()) {
+                    case 0:
+                        ViewHolderImage holderImage = (ViewHolderImage) holder;
+
+                        holderImage.imageView.setImage(ImageSource.resource(R.drawable.null_image));
+                        holderImage.imageView.setZoomEnabled(false);
+                        break;
+                    case 1:
+                        assert holder instanceof ViewHolderVideo;
+                        ViewHolderVideo holderVideo = (ViewHolderVideo) holder;
+
+                        holderVideo.videoView.setVideoURI(null);
+                        break;
+                    case 2:
+                        assert holder instanceof ViewHolderGif;
+                        ViewHolderGif holderGif = (ViewHolderGif) holder;
+
+                        holderGif.gifImageView.setImageURI(null);
                         break;
                 }
             }
