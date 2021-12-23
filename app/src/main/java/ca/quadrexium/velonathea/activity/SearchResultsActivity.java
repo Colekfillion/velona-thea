@@ -19,6 +19,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -241,6 +242,9 @@ public class SearchResultsActivity extends BaseActivity {
 
         private final MyAdapter.ViewHolder view;
         private String fileName;
+        private float dpHeight;
+        private float dpWidth;
+        private float screenDensity;
 
         public ImageLoaderTask(MyAdapter.ViewHolder view) {
             this.view = view;
@@ -257,29 +261,42 @@ public class SearchResultsActivity extends BaseActivity {
         }
 
         @Override
+        protected void onPreExecute() {
+            DisplayMetrics displayMetrics = getApplicationContext().getResources().getDisplayMetrics();
+            screenDensity = displayMetrics.density;
+            dpHeight = displayMetrics.heightPixels / screenDensity;
+            dpWidth = displayMetrics.widthPixels / screenDensity;
+        }
+
+        @Override
         protected Bitmap doInBackground(String... strings) {
             Bitmap bm = null;
             fileName = strings[0];
             if (validate()) { return bm; }
             File f = new File(path + "/" + fileName);
             if (f.exists()) {
-                //Image
+                //Image and gif (gifs can be loaded like a bitmap)
                 if (Constants.IMAGE_EXTENSIONS.contains(fileName.substring(fileName.lastIndexOf("."))) ||
                         fileName.substring(fileName.lastIndexOf(".")).equals(".gif")) {
                     if (validate()) { return bm; }
 
                     BitmapFactory.Options options = new BitmapFactory.Options();
-                    options.inPreferredConfig = Bitmap.Config.RGB_565;
-                    bm = BitmapFactory.decodeFile(f.getAbsolutePath(), options);
-                    bm = resize(bm, bm.getWidth() / 4, bm.getHeight() / 4);
+                    options.inJustDecodeBounds = true;
+                    BitmapFactory.decodeFile(f.getAbsolutePath(), options);
+                    if (validate()) { return bm; }
+                    int width = Math.round(options.outWidth / screenDensity);
 
-                    int bmSize = bm.getByteCount(); //we compress the image
-                    while (bmSize > (100 * 1024 * 1024)) {
-                        if (validate()) { return bm; }
-
-                        bm = resize(bm, bm.getWidth() / 2, bm.getHeight() / 2);
-                        bmSize = bm.getByteCount();
+                    int sampleSize = 1;
+                    if (width != 80) {
+                        sampleSize = Math.round(width / 80f);
                     }
+
+                    options.inJustDecodeBounds = false;
+                    options.inSampleSize = sampleSize;
+                    options.inPreferredConfig = Bitmap.Config.RGB_565;
+
+                    if (validate()) { return bm; }
+                    bm = BitmapFactory.decodeFile(f.getAbsolutePath(), options);
                     imageCache.put(fileName, bm);
                 //Video
                 } else if (Constants.VIDEO_EXTENSIONS.contains(fileName.substring(fileName.lastIndexOf(".")))) {
