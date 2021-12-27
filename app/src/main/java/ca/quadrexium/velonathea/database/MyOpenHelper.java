@@ -208,6 +208,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
     }
 
     public synchronized ArrayList<Media> getMediaList(SQLiteDatabase db, TreeMap<String, ArrayList<String>> whereFilters, String[] orderBy) {
+        ArrayList<String> selectionArgs = new ArrayList<>();
         StringBuilder query = new StringBuilder(IMAGE_BASE_QUERY);
         if (whereFilters.containsKey(MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_NAME)) {
             query.append(TAG_JOIN);
@@ -223,7 +224,8 @@ public class MyOpenHelper extends SQLiteOpenHelper {
                 //For filtering when the column value may match multiple values (OR clause)
                 query.append("(");
                 for (int i = 0; i < entry.getValue().size(); i++) {
-                    query.append(entry.getKey()).append(" LIKE \"").append("%").append(entry.getValue().get(i)).append("%").append("\" ");
+                    query.append(entry.getKey()).append(" LIKE ? ");
+                    selectionArgs.add("%" + entry.getValue().get(i) + "%");
                     if (entry.getValue().size() > 1 && i != entry.getValue().size()-1) {
                         query.append("OR ");
                     }
@@ -239,15 +241,16 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         if (orderBy.length != 0) {
             query.append("ORDER BY ");
             for (int i = 0; i < orderBy.length; i++) {
-                String orderArg = orderBy[i];
-                query.append(orderArg);
+                query.append("?");
+                selectionArgs.add(orderBy[i]);
                 if (i != orderBy.length-1) {
                     query.append(", ");
                 }
             }
         }
 
-        Cursor c = db.rawQuery(query.toString(), null);
+        String[] stringSelectionArgs = selectionArgs.toArray(new String[0]);
+        Cursor c = db.rawQuery(query.toString(), stringSelectionArgs);
         return parseMediaListFromCursor(c);
     }
 }
