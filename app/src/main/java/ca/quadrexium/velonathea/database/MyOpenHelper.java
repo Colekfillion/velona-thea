@@ -207,15 +207,29 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         return mediaList;
     }
 
-    public synchronized ArrayList<Media> getMediaList(SQLiteDatabase db, TreeMap<String, String> whereFilters, String[] orderBy) {
+    public synchronized ArrayList<Media> getMediaList(SQLiteDatabase db, TreeMap<String, ArrayList<String>> whereFilters, String[] orderBy) {
         StringBuilder query = new StringBuilder(IMAGE_BASE_QUERY);
         if (whereFilters.containsKey(MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_NAME)) {
             query.append(TAG_JOIN);
         }
+        //Creates the where clause
+        //whereFilters values can be an arraylist with one or more values. If there is only one:
+        // "WHERE (column LIKE value) AND (column2 LIKE value2)"
+        // If there are multiple:
+        // "WHERE (column LIKE valueA OR column LIKE valueB) AND (column2 LIKE value2)
         if (whereFilters.size() != 0) {
             query.append("WHERE ");
-            for (Map.Entry<String, String> entry : whereFilters.entrySet()) {
-                query.append(entry.getKey()).append(" LIKE \"").append(entry.getValue()).append("\" ");
+            for (Map.Entry<String, ArrayList<String>> entry : whereFilters.entrySet()) {
+                //For filtering when the column value may match multiple values (OR clause)
+                query.append("(");
+                for (int i = 0; i < entry.getValue().size(); i++) {
+                    query.append(entry.getKey()).append(" LIKE \"").append("%").append(entry.getValue().get(i)).append("%").append("\" ");
+                    if (entry.getValue().size() > 1 && i != entry.getValue().size()-1) {
+                        query.append("OR ");
+                    }
+                }
+                query.append(") ");
+                //For filtering other columns, append AND (AND clause)
                 if (!entry.equals(whereFilters.lastEntry())) {
                     query.append("AND ");
                 }

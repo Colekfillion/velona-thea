@@ -29,6 +29,7 @@ import android.widget.Toast;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -89,6 +90,7 @@ public class SearchResultsActivity extends BaseActivity {
         String title = data.getString("title");
         String author = data.getString("author");
         String tag = data.getString("tag");
+        String mediaType = data.getString("mediaType");
         boolean randomOrder = prefs.getBoolean("randomOrder", false);
 
         //Recyclerview configuration
@@ -108,17 +110,28 @@ public class SearchResultsActivity extends BaseActivity {
             orderBy.add("RANDOM()");
         }
         if (showHiddenFiles || !path.contains(".")) {
-            TreeMap<String, String> whereFilters = new TreeMap<>();
+            TreeMap<String, ArrayList<String>> whereFilters = new TreeMap<>();
             if (!title.equals("")) {
-                whereFilters.put(MyOpenHelper.IMAGE_TABLE + "." + MyOpenHelper.COL_NAME, "%" + title + "%");
+                whereFilters.put(MyOpenHelper.IMAGE_TABLE + "." + MyOpenHelper.COL_NAME, new ArrayList<>(
+                        Arrays.asList(title)));
             }
             if (!author.equals("")) {
-                whereFilters.put(MyOpenHelper.AUTHOR_TABLE + "_" + MyOpenHelper.COL_NAME, "%" + author + "%");
+                whereFilters.put(MyOpenHelper.AUTHOR_TABLE + "_" + MyOpenHelper.COL_NAME, new ArrayList<>(
+                        Arrays.asList(author)));
             }
             if (!tag.equals("")) {
-                whereFilters.put(MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_NAME, "%" + tag + "%");
+                whereFilters.put(MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_NAME, new ArrayList<>(
+                        Arrays.asList(tag)));
             }
-
+            if (mediaType != null) {
+                if (mediaType.equals(Constants.IMAGE)) {
+                    whereFilters.put(MyOpenHelper.COL_IMAGE_FILENAME, Constants.IMAGE_EXTENSIONS);
+                } else if (mediaType.equals(Constants.VIDEO)) {
+                    ArrayList<String> videoExtensions = new ArrayList<>(Constants.VIDEO_EXTENSIONS);
+                    videoExtensions.add(".gif"); //gifs are considered videos except for viewing
+                    whereFilters.put(MyOpenHelper.COL_IMAGE_FILENAME, videoExtensions);
+                }
+            }
             mediaList.addAll(myOpenHelper.getMediaList(db, whereFilters, orderBy.toArray(new String[0])));
             adapter.notifyItemRangeInserted(0, mediaList.size());
         }
@@ -163,7 +176,6 @@ public class SearchResultsActivity extends BaseActivity {
                 Media media = mediaList.get(position);
                 Bundle dataToPass = new Bundle();
                 dataToPass.putParcelable("media", media);
-                System.out.println("position: " + position);
                 dataToPass.putInt("position", position);
                 Intent ii = new Intent(SearchResultsActivity.this, MediaDetailsActivity.class);
                 ii.putExtras(dataToPass);
@@ -300,7 +312,7 @@ public class SearchResultsActivity extends BaseActivity {
                 } else if (Constants.VIDEO_EXTENSIONS.contains(fileName.substring(fileName.lastIndexOf(".")))) {
                     if (validate()) { return bm; }
                     //thumbnails can be created easier for videos
-                    bm = ThumbnailUtils.createVideoThumbnail(path + "/" + fileName, MediaStore.Video.Thumbnails.MICRO_KIND);
+                    bm = ThumbnailUtils.createVideoThumbnail(path + "/" + fileName, MediaStore.Video.Thumbnails.MINI_KIND);
                     imageCache.put(fileName, bm);
                 }
             }

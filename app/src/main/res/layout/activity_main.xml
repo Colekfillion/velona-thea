@@ -43,5 +43,24 @@
             android:layout_height="wrap_content"
             android:text="@string/random_order"/>
 
+        <RadioGroup
+            android:id="@+id/activity_main_rg_mediatype"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+                
+                <ca.quadrexium.velonathea.pojo.UncheckableRadioButton
+                    android:id="@+id/activity_main_rg_mediatype_images"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/only_images"/>
+
+                <ca.quadrexium.velonathea.pojo.UncheckableRadioButton
+                    android:id="@+id/activity_main_rg_mediatype_videos"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/only_videos"/>
+            
+        </RadioGroup>
+
 
 </LinearLayout>

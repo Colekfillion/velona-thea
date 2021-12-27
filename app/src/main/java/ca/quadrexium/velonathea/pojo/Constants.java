@@ -16,4 +16,6 @@ public class Constants {
         add(".mkv");
         add(".webm");
     }};
+    public static final String VIDEO = "video";
+    public static final String IMAGE = "image";
 }

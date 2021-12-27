@@ -25,4 +25,6 @@
     <string name="tag_like">Tag like...</string>
     <string name="author_name">Author name</string>
     <string name="image_title">Image title</string>
+    <string name="only_images">Only images</string>
+    <string name="only_videos">Only videos</string>
 </resources>
