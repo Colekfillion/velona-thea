@@ -27,4 +27,6 @@
     <string name="image_title">Image title</string>
     <string name="only_images">Only images</string>
     <string name="only_videos">Only videos</string>
+    <string name="import_from_file">Import from file</string>
+    <string name="database_config">Database config</string>
 </resources>

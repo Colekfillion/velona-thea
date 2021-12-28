@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <Button
+        android:id="@+id/activity_config_loadbutton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/import_from_file" />
+
+    <Button
+        android:id="@+id/activity_config_btn_importunsorted"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/import_media_in_root_directory" />
+
+    <Button
+        android:id="@+id/activity_config_deletebutton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/button_delete" />
+
+    <Button
+        android:id="@+id/activity_config_debugbutton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/button_debug" />
+
+    <ProgressBar
+        android:id="@+id/activity_config_progressbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:visibility="invisible"
+        android:max="1000"/>
+
+</LinearLayout>

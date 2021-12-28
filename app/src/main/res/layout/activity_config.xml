@@ -5,28 +5,10 @@
     android:orientation="vertical">
 
     <Button
-        android:id="@+id/activity_config_loadbutton"
+        android:id="@+id/activity_config_btn_dbconfig"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/button_load" />
-
-    <Button
-        android:id="@+id/activity_config_btn_importunsorted"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/import_media_in_root_directory" />
-
-    <Button
-        android:id="@+id/activity_config_deletebutton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/button_delete" />
-
-    <Button
-        android:id="@+id/activity_config_debugbutton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/button_debug" />
+        android:text="@string/database_config" />
 
     <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/show_hidden_files_switch"
@@ -52,13 +34,5 @@
         android:layout_height="wrap_content"
         android:hint="20"
         android:importantForAutofill="no" />
-
-    <ProgressBar
-        android:id="@+id/activity_config_progressbar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:visibility="invisible"
-        android:max="1000"/>
 
 </LinearLayout>
