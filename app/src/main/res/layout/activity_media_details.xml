@@ -11,8 +11,7 @@
         android:id="@+id/activity_image_details_et_filename"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="File name"
-        android:hint="File name"
+        android:hint="Filename"
         android:importantForAutofill="no"
         android:inputType="text"/>
 
@@ -20,8 +19,7 @@
         android:id="@+id/activity_image_details_et_name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Image name"
-        android:hint="Image name"
+        android:hint="Name"
         android:importantForAutofill="no"
         android:inputType="text"/>
 
@@ -29,7 +27,6 @@
         android:id="@+id/activity_image_details_et_author"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Author"
         android:hint="Author"
         android:importantForAutofill="no"
         android:inputType="text"/>
@@ -38,7 +35,6 @@
         android:id="@+id/activity_image_details_et_link"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Link"
         android:hint="Link"
         android:importantForAutofill="no"
         android:inputType="text"/>

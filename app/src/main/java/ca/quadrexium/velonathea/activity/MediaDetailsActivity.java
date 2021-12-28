@@ -31,10 +31,7 @@ public class MediaDetailsActivity extends BaseActivity {
         if (media.getLink() == null) {
             MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
             SQLiteDatabase db = myOpenHelper.getWritableDatabase();
-            Cursor c = db.rawQuery("SELECT link FROM image WHERE file_name = ? LIMIT 1;", new String[] { media.getFileName() });
-            c.moveToFirst();
-            media.setLink(c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_LINK)));
-            c.close();
+            media = myOpenHelper.getRemainingData(db, media);
         }
 
         fileNameView.setText(media.getFileName());
@@ -43,10 +40,11 @@ public class MediaDetailsActivity extends BaseActivity {
         linkView.setText(media.getLink());
 
         Button updateImageDataButton = findViewById(R.id.activity_image_details_btn_update);
+        Media finalMedia = media;
         updateImageDataButton.setOnClickListener(v -> {
 
             Media newMedia = new Media.Builder()
-                    .id(media.getId())
+                    .id(finalMedia.getId())
                     .name(nameView.getText().toString())
                     .fileName(fileNameView.getText().toString())
                     .author(authorView.getText().toString())
@@ -55,7 +53,7 @@ public class MediaDetailsActivity extends BaseActivity {
 
             MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
             SQLiteDatabase db = myOpenHelper.getWritableDatabase();
-            boolean wasUpdated = myOpenHelper.updateMedia(db, media, newMedia);
+            boolean wasUpdated = myOpenHelper.updateMedia(db, finalMedia, newMedia);
             String toastText = wasUpdated ? "updated" : "no change";
             if (wasUpdated) {
                 db.close();

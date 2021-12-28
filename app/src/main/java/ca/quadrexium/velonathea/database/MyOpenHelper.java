@@ -30,36 +30,42 @@ public class MyOpenHelper extends SQLiteOpenHelper {
     public final static String COL_NAME = "name";
 
     public final static String IMAGE_TABLE = "image";
+    public final static String COL_IMAGE_ID = COL_ID;
+    public final static String COL_IMAGE_NAME = COL_NAME;
     public final static String COL_IMAGE_FILENAME = "file_name";
     public final static String COL_IMAGE_AUTHOR_ID = "author_id";
     public final static String COL_IMAGE_LINK = "link";
 
     public final static String TAG_TABLE = "tag";
+    public final static String COL_TAG_ID = COL_ID;
+    public final static String COL_TAG_NAME = COL_NAME;
 
     public final static String IMAGE_TAG_TABLE = IMAGE_TABLE + "_" + TAG_TABLE;
     public final static String COL_IMAGE_TAG_IMAGE_ID = IMAGE_TABLE + "_" + COL_ID;
     public final static String COL_IMAGE_TAG_TAG_ID = TAG_TABLE + "_" + COL_ID;
 
+    public final static String AUTHOR_TABLE = "author";
+    public final static String COL_AUTHOR_ID = COL_ID;
+    public final static String COL_AUTHOR_NAME = COL_NAME;
+
     private final String IMAGE_BASE_QUERY = "SELECT image.id, image.file_name, image.name, author.name AS author_name " +
             "FROM image " +
             "JOIN author ON author.id = image.author_id ";
-    private final String IMAGE_GROUP_BY = "GROUP BY (image.file_name) ";
+    private final String IMAGE_GROUP_BY = "GROUP BY (" + IMAGE_TABLE + "." + COL_IMAGE_FILENAME + ") ";
     private final String TAG_JOIN = "JOIN image_tag ON image.id = image_tag.image_id " +
             "JOIN tag ON image_tag.tag_id = tag.id ";
 
-    public final static String AUTHOR_TABLE = "author";
-
     public final static String[] DROP_INDEX_QUERIES = new String[] {
-            "DROP INDEX IF EXISTS " + MyOpenHelper.TAG_TABLE + "_name_index;",
-            "DROP INDEX IF EXISTS " + MyOpenHelper.IMAGE_TABLE + "_filename_index;",
-            "DROP INDEX IF EXISTS " + MyOpenHelper.IMAGE_TAG_TABLE + "_image_tag_id_index;",
-            "DROP INDEX IF EXISTS " + MyOpenHelper.AUTHOR_TABLE + "_name_index;"
+            "DROP INDEX IF EXISTS " + TAG_TABLE + "_" + COL_TAG_NAME + "_index;",
+            "DROP INDEX IF EXISTS " + IMAGE_TABLE + "_" + COL_IMAGE_FILENAME + "_index;",
+            "DROP INDEX IF EXISTS " + IMAGE_TAG_TABLE + "_" + IMAGE_TAG_TABLE + "_id_index;",
+            "DROP INDEX IF EXISTS " + AUTHOR_TABLE + "_" + COL_AUTHOR_NAME + "_index;"
     };
     public final static String[] CREATE_INDEX_QUERIES = new String[] {
-            "CREATE UNIQUE INDEX " + TAG_TABLE + "_name_index ON " + TAG_TABLE + "(" + COL_NAME + ");",
+            "CREATE UNIQUE INDEX " + TAG_TABLE + "_name_index ON " + TAG_TABLE + "(" + COL_TAG_NAME + ");",
             "CREATE INDEX " + IMAGE_TABLE + "_filename_index ON " + IMAGE_TABLE + "(" + COL_IMAGE_FILENAME + ");",
             "CREATE UNIQUE INDEX " + IMAGE_TAG_TABLE + "_image_tag_id_index ON " + IMAGE_TAG_TABLE + "(" + COL_IMAGE_TAG_IMAGE_ID + ", " + COL_IMAGE_TAG_TAG_ID + ");",
-            "CREATE UNIQUE INDEX " + AUTHOR_TABLE + "_name_index ON " + AUTHOR_TABLE + "(" + COL_NAME + ");"
+            "CREATE UNIQUE INDEX " + AUTHOR_TABLE + "_name_index ON " + AUTHOR_TABLE + "(" + COL_AUTHOR_NAME + ");"
     };
 
     public MyOpenHelper(Context ctx, String name, SQLiteDatabase.CursorFactory factory, int version) {
@@ -69,24 +75,24 @@ public class MyOpenHelper extends SQLiteOpenHelper {
     @Override
     public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE " + IMAGE_TABLE + " (" +
-                COL_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                COL_NAME + " VARCHAR(150), " +
+                COL_IMAGE_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                COL_IMAGE_NAME + " VARCHAR(150), " +
                 COL_IMAGE_FILENAME + " VARCHAR(150), " +
                 COL_IMAGE_AUTHOR_ID + " INTEGER, " +
                 COL_IMAGE_LINK + " VARCHAR(255), " +
                 "FOREIGN KEY (" + COL_IMAGE_AUTHOR_ID + ") REFERENCES " + AUTHOR_TABLE + "(" + COL_ID + "));");
         db.execSQL("CREATE TABLE " + TAG_TABLE + " (" +
-                COL_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                COL_NAME + " VARCHAR(150) NOT NULL UNIQUE);");
+                COL_TAG_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                COL_TAG_NAME + " VARCHAR(150) NOT NULL UNIQUE);");
         db.execSQL("CREATE TABLE " + IMAGE_TAG_TABLE + " (" +
                 COL_IMAGE_TAG_IMAGE_ID + " INTEGER NOT NULL, " +
                 COL_IMAGE_TAG_TAG_ID + " INTEGER NOT NULL, " +
                 "PRIMARY KEY(" + COL_IMAGE_TAG_IMAGE_ID + ", " + COL_IMAGE_TAG_TAG_ID + "), " +
-                "FOREIGN KEY(" + COL_IMAGE_TAG_IMAGE_ID + ") REFERENCES " + IMAGE_TABLE + "(" + COL_ID + "), " +
-                "FOREIGN KEY(" + COL_IMAGE_TAG_TAG_ID + ") REFERENCES " + TAG_TABLE + "(" + COL_ID + "));");
+                "FOREIGN KEY(" + COL_IMAGE_TAG_IMAGE_ID + ") REFERENCES " + IMAGE_TABLE + "(" + COL_IMAGE_ID + "), " +
+                "FOREIGN KEY(" + COL_IMAGE_TAG_TAG_ID + ") REFERENCES " + TAG_TABLE + "(" + COL_TAG_ID + "));");
         db.execSQL("CREATE TABLE " + AUTHOR_TABLE + " (" +
-                COL_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                COL_NAME + " VARCHAR(80));");
+                COL_AUTHOR_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                COL_AUTHOR_NAME + " VARCHAR(80));");
         for (String query : CREATE_INDEX_QUERIES) {
             db.execSQL(query);
         }
@@ -117,32 +123,38 @@ public class MyOpenHelper extends SQLiteOpenHelper {
 
     //Gets the author id from the database, or creates an author if they do not exist
     public synchronized int getAuthorId(SQLiteDatabase db, String author) {
-        Cursor authorCursor = db.rawQuery("SELECT id FROM author WHERE name = ? LIMIT 1;", new String[]{ author });
+        Cursor authorCursor = db.rawQuery("SELECT " + COL_AUTHOR_ID + " " +
+                "FROM " + AUTHOR_TABLE +" " +
+                "WHERE " + COL_AUTHOR_NAME + " = ? " +
+                "LIMIT 1;", new String[]{ author });
         int authorId;
         //If author does not exist, insert author into database
         if (authorCursor.getCount() == 0) {
             ContentValues cv = new ContentValues();
-            cv.put(MyOpenHelper.COL_NAME, author);
-            authorId = (int) db.insert(MyOpenHelper.AUTHOR_TABLE, null, cv);
+            cv.put(COL_AUTHOR_NAME, author);
+            authorId = (int) db.insert(AUTHOR_TABLE, null, cv);
         } else {
             authorCursor.moveToFirst();
-            authorId = (int) authorCursor.getLong(authorCursor.getColumnIndex(MyOpenHelper.COL_ID));
+            authorId = (int) authorCursor.getLong(authorCursor.getColumnIndex(COL_AUTHOR_ID));
         }
         authorCursor.close();
         return authorId;
     }
 
     public synchronized int getTagIdOrInsert(SQLiteDatabase db, String tag) {
-        Cursor tagCursor = db.rawQuery("SELECT id FROM tag WHERE name = ? LIMIT 1;", new String[]{ tag } );
+        Cursor tagCursor = db.rawQuery("SELECT " + COL_TAG_ID + " " +
+                "FROM " + TAG_TABLE + " " +
+                "WHERE " + COL_TAG_NAME + " = ? " +
+                "LIMIT 1;", new String[]{ tag } );
         int tagId;
         //If tag does not exist, insert tag into database
         if (tagCursor.getCount() == 0) {
             ContentValues cv = new ContentValues();
-            cv.put(MyOpenHelper.COL_NAME, tag);
-            tagId = (int) db.insert(MyOpenHelper.TAG_TABLE, null, cv);
+            cv.put(COL_TAG_NAME, tag);
+            tagId = (int) db.insert(TAG_TABLE, null, cv);
         } else {
             tagCursor.moveToFirst();
-            tagId = (int) tagCursor.getLong(tagCursor.getColumnIndex(COL_ID));
+            tagId = (int) tagCursor.getLong(tagCursor.getColumnIndex(COL_TAG_ID));
         }
         tagCursor.close();
         return tagId;
@@ -166,11 +178,11 @@ public class MyOpenHelper extends SQLiteOpenHelper {
 
         //Insert new row into database
         ContentValues cv = new ContentValues();
-        cv.put(MyOpenHelper.COL_IMAGE_FILENAME, media.getFileName());
-        cv.put(MyOpenHelper.COL_NAME, media.getName());
-        cv.put(MyOpenHelper.COL_IMAGE_AUTHOR_ID, authorId);
-        cv.put(MyOpenHelper.COL_IMAGE_LINK, media.getLink());
-        int imageId = (int) db.insert(MyOpenHelper.IMAGE_TABLE, null, cv);
+        cv.put(COL_IMAGE_FILENAME, media.getFileName());
+        cv.put(COL_IMAGE_NAME, media.getName());
+        cv.put(COL_IMAGE_AUTHOR_ID, authorId);
+        cv.put(COL_IMAGE_LINK, media.getLink());
+        int imageId = (int) db.insert(IMAGE_TABLE, null, cv);
         cv.clear();
         return imageId;
     }
@@ -178,12 +190,12 @@ public class MyOpenHelper extends SQLiteOpenHelper {
     public synchronized boolean updateMedia(SQLiteDatabase db, Media oldMedia, Media newMedia) {
         if (oldMedia != newMedia) {
             ContentValues cv = new ContentValues();
-            cv.put(MyOpenHelper.COL_IMAGE_FILENAME, newMedia.getFileName());
-            cv.put(MyOpenHelper.COL_NAME, newMedia.getName());
-            cv.put(MyOpenHelper.COL_IMAGE_LINK, newMedia.getLink());
-            cv.put(MyOpenHelper.COL_IMAGE_AUTHOR_ID, getAuthorId(db, newMedia.getAuthor()));
+            cv.put(COL_IMAGE_FILENAME, newMedia.getFileName());
+            cv.put(COL_IMAGE_NAME, newMedia.getName());
+            cv.put(COL_IMAGE_LINK, newMedia.getLink());
+            cv.put(COL_IMAGE_AUTHOR_ID, getAuthorId(db, newMedia.getAuthor()));
 
-            db.update(MyOpenHelper.IMAGE_TABLE, cv, "id = ?", new String[]{String.valueOf(newMedia.getId())});
+            db.update(IMAGE_TABLE, cv, COL_IMAGE_ID + " = ?", new String[]{String.valueOf(newMedia.getId())});
             return true;
         }
         return false;
@@ -195,10 +207,10 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         c.moveToFirst();
         while (!c.isAfterLast()) {
             Media media = new Media.Builder()
-                    .id((int) c.getInt(c.getColumnIndex(MyOpenHelper.COL_ID)))
-                    .name(c.getString(c.getColumnIndex(MyOpenHelper.COL_NAME)))
-                    .fileName(c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_FILENAME)))
-                    .author(c.getString(c.getColumnIndex(MyOpenHelper.AUTHOR_TABLE + "_" + MyOpenHelper.COL_NAME)))
+                    .id(c.getInt(c.getColumnIndex(COL_IMAGE_ID)))
+                    .name(c.getString(c.getColumnIndex(COL_IMAGE_NAME)))
+                    .fileName(c.getString(c.getColumnIndex(COL_IMAGE_FILENAME)))
+                    .author(c.getString(c.getColumnIndex(AUTHOR_TABLE + "_" + COL_AUTHOR_NAME)))
                     .build();
             mediaList.add(media);
             c.moveToNext();
@@ -210,7 +222,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
     public synchronized ArrayList<Media> getMediaList(SQLiteDatabase db, TreeMap<String, ArrayList<String>> whereFilters, String[] orderBy) {
         ArrayList<String> selectionArgs = new ArrayList<>();
         StringBuilder query = new StringBuilder(IMAGE_BASE_QUERY);
-        if (whereFilters.containsKey(MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_NAME)) {
+        if (whereFilters.containsKey(TAG_TABLE + "." + COL_TAG_NAME)) {
             query.append(TAG_JOIN);
         }
         //Creates the where clause
@@ -252,5 +264,36 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         String[] stringSelectionArgs = selectionArgs.toArray(new String[0]);
         Cursor c = db.rawQuery(query.toString(), stringSelectionArgs);
         return parseMediaListFromCursor(c);
+    }
+
+    //For when a given media has some null values, eg the link, returns the media object with those
+    // values set
+    public synchronized Media getRemainingData(SQLiteDatabase db, Media media) {
+        //TODO: Construct a query that will only get missing values
+        return getMedia(db, media.getId());
+    }
+    
+    //Gets a single media with all values initialized
+    public synchronized Media getMedia(SQLiteDatabase db, int mediaId) {
+        //removing the space at the end to query more columns
+        String query = IMAGE_BASE_QUERY.substring(0, IMAGE_BASE_QUERY.indexOf("FROM")-1);
+        query += ", " + IMAGE_TABLE + "." + COL_IMAGE_LINK + " "; //getting image link
+        query += IMAGE_BASE_QUERY.substring(IMAGE_BASE_QUERY.indexOf("FROM"));
+        query += "WHERE " + IMAGE_TABLE + "." + COL_IMAGE_ID + " = ? " + 
+                IMAGE_GROUP_BY + "LIMIT 1";
+        Cursor c = db.rawQuery(query, new String[] { String.valueOf(mediaId) });
+        c.moveToFirst();
+        Media media = null;
+        if (!c.isAfterLast()) {
+             media = new Media.Builder()
+                    .id(c.getInt(c.getColumnIndex(COL_IMAGE_ID)))
+                    .name(c.getString(c.getColumnIndex(COL_IMAGE_NAME)))
+                    .fileName(c.getString(c.getColumnIndex(COL_IMAGE_FILENAME)))
+                    .author(c.getString(c.getColumnIndex(AUTHOR_TABLE + "_" + COL_AUTHOR_NAME)))
+                    .link(c.getString(c.getColumnIndex(COL_IMAGE_LINK)))
+                    .build();
+        }
+        c.close();
+        return media;
     }
 }

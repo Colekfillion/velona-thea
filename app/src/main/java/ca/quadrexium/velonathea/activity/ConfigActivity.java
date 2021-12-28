@@ -41,6 +41,7 @@ import ca.quadrexium.velonathea.pojo.Media;
 public class ConfigActivity extends BaseActivity {
 
     private static boolean busy = false;
+    private boolean verified = false;
 
     private final ActivityResultLauncher<Intent> chooseDirActivity = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -74,15 +75,14 @@ public class ConfigActivity extends BaseActivity {
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
                 if (result.getResultCode() == Activity.RESULT_OK) {
+                    verified = true;
                     SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
                     SharedPreferences.Editor edit = prefs.edit();
 
                     SwitchCompat showHiddenFiles = findViewById(R.id.show_hidden_files_switch);
                     edit.putBoolean("showHiddenFiles", showHiddenFiles.isChecked());
                     edit.apply();
-                } else {
-                    SwitchCompat showHiddenFiles = findViewById(R.id.show_hidden_files_switch);
-                    showHiddenFiles.setChecked(false);
+                    showHiddenFiles.setChecked(true);
                 }
             });
 
@@ -159,7 +159,8 @@ public class ConfigActivity extends BaseActivity {
         SwitchCompat showHiddenFiles = findViewById(R.id.show_hidden_files_switch);
         showHiddenFiles.setChecked(prefs.getBoolean("showHiddenFiles", false));
         showHiddenFiles.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isChecked) {
+            if (isChecked && !verified) {
+                showHiddenFiles.setChecked(false);
                 KeyguardManager km = (KeyguardManager) this.getSystemService(Context.KEYGUARD_SERVICE);
                 Intent i = km.createConfirmDeviceCredentialIntent("Velona Thea", "This app requires you to authenticate.");
                 verifyActivity.launch(i);
@@ -212,7 +213,7 @@ public class ConfigActivity extends BaseActivity {
                 for (int i=0; i<rows.length; i++) {
                     String[] rowValues = rows[i].split("\t");
                     Media media = new Media.Builder()
-                            .id(-1)
+                            .id(-1) //temp value
                             .fileName(rowValues[0])
                             .name(rowValues[1])
                             .author(rowValues[2])
@@ -305,7 +306,8 @@ public class ConfigActivity extends BaseActivity {
             HashSet<String> dbFileNames = new HashSet<>();
             MyOpenHelper myOpenHelper = new MyOpenHelper(actRef.get().getApplicationContext(), MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
             SQLiteDatabase db = myOpenHelper.getWritableDatabase();
-            Cursor c = db.rawQuery("SELECT file_name FROM image;", null);
+            Cursor c = db.rawQuery("SELECT " + MyOpenHelper.COL_IMAGE_FILENAME + " " +
+                    "FROM " + MyOpenHelper.IMAGE_TABLE, null);
             c.moveToFirst();
 
             while (!c.isAfterLast()) {
@@ -320,12 +322,13 @@ public class ConfigActivity extends BaseActivity {
             }
             int count = 0;
             for (String fileName : fileNames) {
+                //If media is valid type
                 if (Constants.VIDEO_EXTENSIONS.contains(fileName.substring(fileName.lastIndexOf("."))) ||
                         Constants.IMAGE_EXTENSIONS.contains(fileName.substring(fileName.lastIndexOf("."))) ||
                         fileName.substring(fileName.lastIndexOf(".")).equals(".gif")) {
 
                     Media media = new Media.Builder()
-                            .id(-1)
+                            .id(-1) //temp value
                             .name(fileName.substring(0, fileName.lastIndexOf(".")))
                             .fileName(fileName)
                             .author("unknown")
