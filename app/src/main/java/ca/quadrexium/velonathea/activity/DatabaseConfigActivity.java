@@ -2,7 +2,6 @@ package ca.quadrexium.velonathea.activity;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.Activity;
 import android.content.ContentValues;
@@ -71,8 +70,8 @@ public class DatabaseConfigActivity extends BaseActivity {
         importUnsorted.setOnClickListener(v -> {
             if (!busy) {
                 busy = true;
-                SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
-                String path = prefs.getString("path", Environment.DIRECTORY_PICTURES);
+                SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
+                String path = prefs.getString(Constants.PATH, Environment.DIRECTORY_PICTURES);
                 LoadMediaFromRoot lmfr = new LoadMediaFromRoot(this);
                 lmfr.execute(path);
             }
@@ -84,9 +83,9 @@ public class DatabaseConfigActivity extends BaseActivity {
             if (!busy) {
                 MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
                 SQLiteDatabase db = myOpenHelper.getWritableDatabase();
-                db.delete(MyOpenHelper.IMAGE_TABLE, null, null);
+                db.delete(MyOpenHelper.MEDIA_TABLE, null, null);
                 db.delete(MyOpenHelper.TAG_TABLE, null, null);
-                db.delete(MyOpenHelper.IMAGE_TAG_TABLE, null, null);
+                db.delete(MyOpenHelper.MEDIA_TAG_TABLE, null, null);
                 db.delete(MyOpenHelper.AUTHOR_TABLE, null, null);
             }
         });
@@ -98,9 +97,9 @@ public class DatabaseConfigActivity extends BaseActivity {
                 MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
                 SQLiteDatabase db = myOpenHelper.getReadableDatabase();
 
-                long numImages = DatabaseUtils.queryNumEntries(db, MyOpenHelper.IMAGE_TABLE);
+                long numImages = DatabaseUtils.queryNumEntries(db, MyOpenHelper.MEDIA_TABLE);
                 long numTags = DatabaseUtils.queryNumEntries(db, MyOpenHelper.TAG_TABLE);
-                long numImageTags = DatabaseUtils.queryNumEntries(db, MyOpenHelper.IMAGE_TAG_TABLE);
+                long numImageTags = DatabaseUtils.queryNumEntries(db, MyOpenHelper.MEDIA_TAG_TABLE);
                 long numAuthors = DatabaseUtils.queryNumEntries(db, MyOpenHelper.AUTHOR_TABLE);
                 Toast.makeText(getApplicationContext(), "image:" + numImages +
                                 ".tag:" + numTags +
@@ -187,9 +186,9 @@ public class DatabaseConfigActivity extends BaseActivity {
                             int tagId = myOpenHelper.getTagIdOrInsert(db, tag);
 
                             //Insert image-tag pair into image_tag table
-                            newRowValues.put(MyOpenHelper.COL_IMAGE_TAG_IMAGE_ID, imageId);
-                            newRowValues.put(MyOpenHelper.COL_IMAGE_TAG_TAG_ID, tagId);
-                            db.insert(MyOpenHelper.IMAGE_TAG_TABLE, null, newRowValues);
+                            newRowValues.put(MyOpenHelper.COL_MEDIA_TAG_MEDIA_ID, imageId);
+                            newRowValues.put(MyOpenHelper.COL_MEDIA_TAG_TAG_ID, tagId);
+                            db.insert(MyOpenHelper.MEDIA_TAG_TABLE, null, newRowValues);
                             newRowValues.clear();
                         }
                     }
@@ -245,50 +244,54 @@ public class DatabaseConfigActivity extends BaseActivity {
             File rootPath = new File(path);
             File[] files = rootPath.listFiles(File::isFile);
             HashSet<String> fileNames = new HashSet<>();
-            for (File file : files) {
-                fileNames.add(file.getName());
-            }
-            HashSet<String> dbFileNames = new HashSet<>();
-            MyOpenHelper myOpenHelper = new MyOpenHelper(actRef.get().getApplicationContext(), MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
-            SQLiteDatabase db = myOpenHelper.getWritableDatabase();
-            Cursor c = db.rawQuery("SELECT " + MyOpenHelper.COL_IMAGE_FILENAME + " " +
-                    "FROM " + MyOpenHelper.IMAGE_TABLE, null);
-            c.moveToFirst();
-
-            while (!c.isAfterLast()) {
-                dbFileNames.add(c.getString(c.getColumnIndex(MyOpenHelper.COL_IMAGE_FILENAME)));
-                c.moveToNext();
-            }
-            c.close();
-            fileNames.removeAll(dbFileNames);
-            db.beginTransaction();
-            for (String query : MyOpenHelper.DROP_INDEX_QUERIES) {
-                db.execSQL(query);
-            }
             int count = 0;
-            for (String fileName : fileNames) {
-                //If media is valid type
-                if (Constants.VIDEO_EXTENSIONS.contains(fileName.substring(fileName.lastIndexOf("."))) ||
-                        Constants.IMAGE_EXTENSIONS.contains(fileName.substring(fileName.lastIndexOf("."))) ||
-                        fileName.substring(fileName.lastIndexOf(".")).equals(".gif")) {
-
-                    Media media = new Media.Builder()
-                            .id(-1) //temp value
-                            .name(fileName.substring(0, fileName.lastIndexOf(".")))
-                            .fileName(fileName)
-                            .author("unknown")
-                            .build();
-                    media.setId(myOpenHelper.insertMedia(db, media));
-                    count++;
-                    publishProgress((int) (((double) count / (double) fileNames.size()) * 1000));
+            if (files != null) {
+                for (File file : files) {
+                    fileNames.add(file.getName());
                 }
+                HashSet<String> dbFileNames = new HashSet<>();
+                MyOpenHelper myOpenHelper = new MyOpenHelper(actRef.get().getApplicationContext(), MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
+                SQLiteDatabase db = myOpenHelper.getWritableDatabase();
+                Cursor c = db.rawQuery("SELECT " + MyOpenHelper.COL_MEDIA_FILENAME + " " +
+                        "FROM " + MyOpenHelper.MEDIA_TABLE, null);
+                c.moveToFirst();
+
+                while (!c.isAfterLast()) {
+                    dbFileNames.add(c.getString(c.getColumnIndex(MyOpenHelper.COL_MEDIA_FILENAME)));
+                    c.moveToNext();
+                }
+                c.close();
+                fileNames.removeAll(dbFileNames);
+                db.beginTransaction();
+                for (String query : MyOpenHelper.DROP_INDEX_QUERIES) {
+                    db.execSQL(query);
+                }
+                for (String fileName : fileNames) {
+                    //If media is valid type
+                    String extension = fileName.substring(fileName.lastIndexOf("."));
+                    if (Constants.VIDEO_EXTENSIONS.contains(extension) ||
+                            Constants.IMAGE_EXTENSIONS.contains(extension) ||
+                            extension.equals(".gif")) {
+
+                        Media media = new Media.Builder()
+                                .id(-1) //temp value
+                                .name(fileName.substring(0, fileName.lastIndexOf(".")))
+                                .fileName(fileName)
+                                .author("unknown")
+                                .build();
+                        media.setId(myOpenHelper.insertMedia(db, media));
+                        count++;
+                        publishProgress((int) (((double) count / (double) fileNames.size()) * 1000));
+                    }
+                }
+                for (String query : MyOpenHelper.CREATE_INDEX_QUERIES) {
+                    db.execSQL(query);
+                }
+                db.setTransactionSuccessful();
+                db.endTransaction();
+                db.close();
             }
-            for (String query : MyOpenHelper.CREATE_INDEX_QUERIES) {
-                db.execSQL(query);
-            }
-            db.setTransactionSuccessful();
-            db.endTransaction();
-            db.close();
+            publishProgress(1000);
             return count;
         }
 

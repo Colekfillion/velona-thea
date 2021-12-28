@@ -1,13 +1,10 @@
 package ca.quadrexium.velonathea.activity;
 
-import androidx.appcompat.widget.AppCompatRadioButton;
 import androidx.appcompat.widget.SwitchCompat;
 
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.util.AttributeSet;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioGroup;
@@ -22,10 +19,10 @@ public class MainActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         createToolbar(R.id.activity_main_toolbar);
 
-        SharedPreferences prefs = getSharedPreferences("preferences", MODE_PRIVATE);
+        SharedPreferences prefs = getSharedPreferences(Constants.PREFS, MODE_PRIVATE);
 
         SwitchCompat randomOrder = findViewById(R.id.activity_main_swtch_random);
-        randomOrder.setChecked(prefs.getBoolean("randomOrder", false));
+        randomOrder.setChecked(prefs.getBoolean(Constants.PREFS_RANDOM_ORDER, false));
 
         EditText etTitle = findViewById(R.id.activity_main_et_title_search);
         EditText etAuthor = findViewById(R.id.activity_main_et_author_search);
@@ -35,10 +32,10 @@ public class MainActivity extends BaseActivity {
         Button btnSearch = findViewById(R.id.activity_main_btn_search);
         btnSearch.setOnClickListener(v -> {
             Bundle dataToPass = new Bundle();
-            Intent i = new Intent(this, SearchResultsActivity.class);
-            dataToPass.putString("title", etTitle.getText().toString());
-            dataToPass.putString("author", etAuthor.getText().toString());
-            dataToPass.putString("tag", etTag.getText().toString());
+
+            dataToPass.putString(Constants.PREFS_MEDIA_NAME, etTitle.getText().toString());
+            dataToPass.putString(Constants.PREFS_MEDIA_AUTHOR, etAuthor.getText().toString());
+            dataToPass.putString(Constants.PREFS_MEDIA_TAG, etTag.getText().toString());
             String mediaType = "";
             int checkedRadioButtonId = rgMediaType.getCheckedRadioButtonId();
             if (checkedRadioButtonId == R.id.activity_main_rg_mediatype_images) {
@@ -47,8 +44,10 @@ public class MainActivity extends BaseActivity {
                 mediaType = Constants.VIDEO;
             }
             if (!mediaType.equals("")) {
-                dataToPass.putString("mediaType", mediaType);
+                dataToPass.putString(Constants.PREFS_MEDIA_TYPE, mediaType);
             }
+
+            Intent i = new Intent(this, SearchResultsActivity.class);
             i.putExtras(dataToPass);
             startActivity(i);
         });
@@ -61,11 +60,11 @@ public class MainActivity extends BaseActivity {
     protected void onPause() {
         super.onPause();
 
-        SharedPreferences prefs = getSharedPreferences("preferences", MODE_PRIVATE);
+        SharedPreferences prefs = getSharedPreferences(Constants.PREFS, MODE_PRIVATE);
         SharedPreferences.Editor edit = prefs.edit();
 
         SwitchCompat randomOrder = findViewById(R.id.activity_main_swtch_random);
-        edit.putBoolean("randomOrder", randomOrder.isChecked());
+        edit.putBoolean(Constants.PREFS_RANDOM_ORDER, randomOrder.isChecked());
         edit.apply();
     }
 

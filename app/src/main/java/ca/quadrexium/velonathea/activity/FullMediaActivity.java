@@ -40,12 +40,12 @@ public class FullMediaActivity extends BaseActivity {
         Bundle data = getIntent().getExtras();
         fileNames = data.getStringArrayList("fileNames");
 
-        SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
-        path = prefs.getString("path", Environment.DIRECTORY_PICTURES);
+        SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
+        path = prefs.getString(Constants.PATH, Environment.DIRECTORY_PICTURES);
 
         viewPager = findViewById(R.id.activity_full_media_vp);
         viewPager.setAdapter(viewPagerAdapter = new ViewPagerAdapter());
-        viewPager.setCurrentItem(data.getInt("position"), false);
+        viewPager.setCurrentItem(data.getInt(Constants.POSITION), false);
     }
 
     @Override
@@ -115,27 +115,23 @@ public class FullMediaActivity extends BaseActivity {
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
 
             File f = new File(path + "/" + fileNames.get(position));
-            System.out.println("On file " + fileNames.get(position));
             if (f.exists()) {
                 switch (holder.getItemViewType()) {
                     case 0:
                         ViewHolderImage holderImage = (ViewHolderImage) holder;
 
-                        System.out.println(fileNames.get(position) + " is image");
                         holderImage.imageView.setImage(ImageSource.uri(Uri.fromFile(f)));
                         break;
                     case 1:
                         assert holder instanceof ViewHolderVideo;
                         ViewHolderVideo holderVideo = (ViewHolderVideo) holder;
 
-                        System.out.println(fileNames.get(position) + " is video");
                         holderVideo.videoView.setVideoURI(Uri.fromFile(f));
                         break;
                     case 2:
                         assert holder instanceof ViewHolderGif;
                         ViewHolderGif holderGif = (ViewHolderGif) holder;
 
-                        System.out.println(fileNames.get(position) + " is gif");
                         try {
                             GifDrawable gifDrawable = new GifDrawable(f);
                             holderGif.gifImageView.setImageDrawable(gifDrawable);
@@ -146,7 +142,6 @@ public class FullMediaActivity extends BaseActivity {
                         break;
                 }
             } else {
-                System.out.println("Cannot find " + fileNames.get(position));
                 switch (holder.getItemViewType()) {
                     case 0:
                         ViewHolderImage holderImage = (ViewHolderImage) holder;

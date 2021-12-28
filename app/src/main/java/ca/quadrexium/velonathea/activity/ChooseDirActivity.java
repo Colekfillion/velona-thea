@@ -17,6 +17,7 @@ import java.io.File;
 import java.util.ArrayList;
 
 import ca.quadrexium.velonathea.R;
+import ca.quadrexium.velonathea.pojo.Constants;
 
 public class ChooseDirActivity extends BaseActivity {
 
@@ -43,7 +44,7 @@ public class ChooseDirActivity extends BaseActivity {
         Button confirmDirButton = findViewById(R.id.activity_choose_dir_btn_confirm);
         confirmDirButton.setOnClickListener(v -> {
             Intent i = new Intent();
-            i.putExtra("path", rootDir.getAbsolutePath());
+            i.putExtra(Constants.PATH, rootDir.getAbsolutePath());
             setResult(RESULT_OK, i);
             finish();
         });
@@ -61,8 +62,8 @@ public class ChooseDirActivity extends BaseActivity {
             dirList.add(new Folder("...", rootDir.getParent()));
         }
         if (dirs != null) {
-            SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
-            boolean showHiddenFiles = prefs.getBoolean("showHiddenFiles", false);
+            SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
+            boolean showHiddenFiles = prefs.getBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, false);
             for (File f : dirs) {
                 if (showHiddenFiles || !f.getName().contains(".")) {
                     dirList.add(new Folder(f.getName(), f.getAbsolutePath()));

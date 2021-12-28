@@ -52,7 +52,6 @@ public class SearchResultsActivity extends BaseActivity {
     };
     private RecyclerView rv;
     private MyAdapter adapter;
-    //private int numAsyncThreads = 0;
 
     ActivityResultLauncher<Intent> fullImageActivity = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -60,12 +59,11 @@ public class SearchResultsActivity extends BaseActivity {
                 if (result.getResultCode() == Activity.RESULT_OK) {
                     Intent data = result.getData();
                     if (data != null) {
-                        int position = data.getIntExtra("position", -1);
-                        System.out.println("position: " + position);
+                        int position = data.getIntExtra(Constants.PREFS_UPDATED_MEDIA_POSITION, -1);
                         if (position == -1) {
                             throw new IllegalStateException("Media position cannot be -1");
                         }
-                        mediaList.set(position, data.getParcelableExtra("media"));
+                        mediaList.set(position, data.getParcelableExtra(Constants.MEDIA));
                         adapter.notifyItemChanged(position);
                     }
                 }
@@ -76,20 +74,20 @@ public class SearchResultsActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         createToolbar(R.id.activity_main_toolbar);
 
-        SharedPreferences prefs = getSharedPreferences("preferences", Context.MODE_PRIVATE);
+        SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
         Bundle data = getIntent().getExtras();
 
         //Setting global variables
-        path = prefs.getString("path", Environment.DIRECTORY_PICTURES);
-        maxCacheSize = prefs.getInt("maxCacheSize", 20);
-        boolean showHiddenFiles = prefs.getBoolean("showHiddenFiles", false);
+        path = prefs.getString(Constants.PATH, Environment.DIRECTORY_PICTURES);
+        maxCacheSize = prefs.getInt(Constants.PREFS_CACHE_SIZE, 20);
+        boolean showHiddenFiles = prefs.getBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, false);
 
         //Local variables
-        String title = data.getString("title");
-        String author = data.getString("author");
-        String tag = data.getString("tag");
-        String mediaType = data.getString("mediaType");
-        boolean randomOrder = prefs.getBoolean("randomOrder", false);
+        String nameFilter = data.getString(Constants.PREFS_MEDIA_NAME);
+        String author = data.getString(Constants.PREFS_MEDIA_AUTHOR);
+        String tag = data.getString(Constants.PREFS_MEDIA_TAG);
+        String mediaType = data.getString(Constants.PREFS_MEDIA_TYPE);
+        boolean randomOrder = prefs.getBoolean(Constants.PREFS_RANDOM_ORDER, false);
 
         //Recyclerview configuration
         rv = findViewById(R.id.activity_search_results_recyclerview_media);
@@ -109,12 +107,12 @@ public class SearchResultsActivity extends BaseActivity {
         }
         if (showHiddenFiles || !path.contains(".")) {
             TreeMap<String, ArrayList<String>> whereFilters = new TreeMap<>();
-            if (!title.equals("")) {
-                whereFilters.put(MyOpenHelper.IMAGE_TABLE + "." + MyOpenHelper.COL_IMAGE_NAME, new ArrayList<>(
-                        Arrays.asList(title)));
+            if (!nameFilter.equals("")) {
+                whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_NAME, new ArrayList<>(
+                        Arrays.asList(nameFilter)));
             }
             if (!author.equals("")) {
-                whereFilters.put(MyOpenHelper.AUTHOR_TABLE + "_" + MyOpenHelper.COL_AUTHOR_NAME, new ArrayList<>(
+                whereFilters.put(MyOpenHelper.COL_AUTHOR_NAME_FOREIGN, new ArrayList<>(
                         Arrays.asList(author)));
             }
             if (!tag.equals("")) {
@@ -123,11 +121,11 @@ public class SearchResultsActivity extends BaseActivity {
             }
             if (mediaType != null) {
                 if (mediaType.equals(Constants.IMAGE)) {
-                    whereFilters.put(MyOpenHelper.COL_IMAGE_FILENAME, Constants.IMAGE_EXTENSIONS);
+                    whereFilters.put(MyOpenHelper.COL_MEDIA_FILENAME, Constants.IMAGE_EXTENSIONS);
                 } else if (mediaType.equals(Constants.VIDEO)) {
                     ArrayList<String> videoExtensions = new ArrayList<>(Constants.VIDEO_EXTENSIONS);
                     videoExtensions.add(".gif"); //gifs are considered videos except for viewing
-                    whereFilters.put(MyOpenHelper.COL_IMAGE_FILENAME, videoExtensions);
+                    whereFilters.put(MyOpenHelper.COL_MEDIA_FILENAME, videoExtensions);
                 }
             }
             mediaList.addAll(myOpenHelper.getMediaList(db, whereFilters, orderBy.toArray(new String[0])));
@@ -162,7 +160,7 @@ public class SearchResultsActivity extends BaseActivity {
                 }
 
                 dataToPass.putStringArrayList("fileNames", fileNames);
-                dataToPass.putInt("position", position-minPosition);
+                dataToPass.putInt(Constants.POSITION, position-minPosition);
                 Intent ii = new Intent(SearchResultsActivity.this, FullMediaActivity.class);
                 ii.putExtras(dataToPass);
                 startActivity(ii);
@@ -173,8 +171,8 @@ public class SearchResultsActivity extends BaseActivity {
                 int position = rv.getChildLayoutPosition(view);
                 Media media = mediaList.get(position);
                 Bundle dataToPass = new Bundle();
-                dataToPass.putParcelable("media", media);
-                dataToPass.putInt("position", position);
+                dataToPass.putParcelable(Constants.MEDIA, media);
+                dataToPass.putInt(Constants.POSITION, position);
                 Intent ii = new Intent(SearchResultsActivity.this, MediaDetailsActivity.class);
                 ii.putExtras(dataToPass);
                 fullImageActivity.launch(ii);
@@ -202,8 +200,6 @@ public class SearchResultsActivity extends BaseActivity {
             } else {
                 imageLayout.image.setImageBitmap(null);
                 new ImageLoaderTask(imageLayout).execute(fileName);
-                //numAsyncThreads++;
-                //System.out.println(numAsyncThreads);
             }
         }
 
@@ -229,25 +225,6 @@ public class SearchResultsActivity extends BaseActivity {
         }
     }
 
-    private static Bitmap resize(Bitmap image, int maxWidth, int maxHeight) {
-        if (maxHeight > 0 && maxWidth > 0) {
-            int width = image.getWidth();
-            int height = image.getHeight();
-            float ratioBitmap = (float) width / (float) height;
-            float ratioMax = (float) maxWidth / (float) maxHeight;
-
-            int finalWidth = maxWidth;
-            int finalHeight = maxHeight;
-            if (ratioMax > ratioBitmap) {
-                finalWidth = (int) ((float) maxHeight * ratioBitmap);
-            } else {
-                finalHeight = (int) ((float) maxWidth / ratioBitmap);
-            }
-            image = Bitmap.createScaledBitmap(image, finalWidth, finalHeight, true);
-        }
-        return image;
-    }
-
     private class ImageLoaderTask extends AsyncTask<String, Bitmap, Bitmap> {
 
         private final MyAdapter.ViewHolder view;
@@ -260,8 +237,6 @@ public class SearchResultsActivity extends BaseActivity {
 
         public boolean validate() {
             if (!fileName.equals(view.fileName.getText().toString())) {
-                //numAsyncThreads--;
-                //System.out.println(numAsyncThreads);
                 cancel(true);
                 return true;
             }
@@ -282,8 +257,9 @@ public class SearchResultsActivity extends BaseActivity {
             File f = new File(path + "/" + fileName);
             if (f.exists()) {
                 //Image and gif (gifs can be loaded like a bitmap)
-                if (Constants.IMAGE_EXTENSIONS.contains(fileName.substring(fileName.lastIndexOf("."))) ||
-                        fileName.substring(fileName.lastIndexOf(".")).equals(".gif")) {
+                String extension = fileName.substring(fileName.lastIndexOf("."));
+                if (Constants.IMAGE_EXTENSIONS.contains(extension) ||
+                        extension.equals(".gif")) {
                     if (validate()) { return bm; }
 
                     //Just decoding the dimensions of the target image
@@ -307,7 +283,7 @@ public class SearchResultsActivity extends BaseActivity {
                     bm = BitmapFactory.decodeFile(f.getAbsolutePath(), options);
                     imageCache.put(fileName, bm);
                 //Video
-                } else if (Constants.VIDEO_EXTENSIONS.contains(fileName.substring(fileName.lastIndexOf(".")))) {
+                } else if (Constants.VIDEO_EXTENSIONS.contains(extension)) {
                     if (validate()) { return bm; }
                     //thumbnails can be created easier for videos
                     bm = ThumbnailUtils.createVideoThumbnail(path + "/" + fileName, MediaStore.Video.Thumbnails.MINI_KIND);
@@ -324,8 +300,6 @@ public class SearchResultsActivity extends BaseActivity {
             } else {
                 view.image.setImageBitmap(null);
             }
-            //numAsyncThreads--;
-            //System.out.println(numAsyncThreads);
         }
     }
 }

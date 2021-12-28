@@ -16,6 +16,21 @@ public class Constants {
         add(".mkv");
         add(".webm");
     }};
+    public static final String MEDIA = "media";
     public static final String VIDEO = "video";
     public static final String IMAGE = "image";
+    public static final String PATH = "path";
+    public static final String POSITION = "position";
+
+
+    public static final String PREFS = "preferences";
+    public static final String PREFS_MEDIA_NAME = "name";
+    public static final String PREFS_MEDIA_AUTHOR = "author";
+    public static final String PREFS_MEDIA_TAG = "tag";
+    public static final String PREFS_MEDIA_TYPE = "mediaType";
+    public static final String PREFS_RANDOM_ORDER = "randomOrder";
+    public static final String PREFS_SHOW_HIDDEN_FILES = "showHiddenFiles";
+    public static final String PREFS_CACHE_SIZE = "cacheSize";
+
+    public static final String PREFS_UPDATED_MEDIA_POSITION = "positionToUpdate";
 }

@@ -2,21 +2,12 @@ package ca.quadrexium.velonathea.database;
 
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.util.Pair;
-import android.widget.Toast;
-
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 
 import ca.quadrexium.velonathea.pojo.Media;
@@ -24,48 +15,56 @@ import ca.quadrexium.velonathea.pojo.Media;
 public class MyOpenHelper extends SQLiteOpenHelper {
 
     public final static String DATABASE_NAME = "image_database";
-    public final static int DATABASE_VERSION = 5;
+    public final static int DATABASE_VERSION = 7;
 
     public final static String COL_ID = "id";
     public final static String COL_NAME = "name";
 
-    public final static String IMAGE_TABLE = "image";
-    public final static String COL_IMAGE_ID = COL_ID;
-    public final static String COL_IMAGE_NAME = COL_NAME;
-    public final static String COL_IMAGE_FILENAME = "file_name";
-    public final static String COL_IMAGE_AUTHOR_ID = "author_id";
-    public final static String COL_IMAGE_LINK = "link";
+    public final static String MEDIA_TABLE = "media";
+    public final static String COL_MEDIA_ID = COL_ID;
+    public final static String COL_MEDIA_NAME = COL_NAME;
+    public final static String COL_MEDIA_FILENAME = "file_name";
+    public final static String COL_MEDIA_AUTHOR_ID = "author_id";
+    public final static String COL_MEDIA_LINK = "link";
 
     public final static String TAG_TABLE = "tag";
     public final static String COL_TAG_ID = COL_ID;
     public final static String COL_TAG_NAME = COL_NAME;
 
-    public final static String IMAGE_TAG_TABLE = IMAGE_TABLE + "_" + TAG_TABLE;
-    public final static String COL_IMAGE_TAG_IMAGE_ID = IMAGE_TABLE + "_" + COL_ID;
-    public final static String COL_IMAGE_TAG_TAG_ID = TAG_TABLE + "_" + COL_ID;
+    public final static String MEDIA_TAG_TABLE = MEDIA_TABLE + "_" + TAG_TABLE;
+    public final static String COL_MEDIA_TAG_MEDIA_ID = MEDIA_TABLE + "_" + COL_ID;
+    public final static String COL_MEDIA_TAG_TAG_ID = TAG_TABLE + "_" + COL_ID;
 
     public final static String AUTHOR_TABLE = "author";
     public final static String COL_AUTHOR_ID = COL_ID;
     public final static String COL_AUTHOR_NAME = COL_NAME;
 
-    private final String IMAGE_BASE_QUERY = "SELECT image.id, image.file_name, image.name, author.name AS author_name " +
-            "FROM image " +
-            "JOIN author ON author.id = image.author_id ";
-    private final String IMAGE_GROUP_BY = "GROUP BY (" + IMAGE_TABLE + "." + COL_IMAGE_FILENAME + ") ";
-    private final String TAG_JOIN = "JOIN image_tag ON image.id = image_tag.image_id " +
-            "JOIN tag ON image_tag.tag_id = tag.id ";
+    public final static String COL_AUTHOR_NAME_FOREIGN = AUTHOR_TABLE + "_" + COL_AUTHOR_NAME;
+
+    private final String MEDIA_BASE_QUERY = "SELECT " + MEDIA_TABLE + "." + COL_MEDIA_ID + ", " +
+            MEDIA_TABLE + "." + COL_MEDIA_FILENAME + ", " +
+            MEDIA_TABLE + "." + COL_MEDIA_NAME + ", " +
+            AUTHOR_TABLE + "." + COL_AUTHOR_NAME + " AS " + COL_AUTHOR_NAME_FOREIGN + " " +
+            "FROM " + MEDIA_TABLE + " " +
+            "JOIN " + AUTHOR_TABLE + " ON " +
+            AUTHOR_TABLE + "." + COL_AUTHOR_ID + " = " + MEDIA_TABLE + "." + COL_MEDIA_AUTHOR_ID + " ";
+    private final String MEDIA_GROUP_BY = "GROUP BY (" + MEDIA_TABLE + "." + COL_MEDIA_FILENAME + ") ";
+    private final String TAG_JOIN = "JOIN " + MEDIA_TAG_TABLE + " ON " +
+            MEDIA_TABLE + "." + COL_MEDIA_ID + " = " + MEDIA_TAG_TABLE + "." + COL_MEDIA_TAG_MEDIA_ID + " " +
+            "JOIN " + TAG_TABLE + " ON " +
+            MEDIA_TAG_TABLE + "." + COL_MEDIA_TAG_TAG_ID + " = " + TAG_TABLE + "." + COL_TAG_ID + " ";
 
     public final static String[] DROP_INDEX_QUERIES = new String[] {
             "DROP INDEX IF EXISTS " + TAG_TABLE + "_" + COL_TAG_NAME + "_index;",
-            "DROP INDEX IF EXISTS " + IMAGE_TABLE + "_" + COL_IMAGE_FILENAME + "_index;",
-            "DROP INDEX IF EXISTS " + IMAGE_TAG_TABLE + "_" + IMAGE_TAG_TABLE + "_id_index;",
+            "DROP INDEX IF EXISTS " + MEDIA_TABLE + "_" + COL_MEDIA_FILENAME + "_index;",
+            "DROP INDEX IF EXISTS " + MEDIA_TAG_TABLE + "_" + MEDIA_TAG_TABLE + "_id_index;",
             "DROP INDEX IF EXISTS " + AUTHOR_TABLE + "_" + COL_AUTHOR_NAME + "_index;"
     };
     public final static String[] CREATE_INDEX_QUERIES = new String[] {
-            "CREATE UNIQUE INDEX " + TAG_TABLE + "_name_index ON " + TAG_TABLE + "(" + COL_TAG_NAME + ");",
-            "CREATE INDEX " + IMAGE_TABLE + "_filename_index ON " + IMAGE_TABLE + "(" + COL_IMAGE_FILENAME + ");",
-            "CREATE UNIQUE INDEX " + IMAGE_TAG_TABLE + "_image_tag_id_index ON " + IMAGE_TAG_TABLE + "(" + COL_IMAGE_TAG_IMAGE_ID + ", " + COL_IMAGE_TAG_TAG_ID + ");",
-            "CREATE UNIQUE INDEX " + AUTHOR_TABLE + "_name_index ON " + AUTHOR_TABLE + "(" + COL_AUTHOR_NAME + ");"
+            "CREATE UNIQUE INDEX " + TAG_TABLE + "_" + COL_TAG_NAME + "_index ON " + TAG_TABLE + "(" + COL_TAG_NAME + ");",
+            "CREATE INDEX " + MEDIA_TABLE + "_" + COL_MEDIA_FILENAME + "_index ON " + MEDIA_TABLE + "(" + COL_MEDIA_FILENAME + ");",
+            "CREATE UNIQUE INDEX " + MEDIA_TAG_TABLE + "_" + MEDIA_TAG_TABLE + "_id_index ON " + MEDIA_TAG_TABLE + "(" + COL_MEDIA_TAG_MEDIA_ID + ", " + COL_MEDIA_TAG_TAG_ID + ");",
+            "CREATE UNIQUE INDEX " + AUTHOR_TABLE + "_" + COL_AUTHOR_NAME + "_index ON " + AUTHOR_TABLE + "(" + COL_AUTHOR_NAME + ");"
     };
 
     public MyOpenHelper(Context ctx, String name, SQLiteDatabase.CursorFactory factory, int version) {
@@ -74,22 +73,22 @@ public class MyOpenHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        db.execSQL("CREATE TABLE " + IMAGE_TABLE + " (" +
-                COL_IMAGE_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                COL_IMAGE_NAME + " VARCHAR(150), " +
-                COL_IMAGE_FILENAME + " VARCHAR(150), " +
-                COL_IMAGE_AUTHOR_ID + " INTEGER, " +
-                COL_IMAGE_LINK + " VARCHAR(255), " +
-                "FOREIGN KEY (" + COL_IMAGE_AUTHOR_ID + ") REFERENCES " + AUTHOR_TABLE + "(" + COL_ID + "));");
+        db.execSQL("CREATE TABLE " + MEDIA_TABLE + " (" +
+                COL_MEDIA_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                COL_MEDIA_NAME + " VARCHAR(150), " +
+                COL_MEDIA_FILENAME + " VARCHAR(150), " +
+                COL_MEDIA_AUTHOR_ID + " INTEGER, " +
+                COL_MEDIA_LINK + " VARCHAR(255), " +
+                "FOREIGN KEY (" + COL_MEDIA_AUTHOR_ID + ") REFERENCES " + AUTHOR_TABLE + "(" + COL_ID + "));");
         db.execSQL("CREATE TABLE " + TAG_TABLE + " (" +
                 COL_TAG_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 COL_TAG_NAME + " VARCHAR(150) NOT NULL UNIQUE);");
-        db.execSQL("CREATE TABLE " + IMAGE_TAG_TABLE + " (" +
-                COL_IMAGE_TAG_IMAGE_ID + " INTEGER NOT NULL, " +
-                COL_IMAGE_TAG_TAG_ID + " INTEGER NOT NULL, " +
-                "PRIMARY KEY(" + COL_IMAGE_TAG_IMAGE_ID + ", " + COL_IMAGE_TAG_TAG_ID + "), " +
-                "FOREIGN KEY(" + COL_IMAGE_TAG_IMAGE_ID + ") REFERENCES " + IMAGE_TABLE + "(" + COL_IMAGE_ID + "), " +
-                "FOREIGN KEY(" + COL_IMAGE_TAG_TAG_ID + ") REFERENCES " + TAG_TABLE + "(" + COL_TAG_ID + "));");
+        db.execSQL("CREATE TABLE " + MEDIA_TAG_TABLE + " (" +
+                COL_MEDIA_TAG_MEDIA_ID + " INTEGER NOT NULL, " +
+                COL_MEDIA_TAG_TAG_ID + " INTEGER NOT NULL, " +
+                "PRIMARY KEY(" + COL_MEDIA_TAG_MEDIA_ID + ", " + COL_MEDIA_TAG_TAG_ID + "), " +
+                "FOREIGN KEY(" + COL_MEDIA_TAG_MEDIA_ID + ") REFERENCES " + MEDIA_TABLE + "(" + COL_MEDIA_ID + "), " +
+                "FOREIGN KEY(" + COL_MEDIA_TAG_TAG_ID + ") REFERENCES " + TAG_TABLE + "(" + COL_TAG_ID + "));");
         db.execSQL("CREATE TABLE " + AUTHOR_TABLE + " (" +
                 COL_AUTHOR_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 COL_AUTHOR_NAME + " VARCHAR(80));");
@@ -100,18 +99,18 @@ public class MyOpenHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVer, int newVer) {
-        db.execSQL("DROP TABLE IF EXISTS " + IMAGE_TABLE + ";");
+        db.execSQL("DROP TABLE IF EXISTS " + MEDIA_TABLE + ";");
         db.execSQL("DROP TABLE IF EXISTS " + TAG_TABLE + ";");
-        db.execSQL("DROP TABLE IF EXISTS " + IMAGE_TAG_TABLE + ";");
+        db.execSQL("DROP TABLE IF EXISTS " + MEDIA_TAG_TABLE + ";");
         db.execSQL("DROP TABLE IF EXISTS " + AUTHOR_TABLE + ";");
         onCreate(db);
     }
 
     @Override
     public void onDowngrade(SQLiteDatabase db, int oldVer, int newVer) {
-        db.execSQL("DROP TABLE IF EXISTS " + IMAGE_TABLE + ";");
+        db.execSQL("DROP TABLE IF EXISTS " + MEDIA_TABLE + ";");
         db.execSQL("DROP TABLE IF EXISTS " + TAG_TABLE + ";");
-        db.execSQL("DROP TABLE IF EXISTS " + IMAGE_TAG_TABLE + ";");
+        db.execSQL("DROP TABLE IF EXISTS " + MEDIA_TAG_TABLE + ";");
         db.execSQL("DROP TABLE IF EXISTS " + AUTHOR_TABLE + ";");
         onCreate(db);
     }
@@ -178,11 +177,11 @@ public class MyOpenHelper extends SQLiteOpenHelper {
 
         //Insert new row into database
         ContentValues cv = new ContentValues();
-        cv.put(COL_IMAGE_FILENAME, media.getFileName());
-        cv.put(COL_IMAGE_NAME, media.getName());
-        cv.put(COL_IMAGE_AUTHOR_ID, authorId);
-        cv.put(COL_IMAGE_LINK, media.getLink());
-        int imageId = (int) db.insert(IMAGE_TABLE, null, cv);
+        cv.put(COL_MEDIA_FILENAME, media.getFileName());
+        cv.put(COL_MEDIA_NAME, media.getName());
+        cv.put(COL_MEDIA_AUTHOR_ID, authorId);
+        cv.put(COL_MEDIA_LINK, media.getLink());
+        int imageId = (int) db.insert(MEDIA_TABLE, null, cv);
         cv.clear();
         return imageId;
     }
@@ -190,12 +189,12 @@ public class MyOpenHelper extends SQLiteOpenHelper {
     public synchronized boolean updateMedia(SQLiteDatabase db, Media oldMedia, Media newMedia) {
         if (oldMedia != newMedia) {
             ContentValues cv = new ContentValues();
-            cv.put(COL_IMAGE_FILENAME, newMedia.getFileName());
-            cv.put(COL_IMAGE_NAME, newMedia.getName());
-            cv.put(COL_IMAGE_LINK, newMedia.getLink());
-            cv.put(COL_IMAGE_AUTHOR_ID, getAuthorId(db, newMedia.getAuthor()));
+            cv.put(COL_MEDIA_FILENAME, newMedia.getFileName());
+            cv.put(COL_MEDIA_NAME, newMedia.getName());
+            cv.put(COL_MEDIA_LINK, newMedia.getLink());
+            cv.put(COL_MEDIA_AUTHOR_ID, getAuthorId(db, newMedia.getAuthor()));
 
-            db.update(IMAGE_TABLE, cv, COL_IMAGE_ID + " = ?", new String[]{String.valueOf(newMedia.getId())});
+            db.update(MEDIA_TABLE, cv, COL_MEDIA_ID + " = ?", new String[]{String.valueOf(newMedia.getId())});
             return true;
         }
         return false;
@@ -207,9 +206,9 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         c.moveToFirst();
         while (!c.isAfterLast()) {
             Media media = new Media.Builder()
-                    .id(c.getInt(c.getColumnIndex(COL_IMAGE_ID)))
-                    .name(c.getString(c.getColumnIndex(COL_IMAGE_NAME)))
-                    .fileName(c.getString(c.getColumnIndex(COL_IMAGE_FILENAME)))
+                    .id(c.getInt(c.getColumnIndex(COL_MEDIA_ID)))
+                    .name(c.getString(c.getColumnIndex(COL_MEDIA_NAME)))
+                    .fileName(c.getString(c.getColumnIndex(COL_MEDIA_FILENAME)))
                     .author(c.getString(c.getColumnIndex(AUTHOR_TABLE + "_" + COL_AUTHOR_NAME)))
                     .build();
             mediaList.add(media);
@@ -221,7 +220,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
 
     public synchronized ArrayList<Media> getMediaList(SQLiteDatabase db, TreeMap<String, ArrayList<String>> whereFilters, String[] orderBy) {
         ArrayList<String> selectionArgs = new ArrayList<>();
-        StringBuilder query = new StringBuilder(IMAGE_BASE_QUERY);
+        StringBuilder query = new StringBuilder(MEDIA_BASE_QUERY);
         if (whereFilters.containsKey(TAG_TABLE + "." + COL_TAG_NAME)) {
             query.append(TAG_JOIN);
         }
@@ -249,7 +248,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
                 }
             }
         }
-        query.append(IMAGE_GROUP_BY);
+        query.append(MEDIA_GROUP_BY);
         if (orderBy.length != 0) {
             query.append("ORDER BY ");
             for (int i = 0; i < orderBy.length; i++) {
@@ -275,21 +274,21 @@ public class MyOpenHelper extends SQLiteOpenHelper {
     //Gets a single media with all values initialized
     public synchronized Media getMedia(SQLiteDatabase db, int mediaId) {
         //removing the space at the end to query more columns
-        String query = IMAGE_BASE_QUERY.substring(0, IMAGE_BASE_QUERY.indexOf("FROM")-1);
-        query += ", " + IMAGE_TABLE + "." + COL_IMAGE_LINK + " "; //getting image link
-        query += IMAGE_BASE_QUERY.substring(IMAGE_BASE_QUERY.indexOf("FROM"));
-        query += "WHERE " + IMAGE_TABLE + "." + COL_IMAGE_ID + " = ? " + 
-                IMAGE_GROUP_BY + "LIMIT 1";
+        String query = MEDIA_BASE_QUERY.substring(0, MEDIA_BASE_QUERY.indexOf("FROM")-1);
+        query += ", " + MEDIA_TABLE + "." + COL_MEDIA_LINK + " "; //getting image link
+        query += MEDIA_BASE_QUERY.substring(MEDIA_BASE_QUERY.indexOf("FROM"));
+        query += "WHERE " + MEDIA_TABLE + "." + COL_MEDIA_ID + " = ? " +
+                MEDIA_GROUP_BY + "LIMIT 1";
         Cursor c = db.rawQuery(query, new String[] { String.valueOf(mediaId) });
         c.moveToFirst();
         Media media = null;
         if (!c.isAfterLast()) {
              media = new Media.Builder()
-                    .id(c.getInt(c.getColumnIndex(COL_IMAGE_ID)))
-                    .name(c.getString(c.getColumnIndex(COL_IMAGE_NAME)))
-                    .fileName(c.getString(c.getColumnIndex(COL_IMAGE_FILENAME)))
+                    .id(c.getInt(c.getColumnIndex(COL_MEDIA_ID)))
+                    .name(c.getString(c.getColumnIndex(COL_MEDIA_NAME)))
+                    .fileName(c.getString(c.getColumnIndex(COL_MEDIA_FILENAME)))
                     .author(c.getString(c.getColumnIndex(AUTHOR_TABLE + "_" + COL_AUTHOR_NAME)))
-                    .link(c.getString(c.getColumnIndex(COL_IMAGE_LINK)))
+                    .link(c.getString(c.getColumnIndex(COL_MEDIA_LINK)))
                     .build();
         }
         c.close();
