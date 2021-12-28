@@ -1,20 +1,9 @@
 <resources>
     <string name="app_name">Velona Thea</string>
-    <string name="searchbar_hint">Search...</string>
-    <string name="button_tag">Search by tag</string>
-    <string name="button_title">Search by title</string>
-    <string name="button_author">Search by author</string>
-    <string name="button_load">Load from output.txt</string>
     <string name="button_debug">Debug</string>
-    <string name="search_text">"Searching for "</string>
     <string name="button_delete">Clear database</string>
     <string name="config_menubutton">Config</string>
-    <string name="activity_config_searchperpage">Search results per page</string>
-    <string name="activity_config_textviewresultsperpage">Search results per page:</string>
-    <string name="next">Next</string>
-    <string name="previous">Previous</string>
     <string name="choose_root_directory">Choose root directory</string>
-    <string name="ok">Ok</string>
     <string name="show_hidden_files">Show hidden files</string>
     <string name="random_order">Random order</string>
     <string name="image_cache_size">Image cache size</string>

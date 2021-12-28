@@ -110,15 +110,15 @@ public class SearchResultsActivity extends BaseActivity {
         if (showHiddenFiles || !path.contains(".")) {
             TreeMap<String, ArrayList<String>> whereFilters = new TreeMap<>();
             if (!title.equals("")) {
-                whereFilters.put(MyOpenHelper.IMAGE_TABLE + "." + MyOpenHelper.COL_NAME, new ArrayList<>(
+                whereFilters.put(MyOpenHelper.IMAGE_TABLE + "." + MyOpenHelper.COL_IMAGE_NAME, new ArrayList<>(
                         Arrays.asList(title)));
             }
             if (!author.equals("")) {
-                whereFilters.put(MyOpenHelper.AUTHOR_TABLE + "_" + MyOpenHelper.COL_NAME, new ArrayList<>(
+                whereFilters.put(MyOpenHelper.AUTHOR_TABLE + "_" + MyOpenHelper.COL_AUTHOR_NAME, new ArrayList<>(
                         Arrays.asList(author)));
             }
             if (!tag.equals("")) {
-                whereFilters.put(MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_NAME, new ArrayList<>(
+                whereFilters.put(MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_TAG_NAME, new ArrayList<>(
                         Arrays.asList(tag)));
             }
             if (mediaType != null) {

@@ -253,8 +253,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         if (orderBy.length != 0) {
             query.append("ORDER BY ");
             for (int i = 0; i < orderBy.length; i++) {
-                query.append("?");
-                selectionArgs.add(orderBy[i]);
+                query.append(orderBy[i]);
                 if (i != orderBy.length-1) {
                     query.append(", ");
                 }
