@@ -83,6 +83,7 @@ public class SearchResultsActivity extends BaseActivity {
         boolean showHiddenFiles = prefs.getBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, false);
 
         //Local variables
+        String fileName = data.getString(Constants.PREFS_MEDIA_FILENAME);
         String nameFilter = data.getString(Constants.PREFS_MEDIA_NAME);
         String author = data.getString(Constants.PREFS_MEDIA_AUTHOR);
         String tag = data.getString(Constants.PREFS_MEDIA_TAG);
@@ -107,6 +108,10 @@ public class SearchResultsActivity extends BaseActivity {
         }
         if (showHiddenFiles || !path.contains(".")) {
             TreeMap<String, ArrayList<String>> whereFilters = new TreeMap<>();
+            if (!fileName.equals("")) {
+                whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME, new ArrayList<>(
+                        Arrays.asList(fileName)));
+            }
             if (!nameFilter.equals("")) {
                 whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_NAME, new ArrayList<>(
                         Arrays.asList(nameFilter)));
@@ -128,6 +133,9 @@ public class SearchResultsActivity extends BaseActivity {
                     whereFilters.put(MyOpenHelper.COL_MEDIA_FILENAME, videoExtensions);
                 }
             }
+            String naturalSortColumn = MyOpenHelper.MEDIA_TABLE + ".";
+            naturalSortColumn += fileName.length() >= nameFilter.length() ? MyOpenHelper.COL_MEDIA_FILENAME : MyOpenHelper.COL_MEDIA_NAME;
+            orderBy.add("LENGTH(" + naturalSortColumn + ")");
             mediaList.addAll(myOpenHelper.getMediaList(db, whereFilters, orderBy.toArray(new String[0])));
             adapter.notifyItemRangeInserted(0, mediaList.size());
         }

@@ -8,11 +8,19 @@
         <include layout="@layout/toolbar"/>
 
         <EditText
-            android:id="@+id/activity_main_et_title_search"
+            android:id="@+id/activity_main_et_filename_search"
             android:inputType="text"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/image_title"
+            android:hint="File name"
+            android:importantForAutofill="no" />
+
+        <EditText
+            android:id="@+id/activity_main_et_name_search"
+            android:inputType="text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Name"
             android:importantForAutofill="no" />
 
         <EditText

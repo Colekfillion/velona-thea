@@ -25,6 +25,7 @@ public class Constants {
 
     public static final String PREFS = "preferences";
     public static final String PREFS_MEDIA_NAME = "name";
+    public static final String PREFS_MEDIA_FILENAME = "fileName";
     public static final String PREFS_MEDIA_AUTHOR = "author";
     public static final String PREFS_MEDIA_TAG = "tag";
     public static final String PREFS_MEDIA_TYPE = "mediaType";
@@ -33,4 +34,5 @@ public class Constants {
     public static final String PREFS_CACHE_SIZE = "cacheSize";
 
     public static final String PREFS_UPDATED_MEDIA_POSITION = "positionToUpdate";
+
 }

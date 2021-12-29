@@ -24,7 +24,8 @@ public class MainActivity extends BaseActivity {
         SwitchCompat randomOrder = findViewById(R.id.activity_main_swtch_random);
         randomOrder.setChecked(prefs.getBoolean(Constants.PREFS_RANDOM_ORDER, false));
 
-        EditText etTitle = findViewById(R.id.activity_main_et_title_search);
+        EditText etFileName = findViewById(R.id.activity_main_et_filename_search);
+        EditText etName = findViewById(R.id.activity_main_et_name_search);
         EditText etAuthor = findViewById(R.id.activity_main_et_author_search);
         EditText etTag = findViewById(R.id.activity_main_et_tag_search);
         RadioGroup rgMediaType = findViewById(R.id.activity_main_rg_mediatype);
@@ -33,7 +34,8 @@ public class MainActivity extends BaseActivity {
         btnSearch.setOnClickListener(v -> {
             Bundle dataToPass = new Bundle();
 
-            dataToPass.putString(Constants.PREFS_MEDIA_NAME, etTitle.getText().toString());
+            dataToPass.putString(Constants.PREFS_MEDIA_FILENAME, etFileName.getText().toString());
+            dataToPass.putString(Constants.PREFS_MEDIA_NAME, etName.getText().toString());
             dataToPass.putString(Constants.PREFS_MEDIA_AUTHOR, etAuthor.getText().toString());
             dataToPass.putString(Constants.PREFS_MEDIA_TAG, etTag.getText().toString());
             String mediaType = "";
