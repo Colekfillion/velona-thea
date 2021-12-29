@@ -18,9 +18,7 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.davemorrissey.labs.subscaleview.ImageSource;
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.util.ArrayList;
 
 import ca.quadrexium.velonathea.R;
@@ -197,6 +195,26 @@ public class FullMediaActivity extends BaseActivity {
                 super(view);
                 gifImageView = view.findViewById(R.id.activity_full_media_giv_gif);
             }
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        VideoView videoView = findViewById(R.id.activity_full_media_vv_video);
+        if (videoView != null && videoView.isPlaying()) {
+            videoView.stopPlayback();
+            videoView.seekTo(0);
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        VideoView videoView = findViewById(R.id.activity_full_media_vv_video);
+        if (videoView != null) {
+            videoView.start();
+            videoView.setOnCompletionListener(mpa -> videoView.start());
         }
     }
 }
