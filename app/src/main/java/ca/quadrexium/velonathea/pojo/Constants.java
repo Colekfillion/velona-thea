@@ -21,6 +21,7 @@ public class Constants {
     public static final String IMAGE = "image";
     public static final String PATH = "path";
     public static final String POSITION = "position";
+    public static final String QUERY_CACHE_FILENAME = "query_cache.txt";
 
 
     public static final String PREFS = "preferences";

@@ -18,11 +18,14 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.davemorrissey.labs.subscaleview.ImageSource;
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.util.ArrayList;
 
 import ca.quadrexium.velonathea.R;
 import ca.quadrexium.velonathea.pojo.Constants;
+import ca.quadrexium.velonathea.pojo.Media;
 import pl.droidsonroids.gif.GifDrawable;
 import pl.droidsonroids.gif.GifImageView;
 
@@ -31,14 +34,15 @@ public class FullMediaActivity extends BaseActivity {
     ViewPager2 viewPager;
     ViewPagerAdapter viewPagerAdapter;
     String path;
-    ArrayList<String> fileNames;
+    ArrayList<Media> mediaList = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         Bundle data = getIntent().getExtras();
-        fileNames = data.getStringArrayList("fileNames");
+
+        mediaList = SearchResultsActivity.loadMediaFromCache(this.getExternalFilesDir(Environment.DIRECTORY_PICTURES).getPath());
 
         SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
         path = prefs.getString(Constants.PATH, Environment.DIRECTORY_PICTURES);
@@ -76,7 +80,7 @@ public class FullMediaActivity extends BaseActivity {
 
         @Override
         public int getItemViewType(int position) {
-            String extension = fileNames.get(position).substring(fileNames.get(position).lastIndexOf("."));
+            String extension = mediaList.get(position).getFileName().substring(mediaList.get(position).getFileName().lastIndexOf("."));
             if (Constants.IMAGE_EXTENSIONS.contains(extension)) {
                 return 0;
             } else if (Constants.VIDEO_EXTENSIONS.contains(extension)) {
@@ -114,7 +118,7 @@ public class FullMediaActivity extends BaseActivity {
         @Override
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
 
-            File f = new File(path + "/" + fileNames.get(position));
+            File f = new File(path + "/" + mediaList.get(position).getFileName());
             if (f.exists()) {
                 switch (holder.getItemViewType()) {
                     case 0:
@@ -166,7 +170,7 @@ public class FullMediaActivity extends BaseActivity {
         }
 
         @Override
-        public int getItemCount() { return fileNames.size(); }
+        public int getItemCount() { return mediaList.size(); }
 
         public class ViewHolderImage extends RecyclerView.ViewHolder {
             private final SubsamplingScaleImageView imageView;

@@ -5,9 +5,13 @@ import androidx.appcompat.widget.SwitchCompat;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Environment;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioGroup;
+import android.widget.Toast;
+
+import java.io.File;
 
 import ca.quadrexium.velonathea.R;
 import ca.quadrexium.velonathea.pojo.Constants;
@@ -70,5 +74,16 @@ public class MainActivity extends BaseActivity {
         edit.apply();
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
 
+        File queryCache = new File(this.getExternalFilesDir(Environment.DIRECTORY_PICTURES).getPath() + "/" + Constants.QUERY_CACHE_FILENAME);
+        if (queryCache.exists()) {
+            boolean cacheDeleted = queryCache.delete();
+            if (cacheDeleted) {
+                Toast.makeText(this, "Cache deleted", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
 }

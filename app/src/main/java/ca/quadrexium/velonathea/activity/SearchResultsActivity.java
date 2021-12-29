@@ -26,7 +26,11 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -100,47 +104,73 @@ public class SearchResultsActivity extends BaseActivity {
         rv.setLayoutManager(layoutManager);
         rv.setAdapter(adapter = new MyAdapter());
 
-        MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
-        SQLiteDatabase db = myOpenHelper.getReadableDatabase();
-        ArrayList<String> orderBy = new ArrayList<>();
-        if (randomOrder) {
-            orderBy.add("RANDOM()");
-        }
-        if (showHiddenFiles || !path.contains(".")) {
-            TreeMap<String, ArrayList<String>> whereFilters = new TreeMap<>();
-            if (!fileName.equals("")) {
-                whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME, new ArrayList<>(
-                        Arrays.asList(fileName)));
+        String queryCacheLocation = this.getExternalFilesDir(Environment.DIRECTORY_PICTURES).getPath();
+        if (doesQueryCacheExist(queryCacheLocation)) {
+            mediaList.addAll(loadMediaFromCache(queryCacheLocation));
+            Toast.makeText(this, "Loaded from cache", Toast.LENGTH_LONG).show();
+        } else {
+            MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
+            SQLiteDatabase db = myOpenHelper.getReadableDatabase();
+            ArrayList<String> orderBy = new ArrayList<>();
+            if (randomOrder) {
+                orderBy.add("RANDOM()");
             }
-            if (!nameFilter.equals("")) {
-                whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_NAME, new ArrayList<>(
-                        Arrays.asList(nameFilter)));
-            }
-            if (!author.equals("")) {
-                whereFilters.put(MyOpenHelper.COL_AUTHOR_NAME_FOREIGN, new ArrayList<>(
-                        Arrays.asList(author)));
-            }
-            if (!tag.equals("")) {
-                whereFilters.put(MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_TAG_NAME, new ArrayList<>(
-                        Arrays.asList(tag)));
-            }
-            if (mediaType != null) {
-                if (mediaType.equals(Constants.IMAGE)) {
-                    whereFilters.put(MyOpenHelper.COL_MEDIA_FILENAME, Constants.IMAGE_EXTENSIONS);
-                } else if (mediaType.equals(Constants.VIDEO)) {
-                    ArrayList<String> videoExtensions = new ArrayList<>(Constants.VIDEO_EXTENSIONS);
-                    videoExtensions.add(".gif"); //gifs are considered videos except for viewing
-                    whereFilters.put(MyOpenHelper.COL_MEDIA_FILENAME, videoExtensions);
+            if (showHiddenFiles || !path.contains(".")) {
+                TreeMap<String, ArrayList<String>> whereFilters = new TreeMap<>();
+                if (!fileName.equals("")) {
+                    whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME, new ArrayList<>(
+                            Arrays.asList(fileName)));
+                }
+                if (!nameFilter.equals("")) {
+                    whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_NAME, new ArrayList<>(
+                            Arrays.asList(nameFilter)));
+                }
+                if (!author.equals("")) {
+                    whereFilters.put(MyOpenHelper.COL_AUTHOR_NAME_FOREIGN, new ArrayList<>(
+                            Arrays.asList(author)));
+                }
+                if (!tag.equals("")) {
+                    whereFilters.put(MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_TAG_NAME, new ArrayList<>(
+                            Arrays.asList(tag)));
+                }
+                if (mediaType != null) {
+                    if (mediaType.equals(Constants.IMAGE)) {
+                        whereFilters.put(MyOpenHelper.COL_MEDIA_FILENAME, Constants.IMAGE_EXTENSIONS);
+                    } else if (mediaType.equals(Constants.VIDEO)) {
+                        ArrayList<String> videoExtensions = new ArrayList<>(Constants.VIDEO_EXTENSIONS);
+                        videoExtensions.add(".gif"); //gifs are considered videos except for viewing
+                        whereFilters.put(MyOpenHelper.COL_MEDIA_FILENAME, videoExtensions);
+                    }
+                }
+                if (!nameFilter.equals("") || !fileName.equals("")) {
+                    String naturalSortColumn = MyOpenHelper.MEDIA_TABLE + ".";
+                    naturalSortColumn += fileName.length() >= nameFilter.length() ? MyOpenHelper.COL_MEDIA_FILENAME : MyOpenHelper.COL_MEDIA_NAME;
+                    orderBy.add("LENGTH(" + naturalSortColumn + ")");
+                }
+                mediaList.addAll(myOpenHelper.getMediaList(db, whereFilters, orderBy.toArray(new String[0])));
+                adapter.notifyItemRangeInserted(0, mediaList.size());
+
+                //Saving the mediaList as a tab-delimited text file
+                //TODO: Async this
+                StringBuilder mediaListAsString = new StringBuilder();
+                for (Media media : mediaList) {
+                    mediaListAsString.append(media.getId()).append("\t");
+                    mediaListAsString.append(media.getName()).append("\t");
+                    mediaListAsString.append(media.getFileName()).append("\t");
+                    mediaListAsString.append(media.getAuthor()).append("\t");
+                    mediaListAsString.append("\n");
+                }
+                try {
+                    FileWriter myWriter = new FileWriter(this.getExternalFilesDir(Environment.DIRECTORY_PICTURES).getPath() + "/" + Constants.QUERY_CACHE_FILENAME);
+                    myWriter.write(mediaListAsString.toString());
+                    myWriter.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
-            String naturalSortColumn = MyOpenHelper.MEDIA_TABLE + ".";
-            naturalSortColumn += fileName.length() >= nameFilter.length() ? MyOpenHelper.COL_MEDIA_FILENAME : MyOpenHelper.COL_MEDIA_NAME;
-            orderBy.add("LENGTH(" + naturalSortColumn + ")");
-            mediaList.addAll(myOpenHelper.getMediaList(db, whereFilters, orderBy.toArray(new String[0])));
-            adapter.notifyItemRangeInserted(0, mediaList.size());
+            db.close();
         }
         Toast.makeText(getApplicationContext(), mediaList.size() + " results", Toast.LENGTH_SHORT).show();
-        db.close();
     }
 
     @Override
@@ -157,18 +187,7 @@ public class SearchResultsActivity extends BaseActivity {
             view.setOnClickListener(v -> {
                 int position = rv.getChildLayoutPosition(view);
                 Bundle dataToPass = new Bundle();
-
-                //Limiting media passed to FullMediaActivity to stay within bundle transaction limit
-                ArrayList<String> fileNames = new ArrayList<>();
-                int maxFileNames = 1000;
-                int minPosition = Math.max(0, position-(maxFileNames/5));
-                int maxPosition = (int) Math.min(mediaList.size(), position+(Math.round(maxFileNames*0.8)));
-                for (int ii = minPosition; ii < maxPosition; ii++) {
-                    fileNames.add(mediaList.get(ii).getFileName());
-                }
-
-                dataToPass.putStringArrayList("fileNames", fileNames);
-                dataToPass.putInt(Constants.POSITION, position-minPosition);
+                dataToPass.putInt(Constants.POSITION, position);
                 Intent ii = new Intent(SearchResultsActivity.this, FullMediaActivity.class);
                 ii.putExtras(dataToPass);
                 startActivity(ii);
@@ -309,5 +328,46 @@ public class SearchResultsActivity extends BaseActivity {
                 view.image.setImageBitmap(null);
             }
         }
+    }
+
+    public static ArrayList<Media> loadMediaFromCache(String cacheFileLocation) {
+        ArrayList<Media> mediaList = new ArrayList<>();
+        File queryCache = new File(cacheFileLocation + "/" + Constants.QUERY_CACHE_FILENAME);
+        String content = "";
+        try {
+            BufferedReader r = new BufferedReader(new FileReader(queryCache));
+            StringBuilder total = new StringBuilder();
+            String line;
+
+            while ((line = r.readLine()) != null) {
+                total.append(line);
+                total.append('\n');
+            }
+            r.close();
+            content = total.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        if (!content.equals("")) {
+
+            String[] rows = content.split("\n");
+            for (String row : rows) {
+                String[] rowValues = row.split("\t");
+                Media media = new Media.Builder()
+                        .id(Integer.parseInt(rowValues[0]))
+                        .name(rowValues[1])
+                        .fileName(rowValues[2])
+                        .author(rowValues[3])
+                        .build();
+                mediaList.add(media);
+            }
+        }
+        return mediaList;
+    }
+
+    public static boolean doesQueryCacheExist(String cacheFileLocation) {
+        File queryCache = new File(cacheFileLocation + "/" + Constants.QUERY_CACHE_FILENAME);
+        return queryCache.exists();
     }
 }
