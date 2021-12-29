@@ -57,7 +57,8 @@ public class SearchResultsActivity extends BaseActivity {
     private RecyclerView rv;
     private MyAdapter adapter;
 
-    ActivityResultLauncher<Intent> fullImageActivity = registerForActivityResult(
+    //
+    ActivityResultLauncher<Intent> mediaDetailsActivity = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
                 if (result.getResultCode() == Activity.RESULT_OK) {
@@ -104,18 +105,20 @@ public class SearchResultsActivity extends BaseActivity {
         rv.setLayoutManager(layoutManager);
         rv.setAdapter(adapter = new MyAdapter());
 
-        String queryCacheLocation = this.getExternalFilesDir(Environment.DIRECTORY_PICTURES).getPath();
-        if (doesQueryCacheExist(queryCacheLocation)) {
-            mediaList.addAll(loadMediaFromCache(queryCacheLocation));
-            Toast.makeText(this, "Loaded from cache", Toast.LENGTH_LONG).show();
-        } else {
-            MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
-            SQLiteDatabase db = myOpenHelper.getReadableDatabase();
-            ArrayList<String> orderBy = new ArrayList<>();
-            if (randomOrder) {
-                orderBy.add("RANDOM()");
-            }
-            if (showHiddenFiles || !path.contains(".")) {
+        //Loading media into recyclerview
+        if (showHiddenFiles || !path.contains(".")) {
+            String queryCacheLocation = this.getExternalFilesDir(Environment.DIRECTORY_PICTURES).getPath();
+            if (doesQueryCacheExist(queryCacheLocation)) {
+                mediaList.addAll(loadMediaFromCache(queryCacheLocation));
+                Toast.makeText(this, "Loaded from cache", Toast.LENGTH_LONG).show();
+            } else {
+                MyOpenHelper myOpenHelper = openMediaDatabase();
+                SQLiteDatabase db = myOpenHelper.getReadableDatabase();
+                ArrayList<String> orderBy = new ArrayList<>();
+                if (randomOrder) {
+                    orderBy.add("RANDOM()");
+                }
+
                 TreeMap<String, ArrayList<String>> whereFilters = new TreeMap<>();
                 if (!fileName.equals("")) {
                     whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME, new ArrayList<>(
@@ -148,7 +151,6 @@ public class SearchResultsActivity extends BaseActivity {
                     orderBy.add("LENGTH(" + naturalSortColumn + ")");
                 }
                 mediaList.addAll(myOpenHelper.getMediaList(db, whereFilters, orderBy.toArray(new String[0])));
-                adapter.notifyItemRangeInserted(0, mediaList.size());
 
                 //Saving the mediaList as a tab-delimited text file
                 //TODO: Async this
@@ -167,10 +169,11 @@ public class SearchResultsActivity extends BaseActivity {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                db.close();
             }
-            db.close();
+            adapter.notifyItemRangeInserted(0, mediaList.size());
+            Toast.makeText(getApplicationContext(), mediaList.size() + " results", Toast.LENGTH_SHORT).show();
         }
-        Toast.makeText(getApplicationContext(), mediaList.size() + " results", Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -186,23 +189,27 @@ public class SearchResultsActivity extends BaseActivity {
             //Show image in fullscreen on click
             view.setOnClickListener(v -> {
                 int position = rv.getChildLayoutPosition(view);
+
                 Bundle dataToPass = new Bundle();
                 dataToPass.putInt(Constants.POSITION, position);
-                Intent ii = new Intent(SearchResultsActivity.this, FullMediaActivity.class);
-                ii.putExtras(dataToPass);
-                startActivity(ii);
+
+                Intent intent = new Intent(SearchResultsActivity.this, FullMediaActivity.class);
+                intent.putExtras(dataToPass);
+                startActivity(intent);
             });
 
             //Show image details on long click
             view.setOnLongClickListener(v -> {
                 int position = rv.getChildLayoutPosition(view);
                 Media media = mediaList.get(position);
+
                 Bundle dataToPass = new Bundle();
                 dataToPass.putParcelable(Constants.MEDIA, media);
                 dataToPass.putInt(Constants.POSITION, position);
-                Intent ii = new Intent(SearchResultsActivity.this, MediaDetailsActivity.class);
-                ii.putExtras(dataToPass);
-                fullImageActivity.launch(ii);
+
+                Intent intent = new Intent(SearchResultsActivity.this, MediaDetailsActivity.class);
+                intent.putExtras(dataToPass);
+                mediaDetailsActivity.launch(intent);
                 return true;
             });
             return new ViewHolder(view);
@@ -216,7 +223,7 @@ public class SearchResultsActivity extends BaseActivity {
             imageLayout.image.setScaleType(ImageView.ScaleType.CENTER_CROP);
 
             //Setting layout views
-            imageLayout.fileName.setText(media.getFileName());
+            imageLayout.fileName.setText(fileName);
             imageLayout.name.setText(media.getName());
             imageLayout.author.setText(media.getAuthor());
 

@@ -55,20 +55,33 @@ public class FullMediaActivity extends BaseActivity {
 
     public class ViewPagerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
+        @Override
+        public int getItemViewType(int position) {
+            String extension = mediaList.get(position).getFileName().substring(mediaList.get(position).getFileName().lastIndexOf("."));
+            if (Constants.IMAGE_EXTENSIONS.contains(extension)) {
+                return Constants.MEDIA_TYPE_IMAGE;
+            } else if (Constants.VIDEO_EXTENSIONS.contains(extension)) {
+                return Constants.MEDIA_TYPE_VIDEO;
+            } else if (extension.equals(".gif")) {
+                return Constants.MEDIA_TYPE_GIF;
+            }
+            throw new IllegalStateException("Media is not an image, video, or gif");
+        }
+
         @NonNull
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType) {
             View view;
             switch(viewType) {
-                case 0:
+                case Constants.MEDIA_TYPE_IMAGE:
                     view = LayoutInflater.from(viewGroup.getContext()).inflate(
                             R.layout.full_image, viewGroup, false);
                     return new ViewHolderImage(view);
-                case 1:
+                case Constants.MEDIA_TYPE_VIDEO:
                     view = LayoutInflater.from(viewGroup.getContext()).inflate(
                             R.layout.full_video, viewGroup, false);
                     return new ViewHolderVideo(view);
-                case 2:
+                case Constants.MEDIA_TYPE_GIF:
                     view = LayoutInflater.from(viewGroup.getContext()).inflate(
                             R.layout.full_gif, viewGroup, false);
                     return new ViewHolderGif(view);
@@ -76,61 +89,25 @@ public class FullMediaActivity extends BaseActivity {
             throw new IllegalStateException("Media is not an image, video, or gif");
         }
 
-        @Override
-        public int getItemViewType(int position) {
-            String extension = mediaList.get(position).getFileName().substring(mediaList.get(position).getFileName().lastIndexOf("."));
-            if (Constants.IMAGE_EXTENSIONS.contains(extension)) {
-                return 0;
-            } else if (Constants.VIDEO_EXTENSIONS.contains(extension)) {
-                return 1;
-            } else if (extension.equals(".gif")) {
-                return 2;
-            }
-            throw new IllegalStateException("Media is not an image, video, or gif");
-        }
-
-        @Override
-        public void onViewAttachedToWindow(@NonNull RecyclerView.ViewHolder holder) {
-            if (holder.getItemViewType() == 1) {
-                assert holder instanceof ViewHolderVideo;
-                ViewHolderVideo holderVideo = (ViewHolderVideo) holder;
-
-                holderVideo.videoView.start();
-                holderVideo.videoView.setOnCompletionListener(mpa -> holderVideo.videoView.start());
-            }
-        }
-
-        @Override
-        public void onViewDetachedFromWindow(@NonNull RecyclerView.ViewHolder holder) {
-            if (holder.getItemViewType() == 1) {
-                assert holder instanceof ViewHolderVideo;
-                ViewHolderVideo holderVideo = (ViewHolderVideo) holder;
-
-                if (holderVideo.videoView.isPlaying()) {
-                    holderVideo.videoView.stopPlayback();
-                    holderVideo.videoView.seekTo(0);
-                }
-            }
-        }
-
+        //When media is first scrolled to
         @Override
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
 
             File f = new File(path + "/" + mediaList.get(position).getFileName());
             if (f.exists()) {
                 switch (holder.getItemViewType()) {
-                    case 0:
+                    case Constants.MEDIA_TYPE_IMAGE:
                         ViewHolderImage holderImage = (ViewHolderImage) holder;
 
                         holderImage.imageView.setImage(ImageSource.uri(Uri.fromFile(f)));
                         break;
-                    case 1:
+                    case Constants.MEDIA_TYPE_VIDEO:
                         assert holder instanceof ViewHolderVideo;
                         ViewHolderVideo holderVideo = (ViewHolderVideo) holder;
 
                         holderVideo.videoView.setVideoURI(Uri.fromFile(f));
                         break;
-                    case 2:
+                    case Constants.MEDIA_TYPE_GIF:
                         assert holder instanceof ViewHolderGif;
                         ViewHolderGif holderGif = (ViewHolderGif) holder;
 
@@ -139,25 +116,26 @@ public class FullMediaActivity extends BaseActivity {
                             holderGif.gifImageView.setImageDrawable(gifDrawable);
                             gifDrawable.start();
                         } catch (Exception e) {
-                            holderGif.gifImageView.setImageBitmap(BitmapFactory.decodeFile(f.getAbsolutePath()));
+                            holderGif.gifImageView.setImageBitmap(
+                                    BitmapFactory.decodeFile(f.getAbsolutePath()));
                         }
                         break;
                 }
             } else {
                 switch (holder.getItemViewType()) {
-                    case 0:
+                    case Constants.MEDIA_TYPE_IMAGE:
                         ViewHolderImage holderImage = (ViewHolderImage) holder;
 
                         holderImage.imageView.setImage(ImageSource.resource(R.drawable.null_image));
                         holderImage.imageView.setZoomEnabled(false);
                         break;
-                    case 1:
+                    case Constants.MEDIA_TYPE_VIDEO:
                         assert holder instanceof ViewHolderVideo;
                         ViewHolderVideo holderVideo = (ViewHolderVideo) holder;
 
                         holderVideo.videoView.setVideoURI(null);
                         break;
-                    case 2:
+                    case Constants.MEDIA_TYPE_GIF:
                         assert holder instanceof ViewHolderGif;
                         ViewHolderGif holderGif = (ViewHolderGif) holder;
 
@@ -168,8 +146,29 @@ public class FullMediaActivity extends BaseActivity {
         }
 
         @Override
+        public void onViewAttachedToWindow(@NonNull RecyclerView.ViewHolder holder) {
+            if (holder.getItemViewType() == Constants.MEDIA_TYPE_VIDEO) {
+                assert holder instanceof ViewHolderVideo;
+                ViewHolderVideo holderVideo = (ViewHolderVideo) holder;
+
+                toggleVideo(holderVideo.videoView);
+            }
+        }
+
+        @Override
+        public void onViewDetachedFromWindow(@NonNull RecyclerView.ViewHolder holder) {
+            if (holder.getItemViewType() == Constants.MEDIA_TYPE_VIDEO) {
+                assert holder instanceof ViewHolderVideo;
+                ViewHolderVideo holderVideo = (ViewHolderVideo) holder;
+
+                toggleVideo(holderVideo.videoView);
+            }
+        }
+
+        @Override
         public int getItemCount() { return mediaList.size(); }
 
+        //3 different view types for each type of media
         public class ViewHolderImage extends RecyclerView.ViewHolder {
             private final SubsamplingScaleImageView imageView;
 
@@ -201,18 +200,26 @@ public class FullMediaActivity extends BaseActivity {
     @Override
     protected void onPause() {
         super.onPause();
+        //Pause video if it is visible, set time to 0
         VideoView videoView = findViewById(R.id.activity_full_media_vv_video);
-        if (videoView != null && videoView.isPlaying()) {
-            videoView.stopPlayback();
-            videoView.seekTo(0);
-        }
+
+        toggleVideo(videoView);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        //Start video if it is visible
         VideoView videoView = findViewById(R.id.activity_full_media_vv_video);
-        if (videoView != null) {
+
+        toggleVideo(videoView);
+    }
+
+    public void toggleVideo(VideoView videoView) {
+        if (videoView != null && videoView.isPlaying()) {
+            videoView.stopPlayback();
+            videoView.seekTo(0);
+        } else if (videoView != null){
             videoView.start();
             videoView.setOnCompletionListener(mpa -> videoView.start());
         }

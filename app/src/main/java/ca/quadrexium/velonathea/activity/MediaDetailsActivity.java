@@ -34,7 +34,7 @@ public class MediaDetailsActivity extends BaseActivity {
         int position = dataToPass.getInt(Constants.POSITION);
 
         if (media.getLink() == null) {
-            MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
+            MyOpenHelper myOpenHelper = openMediaDatabase();
             SQLiteDatabase db = myOpenHelper.getWritableDatabase();
             media = myOpenHelper.getRemainingData(db, media);
         }
@@ -57,21 +57,22 @@ public class MediaDetailsActivity extends BaseActivity {
                     .build();
 
             if (!finalMedia.getFileName().equals(newMedia.getFileName())) {
-                SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
-                String path = prefs.getString(Constants.PATH, Environment.DIRECTORY_PICTURES);
-
-                File from = new File(path + "/" + finalMedia.getFileName());
-                File to = new File(path + "/" + newMedia.getFileName());
-                if (from.exists()) {
-                    boolean wasRenamed = from.renameTo(to);
-                    if (!wasRenamed) {
-                        newMedia.setFileName(finalMedia.getFileName());
-                        Toast.makeText(getApplicationContext(), "Could not rename", Toast.LENGTH_SHORT).show();
-                    }
-                }
+//                SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
+//                String path = prefs.getString(Constants.PATH, Environment.DIRECTORY_PICTURES);
+//
+//                File from = new File(path + "/" + finalMedia.getFileName());
+//                File to = new File(path + "/" + newMedia.getFileName());
+//                if (from.exists()) {
+//                    boolean wasRenamed = from.renameTo(to);
+//                    if (!wasRenamed) {
+//                        newMedia.setFileName(finalMedia.getFileName());
+//                        Toast.makeText(getApplicationContext(), "Could not rename", Toast.LENGTH_SHORT).show();
+//                    }
+//                }
+                Toast.makeText(getApplicationContext(), "Remember you have to rename it in your file manager too", Toast.LENGTH_LONG).show();
             }
 
-            MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
+            MyOpenHelper myOpenHelper = openMediaDatabase();
             SQLiteDatabase db = myOpenHelper.getWritableDatabase();
             boolean wasUpdated = myOpenHelper.updateMedia(db, finalMedia, newMedia);
             String toastText = wasUpdated ? "updated" : "no change";
@@ -83,7 +84,7 @@ public class MediaDetailsActivity extends BaseActivity {
                 setResult(RESULT_OK, i);
                 finish();
             }
-            Toast.makeText(getApplicationContext(), toastText, Toast.LENGTH_LONG).show();
+            Toast.makeText(getApplicationContext(), toastText, Toast.LENGTH_SHORT).show();
         });
     }
 

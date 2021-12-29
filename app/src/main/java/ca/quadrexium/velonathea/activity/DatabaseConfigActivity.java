@@ -81,7 +81,7 @@ public class DatabaseConfigActivity extends BaseActivity {
         Button deleteButton = findViewById(R.id.activity_config_deletebutton);
         deleteButton.setOnClickListener(v -> {
             if (!busy) {
-                MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
+                MyOpenHelper myOpenHelper = openMediaDatabase();
                 SQLiteDatabase db = myOpenHelper.getWritableDatabase();
                 db.delete(MyOpenHelper.MEDIA_TABLE, null, null);
                 db.delete(MyOpenHelper.TAG_TABLE, null, null);
@@ -94,7 +94,7 @@ public class DatabaseConfigActivity extends BaseActivity {
         Button debugButton = findViewById(R.id.activity_config_debugbutton);
         debugButton.setOnClickListener(v -> {
             if (!busy) {
-                MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
+                MyOpenHelper myOpenHelper = openMediaDatabase();
                 SQLiteDatabase db = myOpenHelper.getReadableDatabase();
 
                 long numImages = DatabaseUtils.queryNumEntries(db, MyOpenHelper.MEDIA_TABLE);

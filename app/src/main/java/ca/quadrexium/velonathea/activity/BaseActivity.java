@@ -16,6 +16,7 @@ import android.view.WindowManager;
 import android.widget.Toast;
 
 import ca.quadrexium.velonathea.R;
+import ca.quadrexium.velonathea.database.MyOpenHelper;
 
 public abstract class BaseActivity extends AppCompatActivity {
 
@@ -106,5 +107,9 @@ public abstract class BaseActivity extends AppCompatActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    protected MyOpenHelper openMediaDatabase() {
+        return new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
     }
 }

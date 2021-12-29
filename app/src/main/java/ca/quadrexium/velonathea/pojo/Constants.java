@@ -23,6 +23,9 @@ public class Constants {
     public static final String POSITION = "position";
     public static final String QUERY_CACHE_FILENAME = "query_cache.txt";
 
+    public static final int MEDIA_TYPE_IMAGE = 1;
+    public static final int MEDIA_TYPE_VIDEO = 2;
+    public static final int MEDIA_TYPE_GIF = 3;
 
     public static final String PREFS = "preferences";
     public static final String PREFS_MEDIA_NAME = "name";
@@ -33,7 +36,6 @@ public class Constants {
     public static final String PREFS_RANDOM_ORDER = "randomOrder";
     public static final String PREFS_SHOW_HIDDEN_FILES = "showHiddenFiles";
     public static final String PREFS_CACHE_SIZE = "cacheSize";
-
     public static final String PREFS_UPDATED_MEDIA_POSITION = "positionToUpdate";
 
 }
