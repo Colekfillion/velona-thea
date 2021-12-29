@@ -1,11 +1,16 @@
 package ca.quadrexium.velonathea.activity;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.os.Environment;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
+
+import java.io.File;
 
 import ca.quadrexium.velonathea.R;
 import ca.quadrexium.velonathea.database.MyOpenHelper;
@@ -51,6 +56,21 @@ public class MediaDetailsActivity extends BaseActivity {
                     .link(linkView.getText().toString())
                     .build();
 
+            if (!finalMedia.getFileName().equals(newMedia.getFileName())) {
+                SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
+                String path = prefs.getString(Constants.PATH, Environment.DIRECTORY_PICTURES);
+
+                File from = new File(path + "/" + finalMedia.getFileName());
+                File to = new File(path + "/" + newMedia.getFileName());
+                if (from.exists()) {
+                    boolean wasRenamed = from.renameTo(to);
+                    if (!wasRenamed) {
+                        newMedia.setFileName(finalMedia.getFileName());
+                        Toast.makeText(getApplicationContext(), "Could not rename", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }
+
             MyOpenHelper myOpenHelper = new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
             SQLiteDatabase db = myOpenHelper.getWritableDatabase();
             boolean wasUpdated = myOpenHelper.updateMedia(db, finalMedia, newMedia);
@@ -58,7 +78,7 @@ public class MediaDetailsActivity extends BaseActivity {
             if (wasUpdated) {
                 db.close();
                 Intent i = new Intent();
-                i.putExtra(Constants.POSITION, position);
+                i.putExtra(Constants.PREFS_UPDATED_MEDIA_POSITION, position);
                 i.putExtra(Constants.MEDIA, newMedia);
                 setResult(RESULT_OK, i);
                 finish();

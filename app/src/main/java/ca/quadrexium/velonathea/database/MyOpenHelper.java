@@ -187,7 +187,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
     }
 
     public synchronized boolean updateMedia(SQLiteDatabase db, Media oldMedia, Media newMedia) {
-        if (oldMedia != newMedia) {
+        if (!oldMedia.equals(newMedia)) {
             ContentValues cv = new ContentValues();
             cv.put(COL_MEDIA_FILENAME, newMedia.getFileName());
             cv.put(COL_MEDIA_NAME, newMedia.getName());
