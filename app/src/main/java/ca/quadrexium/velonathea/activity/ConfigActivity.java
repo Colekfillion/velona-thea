@@ -2,6 +2,7 @@ package ca.quadrexium.velonathea.activity;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.SwitchCompat;
 
 import android.app.Activity;
@@ -10,8 +11,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.widget.Button;
 import android.widget.EditText;
+
+import java.util.Objects;
 
 import ca.quadrexium.velonathea.R;
 import ca.quadrexium.velonathea.pojo.Constants;
@@ -42,7 +47,7 @@ public class ConfigActivity extends BaseActivity {
                     SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
                     SharedPreferences.Editor edit = prefs.edit();
 
-                    SwitchCompat showHiddenFiles = findViewById(R.id.show_hidden_files_switch);
+                    SwitchCompat showHiddenFiles = findViewById(R.id.activity_config_swtch_hiddenfiles);
                     edit.putBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, showHiddenFiles.isChecked());
                     edit.apply();
                     showHiddenFiles.setChecked(true);
@@ -52,6 +57,9 @@ public class ConfigActivity extends BaseActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        createToolbar(R.id.activity_tb_default_toolbar);
+        Objects.requireNonNull(getSupportActionBar()).setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
 
         Button dbConfigButton = findViewById(R.id.activity_config_btn_dbconfig);
         dbConfigButton.setOnClickListener(v -> {
@@ -71,14 +79,32 @@ public class ConfigActivity extends BaseActivity {
         EditText imageCacheSize = findViewById(R.id.activity_config_maxcachesize);
         imageCacheSize.setText(String.valueOf(prefs.getInt(Constants.PREFS_CACHE_SIZE, 20)));
 
-        SwitchCompat showHiddenFiles = findViewById(R.id.show_hidden_files_switch);
+        SwitchCompat invalidFiles = findViewById(R.id.activity_config_swtch_invalidfiles);
+        invalidFiles.setChecked(prefs.getBoolean(Constants.PREFS_SHOW_INVALID_FILES, true));
+        invalidFiles.setOnLongClickListener(v -> {
+            AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+
+            alertDialogBuilder.setTitle(R.string.show_invalid_files)
+
+                    .setMessage("An extra check is performed at the end of each search, which " +
+                            "checks that the file exists and is not empty (0 bytes) \n" +
+                            "Not recommended for large datasets, as it significantly slows down " +
+                            "searches. ")
+
+                    .setNeutralButton(android.R.string.ok, (click, arg) -> { })
+
+                    .create().show();
+            return true;
+        });
+
+        SwitchCompat showHiddenFiles = findViewById(R.id.activity_config_swtch_hiddenfiles);
         showHiddenFiles.setChecked(prefs.getBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, false));
         showHiddenFiles.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked && !verified) {
                 showHiddenFiles.setChecked(false);
                 KeyguardManager km = (KeyguardManager) this.getSystemService(Context.KEYGUARD_SERVICE);
-                Intent i = km.createConfirmDeviceCredentialIntent("Velona Thea", "This app requires you to authenticate.");
-                verifyActivity.launch(i);
+                Intent intent = km.createConfirmDeviceCredentialIntent("Velona Thea", "This app requires you to authenticate.");
+                verifyActivity.launch(intent);
             }
         });
     }
@@ -95,8 +121,24 @@ public class ConfigActivity extends BaseActivity {
         EditText imageCacheSize = findViewById(R.id.activity_config_maxcachesize);
         edit.putInt(Constants.PREFS_CACHE_SIZE, Integer.parseInt(imageCacheSize.getText().toString()));
 
-        SwitchCompat showHiddenFiles = findViewById(R.id.show_hidden_files_switch);
+        SwitchCompat showHiddenFiles = findViewById(R.id.activity_config_swtch_hiddenfiles);
         edit.putBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, showHiddenFiles.isChecked());
+
+        SwitchCompat invalidFiles = findViewById(R.id.activity_config_swtch_invalidfiles);
+        edit.putBoolean(Constants.PREFS_SHOW_INVALID_FILES, invalidFiles.isChecked());
         edit.apply();
+    }
+
+    //No options menu
+    @Override
+    public boolean onCreateOptionsMenu(Menu m) {
+        return true;
+    }
+
+    //Back button in toolbar
+    @Override
+    public boolean onSupportNavigateUp() {
+        onBackPressed();
+        return true;
     }
 }

@@ -2,6 +2,7 @@ package ca.quadrexium.velonathea.activity;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 
 import android.app.Activity;
 import android.content.ContentValues;
@@ -15,9 +16,11 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
+import android.view.Menu;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.BufferedReader;
@@ -27,6 +30,7 @@ import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 import ca.quadrexium.velonathea.R;
@@ -55,6 +59,9 @@ public class DatabaseConfigActivity extends BaseActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        createToolbar(R.id.activity_tb_default_toolbar);
+        Objects.requireNonNull(getSupportActionBar()).setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
 
         //Loads db rows from text file
         Button loadButton = findViewById(R.id.activity_config_loadbutton);
@@ -81,12 +88,24 @@ public class DatabaseConfigActivity extends BaseActivity {
         Button deleteButton = findViewById(R.id.activity_config_deletebutton);
         deleteButton.setOnClickListener(v -> {
             if (!busy) {
-                MyOpenHelper myOpenHelper = openMediaDatabase();
-                SQLiteDatabase db = myOpenHelper.getWritableDatabase();
-                db.delete(MyOpenHelper.MEDIA_TABLE, null, null);
-                db.delete(MyOpenHelper.TAG_TABLE, null, null);
-                db.delete(MyOpenHelper.MEDIA_TAG_TABLE, null, null);
-                db.delete(MyOpenHelper.AUTHOR_TABLE, null, null);
+                AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+
+                alertDialogBuilder.setTitle(R.string.button_delete)
+
+                        .setMessage("Are you sure? ")
+
+                        .setPositiveButton("Yes", (click, arg) -> {
+                            MyOpenHelper myOpenHelper = openMediaDatabase();
+                            SQLiteDatabase db = myOpenHelper.getWritableDatabase();
+                            db.delete(MyOpenHelper.MEDIA_TABLE, null, null);
+                            db.delete(MyOpenHelper.TAG_TABLE, null, null);
+                            db.delete(MyOpenHelper.MEDIA_TAG_TABLE, null, null);
+                            db.delete(MyOpenHelper.AUTHOR_TABLE, null, null);
+                        })
+
+                        .setNegativeButton("No", (click, arg) -> { })
+
+                        .create().show();
             }
         });
 
@@ -94,18 +113,9 @@ public class DatabaseConfigActivity extends BaseActivity {
         Button debugButton = findViewById(R.id.activity_config_debugbutton);
         debugButton.setOnClickListener(v -> {
             if (!busy) {
-                MyOpenHelper myOpenHelper = openMediaDatabase();
-                SQLiteDatabase db = myOpenHelper.getReadableDatabase();
-
-                long numImages = DatabaseUtils.queryNumEntries(db, MyOpenHelper.MEDIA_TABLE);
-                long numTags = DatabaseUtils.queryNumEntries(db, MyOpenHelper.TAG_TABLE);
-                long numImageTags = DatabaseUtils.queryNumEntries(db, MyOpenHelper.MEDIA_TAG_TABLE);
-                long numAuthors = DatabaseUtils.queryNumEntries(db, MyOpenHelper.AUTHOR_TABLE);
-                Toast.makeText(getApplicationContext(), "image:" + numImages +
-                                ".tag:" + numTags +
-                                ".imagetags:" + numImageTags +
-                                ".author:" + numAuthors,
-                        Toast.LENGTH_LONG).show();
+                busy = true;
+                DatabaseDebugTask ddt = new DatabaseDebugTask(findViewById(R.id.activity_database_config_tv_dbstats));
+                ddt.execute();
             }
         });
     }
@@ -208,14 +218,14 @@ public class DatabaseConfigActivity extends BaseActivity {
         protected void onProgressUpdate(Integer... values) {
             DatabaseConfigActivity activity = actRef.get();
             if (activity == null || activity.isFinishing()) return;
-            ProgressBar pb = activity.findViewById(R.id.activity_config_progressbar);
+            ProgressBar pb = activity.findViewById(R.id.activity_database_config_pb_loading);
             pb.setProgress(values[0]);
         }
 
         protected void onPreExecute() {
             DatabaseConfigActivity activity = actRef.get();
             if (activity == null || activity.isFinishing()) return;
-            ProgressBar pb = activity.findViewById(R.id.activity_config_progressbar);
+            ProgressBar pb = activity.findViewById(R.id.activity_database_config_pb_loading);
             pb.setVisibility(View.VISIBLE);
         }
 
@@ -223,7 +233,7 @@ public class DatabaseConfigActivity extends BaseActivity {
         protected void onPostExecute(String s) {
             DatabaseConfigActivity activity = actRef.get();
             if (activity == null || activity.isFinishing()) return;
-            ProgressBar pb = activity.findViewById(R.id.activity_config_progressbar);
+            ProgressBar pb = activity.findViewById(R.id.activity_database_config_pb_loading);
             pb.setVisibility(View.INVISIBLE);
             busy = false;
         }
@@ -299,14 +309,14 @@ public class DatabaseConfigActivity extends BaseActivity {
         protected void onProgressUpdate(Integer... values) {
             DatabaseConfigActivity activity = actRef.get();
             if (activity == null || activity.isFinishing()) return;
-            ProgressBar pb = activity.findViewById(R.id.activity_config_progressbar);
+            ProgressBar pb = activity.findViewById(R.id.activity_database_config_pb_loading);
             pb.setProgress(values[0]);
         }
 
         protected void onPreExecute() {
             DatabaseConfigActivity activity = actRef.get();
             if (activity == null || activity.isFinishing()) return;
-            ProgressBar pb = activity.findViewById(R.id.activity_config_progressbar);
+            ProgressBar pb = activity.findViewById(R.id.activity_database_config_pb_loading);
             pb.setVisibility(View.VISIBLE);
         }
 
@@ -314,11 +324,114 @@ public class DatabaseConfigActivity extends BaseActivity {
         protected void onPostExecute(Integer count) {
             DatabaseConfigActivity activity = actRef.get();
             if (activity == null || activity.isFinishing()) return;
-            ProgressBar pb = activity.findViewById(R.id.activity_config_progressbar);
+            ProgressBar pb = activity.findViewById(R.id.activity_database_config_pb_loading);
             pb.setVisibility(View.INVISIBLE);
             busy = false;
             Toast.makeText(activity.getApplicationContext(), "imported " + count + " files",
                     Toast.LENGTH_LONG).show();
         }
+    }
+
+    private class DatabaseDebugTask extends AsyncTask<Void, String, Integer> {
+        
+        TextView tvDbStats;
+        StringBuilder dbStats;
+        SQLiteDatabase db;
+
+        DatabaseDebugTask(TextView tvDbStats) {
+            this.tvDbStats = tvDbStats;
+            dbStats = new StringBuilder();
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            MyOpenHelper myOpenHelper = openMediaDatabase();
+            db = myOpenHelper.getReadableDatabase();
+            tvDbStats.setVisibility(View.VISIBLE);
+        }
+
+        @Override
+        protected Integer doInBackground(Void... voids) {
+            
+            long numMedia = DatabaseUtils.queryNumEntries(db, MyOpenHelper.MEDIA_TABLE);
+            long numTags = DatabaseUtils.queryNumEntries(db, MyOpenHelper.TAG_TABLE);
+            long numMediaTags = DatabaseUtils.queryNumEntries(db, MyOpenHelper.MEDIA_TAG_TABLE);
+            long numAuthors = DatabaseUtils.queryNumEntries(db, MyOpenHelper.AUTHOR_TABLE);
+
+            publishProgress("Media: " + numMedia + "\n");
+            publishProgress("Tags: " + numTags + "\n");
+            publishProgress("Authors: " + numAuthors + "\n");
+            publishProgress("Media-tag relationships: " + numMediaTags + "\n");
+
+            String sql = "SELECT COUNT(*) AS count FROM (" +
+                    "SELECT " + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_ID + " " +
+                    "FROM " + MyOpenHelper.MEDIA_TABLE + " " +
+                    "INTERSECT " +
+                    "SELECT " + MyOpenHelper.MEDIA_TAG_TABLE + "." + MyOpenHelper.COL_MEDIA_TAG_MEDIA_ID + " " +
+                    "FROM " + MyOpenHelper.MEDIA_TAG_TABLE +
+                    ") A";
+
+            long numMediaWithTags = 0;
+            Cursor c = db.rawQuery(sql, null);
+            if (c.moveToFirst()) {
+                numMediaWithTags = c.getLong(c.getColumnIndex("count"));
+            }
+            c.close();
+
+            publishProgress("Media with tags: " + numMediaWithTags + "\n");
+            publishProgress("Media without tags: " + (numMedia - numMediaWithTags) + "\n");
+
+            sql = "SELECT " + MyOpenHelper.AUTHOR_TABLE + "." + MyOpenHelper.COL_AUTHOR_NAME + ", " +
+                    "COUNT(" + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_AUTHOR_ID + ") AS count " +
+                    "FROM " + MyOpenHelper.MEDIA_TABLE + " " +
+                    "JOIN " + MyOpenHelper.AUTHOR_TABLE + " ON " +
+                    MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_AUTHOR_ID + " = " +
+                    MyOpenHelper.AUTHOR_TABLE + "." + MyOpenHelper.COL_AUTHOR_ID + " " +
+                    "GROUP BY " + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_AUTHOR_ID + " " +
+                    "ORDER BY count DESC";
+
+
+            c = db.rawQuery(sql, null);
+            int numAuthorsToReturn = Math.min(3, c.getCount());
+            if (c.moveToFirst()) {
+                int nameColIndex = c.getColumnIndex(MyOpenHelper.COL_AUTHOR_NAME);
+                int countColIndex = c.getColumnIndex("count");
+                publishProgress("Most common author(s): \n");
+                while (!c.isAfterLast() && numAuthorsToReturn != 0) {
+                    publishProgress("\t" + c.getString(nameColIndex) + " (" + c.getLong(countColIndex) + " media)\n");
+                    --numAuthorsToReturn;
+                    c.moveToNext();
+                }
+            }
+            c.close();
+            return 1;
+        }
+
+        @Override
+        protected void onProgressUpdate(String... values) {
+            dbStats.append(values[0]);
+            tvDbStats.setText(dbStats);
+        }
+        
+        @Override
+        protected void onPostExecute(Integer i) {
+            tvDbStats.setText(dbStats);
+            db.close();
+            busy = false;
+        }
+    }
+
+    //No options menu
+    @Override
+    public boolean onCreateOptionsMenu(Menu m) {
+        return true;
+    }
+
+    //Back button in toolbar
+    @Override
+    public boolean onSupportNavigateUp() {
+        onBackPressed();
+        return true;
     }
 }

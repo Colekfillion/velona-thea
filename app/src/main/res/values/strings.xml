@@ -18,4 +18,5 @@
     <string name="only_videos">Only videos</string>
     <string name="import_from_file">Import from file</string>
     <string name="database_config">Database config</string>
+    <string name="show_invalid_files">Show invalid files</string>
 </resources>

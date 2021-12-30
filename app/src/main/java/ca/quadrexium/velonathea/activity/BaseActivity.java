@@ -50,13 +50,6 @@ public abstract class BaseActivity extends AppCompatActivity {
                     Manifest.permission.READ_EXTERNAL_STORAGE
             },1);
         }
-
-//        //Request write permissions if not granted
-//        if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE)!= PackageManager.PERMISSION_GRANTED){
-//            ActivityCompat.requestPermissions(this, new String[]{
-//                    Manifest.permission.WRITE_EXTERNAL_STORAGE
-//            },2);
-//        }
     }
 
 //    @Override
@@ -84,10 +77,7 @@ public abstract class BaseActivity extends AppCompatActivity {
         if (requestCode == 1) {
             if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
                 Toast.makeText(getApplicationContext(), "Permission Denied", Toast.LENGTH_LONG).show();
-            }
-        } else if (requestCode == 2) {
-            if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(getApplicationContext(), "Permission Denied", Toast.LENGTH_LONG).show();
+                finish();
             }
         }
     }

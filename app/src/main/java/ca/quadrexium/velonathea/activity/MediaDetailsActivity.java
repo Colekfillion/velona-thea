@@ -1,16 +1,11 @@
 package ca.quadrexium.velonathea.activity;
 
-import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
-import android.os.Environment;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
-
-import java.io.File;
 
 import ca.quadrexium.velonathea.R;
 import ca.quadrexium.velonathea.database.MyOpenHelper;
@@ -22,7 +17,7 @@ public class MediaDetailsActivity extends BaseActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        createToolbar(R.id.activity_main_toolbar);
+        createToolbar(R.id.activity_tb_default_toolbar);
 
         EditText fileNameView = findViewById(R.id.activity_image_details_et_filename);
         EditText nameView = findViewById(R.id.activity_image_details_et_name);

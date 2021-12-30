@@ -21,7 +21,7 @@ public class MainActivity extends BaseActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        createToolbar(R.id.activity_main_toolbar);
+        createToolbar(R.id.activity_tb_default_toolbar);
 
         SharedPreferences prefs = getSharedPreferences(Constants.PREFS, MODE_PRIVATE);
 
@@ -71,6 +71,7 @@ public class MainActivity extends BaseActivity {
 
         SwitchCompat randomOrder = findViewById(R.id.activity_main_swtch_random);
         edit.putBoolean(Constants.PREFS_RANDOM_ORDER, randomOrder.isChecked());
+
         edit.apply();
     }
 

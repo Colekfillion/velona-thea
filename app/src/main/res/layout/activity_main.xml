@@ -51,6 +51,11 @@
             android:layout_height="wrap_content"
             android:text="@string/random_order"/>
 
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Content filters"/>
+
         <RadioGroup
             android:id="@+id/activity_main_rg_mediatype"
             android:layout_width="match_parent"
@@ -69,6 +74,5 @@
                     android:text="@string/only_videos"/>
             
         </RadioGroup>
-
 
 </LinearLayout>

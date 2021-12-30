@@ -77,7 +77,7 @@ public class SearchResultsActivity extends BaseActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        createToolbar(R.id.activity_main_toolbar);
+        createToolbar(R.id.activity_tb_default_toolbar);
 
         SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
         Bundle data = getIntent().getExtras();
@@ -94,6 +94,7 @@ public class SearchResultsActivity extends BaseActivity {
         String tag = data.getString(Constants.PREFS_MEDIA_TAG);
         String mediaType = data.getString(Constants.PREFS_MEDIA_TYPE);
         boolean randomOrder = prefs.getBoolean(Constants.PREFS_RANDOM_ORDER, false);
+        boolean showInvalidFiles = prefs.getBoolean(Constants.PREFS_SHOW_INVALID_FILES, true);
 
         //Recyclerview configuration
         rv = findViewById(R.id.activity_search_results_recyclerview_media);
@@ -151,6 +152,20 @@ public class SearchResultsActivity extends BaseActivity {
                     orderBy.add("LENGTH(" + naturalSortColumn + ")");
                 }
                 mediaList.addAll(myOpenHelper.getMediaList(db, whereFilters, orderBy.toArray(new String[0])));
+
+                int i = 0;
+                if (!showInvalidFiles) {
+                    ArrayList<Media> mediaToRemove = new ArrayList<>();
+                    for (Media media : mediaList) {
+                        File f = new File(path + "/" + media.getFileName());
+                        if (!f.exists() || (f.exists() && f.length() == 0)) {
+                            mediaToRemove.add(media);
+                        }
+                        i++;
+                        System.out.println(i);
+                    }
+                    mediaList.removeAll(mediaToRemove);
+                }
 
                 //Saving the mediaList as a tab-delimited text file
                 //TODO: Async this

@@ -3,6 +3,7 @@ package ca.quadrexium.velonathea.activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.BitmapFactory;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -151,7 +152,7 @@ public class FullMediaActivity extends BaseActivity {
                 assert holder instanceof ViewHolderVideo;
                 ViewHolderVideo holderVideo = (ViewHolderVideo) holder;
 
-                toggleVideo(holderVideo.videoView);
+                startVideo(holderVideo.videoView);
             }
         }
 
@@ -161,7 +162,7 @@ public class FullMediaActivity extends BaseActivity {
                 assert holder instanceof ViewHolderVideo;
                 ViewHolderVideo holderVideo = (ViewHolderVideo) holder;
 
-                toggleVideo(holderVideo.videoView);
+                stopVideo(holderVideo.videoView);
             }
         }
 
@@ -203,7 +204,7 @@ public class FullMediaActivity extends BaseActivity {
         //Pause video if it is visible, set time to 0
         VideoView videoView = findViewById(R.id.activity_full_media_vv_video);
 
-        toggleVideo(videoView);
+        stopVideo(videoView);
     }
 
     @Override
@@ -212,16 +213,24 @@ public class FullMediaActivity extends BaseActivity {
         //Start video if it is visible
         VideoView videoView = findViewById(R.id.activity_full_media_vv_video);
 
-        toggleVideo(videoView);
+        startVideo(videoView);
     }
 
-    public void toggleVideo(VideoView videoView) {
-        if (videoView != null && videoView.isPlaying()) {
-            videoView.stopPlayback();
-            videoView.seekTo(0);
-        } else if (videoView != null){
-            videoView.start();
+    public void startVideo(VideoView videoView) {
+         if (videoView != null && !videoView.isPlaying()){
+            videoView.setOnPreparedListener(mp -> {
+                videoView.start();
+            });
             videoView.setOnCompletionListener(mpa -> videoView.start());
         }
     }
+
+    public void stopVideo(VideoView videoView) {
+        if (videoView != null && videoView.isPlaying()) {
+            videoView.stopPlayback();
+            videoView.seekTo(0);
+        }
+    }
+
+
 }

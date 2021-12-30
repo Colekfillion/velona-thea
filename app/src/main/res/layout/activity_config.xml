@@ -4,17 +4,13 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
+    <include layout="@layout/toolbar"/>
+
     <Button
         android:id="@+id/activity_config_btn_dbconfig"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/database_config" />
-
-    <androidx.appcompat.widget.SwitchCompat
-        android:id="@+id/show_hidden_files_switch"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/show_hidden_files"/>
 
     <Button
         android:id="@+id/activity_config_choosedirbutton"
@@ -34,5 +30,17 @@
         android:layout_height="wrap_content"
         android:hint="20"
         android:importantForAutofill="no" />
+
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/activity_config_swtch_hiddenfiles"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/show_hidden_files"/>
+
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/activity_config_swtch_invalidfiles"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/show_invalid_files"/>
 
 </LinearLayout>
