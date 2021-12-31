@@ -14,9 +14,10 @@ import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.ThumbnailUtils;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.MediaStore;
 import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
@@ -32,10 +33,14 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import ca.quadrexium.velonathea.R;
 import ca.quadrexium.velonathea.database.MyOpenHelper;
@@ -56,8 +61,9 @@ public class SearchResultsActivity extends BaseActivity {
     };
     private RecyclerView rv;
     private MyAdapter adapter;
+    float screenDensity;
+    int lastUpdatedPosition = 0;
 
-    //
     ActivityResultLauncher<Intent> mediaDetailsActivity = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
@@ -78,6 +84,9 @@ public class SearchResultsActivity extends BaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         createToolbar(R.id.activity_tb_default_toolbar);
+
+        DisplayMetrics displayMetrics = this.getResources().getDisplayMetrics();
+        screenDensity = displayMetrics.density;
 
         SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
         Bundle data = getIntent().getExtras();
@@ -115,35 +124,36 @@ public class SearchResultsActivity extends BaseActivity {
             } else {
                 MyOpenHelper myOpenHelper = openMediaDatabase();
                 SQLiteDatabase db = myOpenHelper.getReadableDatabase();
+                Set<String> selectedColumns = new LinkedHashSet<>();
                 ArrayList<String> orderBy = new ArrayList<>();
                 if (randomOrder) {
                     orderBy.add("RANDOM()");
                 }
 
-                TreeMap<String, ArrayList<String>> whereFilters = new TreeMap<>();
+                TreeMap<String, String[]> whereFilters = new TreeMap<>();
                 if (!fileName.equals("")) {
-                    whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME, new ArrayList<>(
-                            Arrays.asList(fileName)));
+                    whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME, new String[] { fileName });
                 }
                 if (!nameFilter.equals("")) {
-                    whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_NAME, new ArrayList<>(
-                            Arrays.asList(nameFilter)));
+                    selectedColumns.add(MyOpenHelper.COL_MEDIA_NAME_ALIAS);
+                    whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_NAME, new String[] { nameFilter });
                 }
                 if (!author.equals("")) {
-                    whereFilters.put(MyOpenHelper.COL_AUTHOR_NAME_FOREIGN, new ArrayList<>(
-                            Arrays.asList(author)));
+                    selectedColumns.add(MyOpenHelper.COL_AUTHOR_NAME_ALIAS);
+                    whereFilters.put(MyOpenHelper.AUTHOR_TABLE + "." + MyOpenHelper.COL_AUTHOR_NAME, new String[] { author });
                 }
                 if (!tag.equals("")) {
-                    whereFilters.put(MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_TAG_NAME, new ArrayList<>(
-                            Arrays.asList(tag)));
+                    selectedColumns.add(MyOpenHelper.COL_MEDIA_TAGS_GROUPED_ALIAS);
+                    //selectedColumns.add(MyOpenHelper.COL_TAG_NAME_ALIAS);
+                    whereFilters.put(MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_TAG_NAME, new String[] { tag });
                 }
                 if (mediaType != null) {
                     if (mediaType.equals(Constants.IMAGE)) {
-                        whereFilters.put(MyOpenHelper.COL_MEDIA_FILENAME, Constants.IMAGE_EXTENSIONS);
+                        whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME, Constants.IMAGE_EXTENSIONS.toArray(new String[0]));
                     } else if (mediaType.equals(Constants.VIDEO)) {
-                        ArrayList<String> videoExtensions = new ArrayList<>(Constants.VIDEO_EXTENSIONS);
+                        Set<String> videoExtensions = new HashSet<>(Constants.VIDEO_EXTENSIONS);
                         videoExtensions.add(".gif"); //gifs are considered videos except for viewing
-                        whereFilters.put(MyOpenHelper.COL_MEDIA_FILENAME, videoExtensions);
+                        whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME, videoExtensions.toArray(new String[0]));
                     }
                 }
                 if (!nameFilter.equals("") || !fileName.equals("")) {
@@ -151,7 +161,11 @@ public class SearchResultsActivity extends BaseActivity {
                     naturalSortColumn += fileName.length() >= nameFilter.length() ? MyOpenHelper.COL_MEDIA_FILENAME : MyOpenHelper.COL_MEDIA_NAME;
                     orderBy.add("LENGTH(" + naturalSortColumn + ")");
                 }
-                mediaList.addAll(myOpenHelper.getMediaList(db, whereFilters, orderBy.toArray(new String[0])));
+                try {
+                    mediaList.addAll(myOpenHelper.mediaQuery(db, selectedColumns, whereFilters, orderBy.toArray(new String[0]), 0));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
 
                 int i = 0;
                 if (!showInvalidFiles) {
@@ -172,9 +186,7 @@ public class SearchResultsActivity extends BaseActivity {
                 StringBuilder mediaListAsString = new StringBuilder();
                 for (Media media : mediaList) {
                     mediaListAsString.append(media.getId()).append("\t");
-                    mediaListAsString.append(media.getName()).append("\t");
                     mediaListAsString.append(media.getFileName()).append("\t");
-                    mediaListAsString.append(media.getAuthor()).append("\t");
                     mediaListAsString.append("\n");
                 }
                 try {
@@ -241,15 +253,80 @@ public class SearchResultsActivity extends BaseActivity {
             imageLayout.fileName.setText(fileName);
             imageLayout.name.setText(media.getName());
             imageLayout.author.setText(media.getAuthor());
+        }
 
-            //Load from image cache if image has been loaded before
+        int imagesLoading = 0;
+
+        @Override
+        public void onViewAttachedToWindow(@NonNull ViewHolder holder) {
+            super.onViewAttachedToWindow(holder);
+
+            String fileName = holder.fileName.getText().toString();
             if (imageCache.containsKey(fileName)) {
-                imageLayout.image.setImageBitmap(imageCache.get(fileName));
-            //Load image from file
+                holder.image.setImageBitmap(imageCache.get(fileName));
+                //Load image from file
             } else {
-                imageLayout.image.setImageBitmap(null);
-                new ImageLoaderTask(imageLayout).execute(fileName);
+                holder.image.setImageBitmap(null);
+
+                ExecutorService executor = Executors.newSingleThreadExecutor();
+                Handler handler = new Handler(Looper.getMainLooper());
+
+                executor.execute(() -> {
+                    Bitmap bm = null;
+                    do {
+                        imagesLoading++;
+                        System.out.println(imagesLoading);
+                        File f = new File(path + "/" + fileName);
+                        if (f.exists()) {
+                            //Image and gif (gifs can be loaded like a bitmap)
+                            String extension = fileName.substring(fileName.lastIndexOf("."));
+                            if (Constants.IMAGE_EXTENSIONS.contains(extension) ||
+                                    extension.equals(".gif")) {
+
+                                //Just decoding the dimensions of the target image
+                                BitmapFactory.Options options = new BitmapFactory.Options();
+                                options.inJustDecodeBounds = true;
+                                BitmapFactory.decodeFile(f.getAbsolutePath(), options);
+                                if (!fileName.equals(holder.fileName.getText().toString())) {
+                                    break;
+                                }
+                                int height = Math.round(options.outHeight / screenDensity); //height as dp
+
+                                int sampleSize = 1; //how much smaller the image should be loaded
+                                if (height != 80) {
+                                    //if the height is 160dp, image will be loaded half as big
+                                    sampleSize = Math.round(height / 80f);
+                                }
+
+                                //Loading the image with subsampling to save memory (smaller version of image)
+                                options.inJustDecodeBounds = false;
+                                options.inSampleSize = sampleSize;
+                                options.inPreferredConfig = Bitmap.Config.RGB_565; //less colours
+                                bm = BitmapFactory.decodeFile(f.getAbsolutePath(), options);
+                                imageCache.put(fileName, bm);
+                                //Video
+                            } else if (Constants.VIDEO_EXTENSIONS.contains(extension)) {
+                                //thumbnails can be created easier for videos
+                                bm = ThumbnailUtils.createVideoThumbnail(path + "/" + fileName, MediaStore.Video.Thumbnails.MINI_KIND);
+                                imageCache.put(fileName, bm);
+                            }
+                        }
+                        break;
+                    } while (true);
+                    Bitmap finalBm = bm;
+                    handler.post(() -> {
+                        if (holder.fileName.getText().toString().equals(fileName)) {
+                            holder.image.setImageBitmap(finalBm);
+                        }
+                        --imagesLoading;
+                    });
+                });
             }
+        }
+
+        @Override
+        public void onViewDetachedFromWindow(@NonNull ViewHolder holder) {
+            super.onViewDetachedFromWindow(holder);
         }
 
         @Override
@@ -270,84 +347,6 @@ public class SearchResultsActivity extends BaseActivity {
                 fileName = view.findViewById(R.id.activty_search_results_tv_filename);
                 name = view.findViewById(R.id.activty_search_results_tv_name);
                 author = view.findViewById(R.id.activty_search_results_tv_author);
-            }
-        }
-    }
-
-    private class ImageLoaderTask extends AsyncTask<String, Bitmap, Bitmap> {
-
-        private final MyAdapter.ViewHolder view;
-        private String fileName;
-        private float screenDensity;
-
-        public ImageLoaderTask(MyAdapter.ViewHolder view) {
-            this.view = view;
-        }
-
-        public boolean validate() {
-            if (!fileName.equals(view.fileName.getText().toString())) {
-                cancel(true);
-                return true;
-            }
-            return false;
-        }
-
-        @Override
-        protected void onPreExecute() {
-            DisplayMetrics displayMetrics = getApplicationContext().getResources().getDisplayMetrics();
-            screenDensity = displayMetrics.density;
-        }
-
-        @Override
-        protected Bitmap doInBackground(String... strings) {
-            Bitmap bm = null;
-            fileName = strings[0];
-            if (validate()) { return bm; } //get used to this
-            File f = new File(path + "/" + fileName);
-            if (f.exists()) {
-                //Image and gif (gifs can be loaded like a bitmap)
-                String extension = fileName.substring(fileName.lastIndexOf("."));
-                if (Constants.IMAGE_EXTENSIONS.contains(extension) ||
-                        extension.equals(".gif")) {
-                    if (validate()) { return bm; }
-
-                    //Just decoding the dimensions of the target image
-                    BitmapFactory.Options options = new BitmapFactory.Options();
-                    options.inJustDecodeBounds = true;
-                    BitmapFactory.decodeFile(f.getAbsolutePath(), options);
-                    if (validate()) { return bm; }
-                    int height = Math.round(options.outHeight / screenDensity); //height as dp
-
-                    int sampleSize = 1; //how much smaller the image should be loaded
-                    if (height != 80) {
-                        //if the height is 160dp, image will be loaded half as big
-                        sampleSize = Math.round(height / 80f);
-                    }
-
-                    //Loading the image with subsampling to save memory (smaller version of image)
-                    options.inJustDecodeBounds = false;
-                    options.inSampleSize = sampleSize;
-                    options.inPreferredConfig = Bitmap.Config.RGB_565; //less colours
-                    if (validate()) { return bm; }
-                    bm = BitmapFactory.decodeFile(f.getAbsolutePath(), options);
-                    imageCache.put(fileName, bm);
-                //Video
-                } else if (Constants.VIDEO_EXTENSIONS.contains(extension)) {
-                    if (validate()) { return bm; }
-                    //thumbnails can be created easier for videos
-                    bm = ThumbnailUtils.createVideoThumbnail(path + "/" + fileName, MediaStore.Video.Thumbnails.MINI_KIND);
-                    imageCache.put(fileName, bm);
-                }
-            }
-            return bm;
-        }
-
-        @Override
-        protected void onPostExecute(Bitmap bm) {
-            if (view.fileName.getText().toString().equals(fileName)) {
-                view.image.setImageBitmap(bm);
-            } else {
-                view.image.setImageBitmap(null);
             }
         }
     }
@@ -378,9 +377,7 @@ public class SearchResultsActivity extends BaseActivity {
                 String[] rowValues = row.split("\t");
                 Media media = new Media.Builder()
                         .id(Integer.parseInt(rowValues[0]))
-                        .name(rowValues[1])
-                        .fileName(rowValues[2])
-                        .author(rowValues[3])
+                        .fileName(rowValues[1])
                         .build();
                 mediaList.add(media);
             }
@@ -391,5 +388,54 @@ public class SearchResultsActivity extends BaseActivity {
     public static boolean doesQueryCacheExist(String cacheFileLocation) {
         File queryCache = new File(cacheFileLocation + "/" + Constants.QUERY_CACHE_FILENAME);
         return queryCache.exists();
+    }
+
+    boolean cancelDataLoading = false;
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        //Loading image data
+        if (mediaList.size() > lastUpdatedPosition) {
+            cancelDataLoading = false;
+            ExecutorService executor = Executors.newSingleThreadExecutor();
+            Handler handler = new Handler(Looper.getMainLooper());
+
+            executor.execute(() -> {
+
+                MyOpenHelper myOpenHelper = openMediaDatabase();
+                SQLiteDatabase db = myOpenHelper.getReadableDatabase();
+                db.beginTransaction();
+                for (int i = lastUpdatedPosition; i < mediaList.size(); i++) {
+                    Media oldMedia = mediaList.get(i);
+                    Media newMedia = null;
+                    try {
+                        newMedia = myOpenHelper.getRemainingData(db, oldMedia);
+//                        if (newMedia.equals(oldMedia)) {
+//                            continue;
+//                        }
+//                        System.out.println(oldMedia.toString());
+//                        System.out.println(newMedia.toString());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    mediaList.set(i, newMedia);
+                    int finalI = i;
+                    handler.post(() -> adapter.notifyItemChanged(finalI));
+                    if (cancelDataLoading) {
+                        lastUpdatedPosition = i;
+                        break;
+                    }
+                }
+                db.setTransactionSuccessful();
+                db.endTransaction();
+            });
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        cancelDataLoading = true;
     }
 }

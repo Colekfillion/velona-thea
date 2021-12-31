@@ -1,21 +1,23 @@
 package ca.quadrexium.velonathea.pojo;
 
-import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 public class Constants {
-    public static final ArrayList<String> IMAGE_EXTENSIONS = new ArrayList<String>() {{
+    public static final Set<String> IMAGE_EXTENSIONS = Collections.unmodifiableSet(new HashSet<String>() {{
         add(".webp");
         add(".png");
         add(".jpg");
         add(".jpeg");
         add(".bmp");
-    }};
+    }});
 
-    public static final ArrayList<String> VIDEO_EXTENSIONS = new ArrayList<String>() {{
+    public static final Set<String> VIDEO_EXTENSIONS = Collections.unmodifiableSet(new HashSet<String>() {{
         add(".mp4");
         add(".mkv");
         add(".webm");
-    }};
+    }});
     public static final String MEDIA = "media";
     public static final String VIDEO = "video";
     public static final String IMAGE = "image";
@@ -38,5 +40,9 @@ public class Constants {
     public static final String PREFS_SHOW_INVALID_FILES = "showValidFiles";
     public static final String PREFS_CACHE_SIZE = "cacheSize";
     public static final String PREFS_UPDATED_MEDIA_POSITION = "positionToUpdate";
+
+    public static boolean isStringEmpty(String string) {
+        return string == null || string.equals("") || string.length() == 0;
+    }
 
 }

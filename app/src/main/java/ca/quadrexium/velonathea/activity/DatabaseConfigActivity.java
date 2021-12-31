@@ -64,7 +64,7 @@ public class DatabaseConfigActivity extends BaseActivity {
         getSupportActionBar().setDisplayShowHomeEnabled(true);
 
         //Loads db rows from text file
-        Button loadButton = findViewById(R.id.activity_config_loadbutton);
+        Button loadButton = findViewById(R.id.activity_database_config_btn_import_media_file);
         loadButton.setOnClickListener(v -> {
             if (!busy) {
                 Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
@@ -73,7 +73,7 @@ public class DatabaseConfigActivity extends BaseActivity {
             }
         });
 
-        Button importUnsorted = findViewById(R.id.activity_config_btn_importunsorted);
+        Button importUnsorted = findViewById(R.id.activity_database_config_btn_import_media);
         importUnsorted.setOnClickListener(v -> {
             if (!busy) {
                 busy = true;
@@ -85,7 +85,7 @@ public class DatabaseConfigActivity extends BaseActivity {
         });
 
         //Deletes all data from the database
-        Button deleteButton = findViewById(R.id.activity_config_deletebutton);
+        Button deleteButton = findViewById(R.id.activity_database_config_btn_clear_database);
         deleteButton.setOnClickListener(v -> {
             if (!busy) {
                 AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
@@ -110,7 +110,7 @@ public class DatabaseConfigActivity extends BaseActivity {
         });
 
         //Shows row count of each table in DB in a toast
-        Button debugButton = findViewById(R.id.activity_config_debugbutton);
+        Button debugButton = findViewById(R.id.activity_database_config_btn_debug_database);
         debugButton.setOnClickListener(v -> {
             if (!busy) {
                 busy = true;

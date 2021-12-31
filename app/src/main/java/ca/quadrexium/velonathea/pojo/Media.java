@@ -3,12 +3,16 @@ package ca.quadrexium.velonathea.pojo;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
 public class Media implements Parcelable {
     protected int id;
     protected String name;
     protected String fileName;
     protected String author;
     protected String link;
+    protected ArrayList<String> tags;
 
     public Media(Media.Builder builder) {
         this.id = builder.id;
@@ -16,6 +20,7 @@ public class Media implements Parcelable {
         this.fileName = builder.fileName;
         this.author = builder.author;
         this.link = builder.link;
+        this.tags = builder.tags;
     }
 
     public int getId() { return id; }
@@ -23,6 +28,15 @@ public class Media implements Parcelable {
     public String getFileName() { return fileName; }
     public String getAuthor() { return author; }
     public String getLink() { return link; }
+    public ArrayList<String> getTags() { return tags; }
+    public String getTagsAsString() {
+        StringBuilder sTags = new StringBuilder();
+        for (String tag : tags) {
+            sTags.append(tag).append(" ");
+        }
+        sTags = new StringBuilder(sTags.substring(0, sTags.length() - 1));
+        return sTags.toString();
+    }
 
     public void setId(int id) { this.id = id; }
     public void setName(String name) { this.name = name; }
@@ -30,12 +44,23 @@ public class Media implements Parcelable {
     public void setAuthor(String author) { this.author = author; }
     public void setLink(String link) { this.link = link; }
 
+    public void addTag(String tag) {
+        if (!tags.contains(tag)) {
+            tags.add(tag);
+        }
+    }
+
+    public void removeTag(String tag) {
+        tags.remove(tag);
+    }
+
     public static class Builder {
         private int id = 0;
         private String name;
         private String fileName;
-        private String author = "unknown";
+        private String author;
         private String link;
+        private ArrayList<String> tags;
 
         public Builder id(int id) {
             this.id = id;
@@ -59,6 +84,11 @@ public class Media implements Parcelable {
 
         public Builder link(String link) {
             this.link = link;
+            return this;
+        }
+
+        public Builder tags(ArrayList<String> tags) {
+            this.tags = tags;
             return this;
         }
 
@@ -90,6 +120,7 @@ public class Media implements Parcelable {
         dest.writeString(this.fileName);
         dest.writeString(this.author);
         dest.writeString(this.link);
+        //dest.writeArray(this.tags.toArray(new String[0]));
     }
 
     public void readFromParcel(Parcel source) {
@@ -98,6 +129,7 @@ public class Media implements Parcelable {
         this.fileName = source.readString();
         this.author = source.readString();
         this.link = source.readString();
+        //this.tags = (ArrayList<String>) Arrays.asList((String[]) source.readArray(getClass().getClassLoader()));
     }
 
     protected Media(Parcel in) {
@@ -106,6 +138,7 @@ public class Media implements Parcelable {
         this.fileName = in.readString();
         this.author = in.readString();
         this.link = in.readString();
+        //this.tags = (ArrayList<String>) Arrays.asList((String[]) in.readArray(getClass().getClassLoader()));
     }
 
     public static final Parcelable.Creator<Media> CREATOR = new Parcelable.Creator<Media>() {
@@ -119,4 +152,16 @@ public class Media implements Parcelable {
             return new Media[size];
         }
     };
+
+    @Override
+    public String toString() {
+        return "Media{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", fileName='" + fileName + '\'' +
+                ", author='" + author + '\'' +
+                ", link='" + link + '\'' +
+                ", tags=" + tags +
+                '}';
+    }
 }

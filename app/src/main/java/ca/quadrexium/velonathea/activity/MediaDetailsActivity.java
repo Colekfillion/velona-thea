@@ -31,7 +31,11 @@ public class MediaDetailsActivity extends BaseActivity {
         if (media.getLink() == null) {
             MyOpenHelper myOpenHelper = openMediaDatabase();
             SQLiteDatabase db = myOpenHelper.getWritableDatabase();
-            media = myOpenHelper.getRemainingData(db, media);
+            try {
+                media = myOpenHelper.getRemainingData(db, media);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         fileNameView.setText(media.getFileName());
