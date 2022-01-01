@@ -1,7 +1,5 @@
 package ca.quadrexium.velonathea.activity;
 
-import androidx.appcompat.widget.SwitchCompat;
-
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -10,6 +8,8 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioGroup;
 import android.widget.Toast;
+
+import androidx.appcompat.widget.SwitchCompat;
 
 import java.io.File;
 
@@ -25,13 +25,13 @@ public class MainActivity extends BaseActivity {
 
         SharedPreferences prefs = getSharedPreferences(Constants.PREFS, MODE_PRIVATE);
 
-        SwitchCompat randomOrder = findViewById(R.id.activity_main_swtch_random);
-        randomOrder.setChecked(prefs.getBoolean(Constants.PREFS_RANDOM_ORDER, false));
+        SwitchCompat swtchRandom = findViewById(R.id.activity_main_swtch_random);
+        swtchRandom.setChecked(prefs.getBoolean(Constants.PREFS_RANDOM_ORDER, false));
 
-        EditText etFileName = findViewById(R.id.activity_main_et_filename_search);
-        EditText etName = findViewById(R.id.activity_main_et_name_search);
-        EditText etAuthor = findViewById(R.id.activity_main_et_author_search);
-        EditText etTag = findViewById(R.id.activity_main_et_tag_search);
+        EditText etFileName = findViewById(R.id.activity_main_et_filename);
+        EditText etName = findViewById(R.id.activity_main_et_name);
+        EditText etAuthor = findViewById(R.id.activity_main_et_author);
+        EditText etTag = findViewById(R.id.activity_main_et_tag);
         RadioGroup rgMediaType = findViewById(R.id.activity_main_rg_mediatype);
 
         Button btnSearch = findViewById(R.id.activity_main_btn_search);
@@ -53,11 +53,14 @@ public class MainActivity extends BaseActivity {
                 dataToPass.putString(Constants.PREFS_MEDIA_TYPE, mediaType);
             }
 
-            Intent i = new Intent(this, SearchResultsActivity.class);
-            i.putExtras(dataToPass);
-            startActivity(i);
+            Intent intent = new Intent(this, SearchResultsActivity.class);
+            intent.putExtras(dataToPass);
+            startActivity(intent);
         });
     }
+
+    @Override
+    protected void isVerified() { }
 
     @Override
     protected int getLayoutResourceId() { return R.layout.activity_main; }
@@ -79,11 +82,12 @@ public class MainActivity extends BaseActivity {
     protected void onResume() {
         super.onResume();
 
+        //Delete the query cache if it exists
         File queryCache = new File(this.getExternalFilesDir(Environment.DIRECTORY_PICTURES).getPath() + "/" + Constants.QUERY_CACHE_FILENAME);
         if (queryCache.exists()) {
             boolean cacheDeleted = queryCache.delete();
-            if (cacheDeleted) {
-                Toast.makeText(this, "Cache deleted", Toast.LENGTH_SHORT).show();
+            if (!cacheDeleted) {
+                Toast.makeText(this, "Cache could not be deleted", Toast.LENGTH_LONG).show();
             }
         }
     }

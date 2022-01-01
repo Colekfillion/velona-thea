@@ -14,63 +14,72 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import java.io.File;
-import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import ca.quadrexium.velonathea.R;
 import ca.quadrexium.velonathea.pojo.Constants;
 
+//TODO: Convert this into a fragment that shows in ConfigActivity
 public class ChooseDirActivity extends BaseActivity {
 
-    private final ArrayList<Folder> dirList = new ArrayList<>();
-    private ListAdapter adapter;
-    private final File startingDir = Environment.getExternalStorageDirectory();
-    private File rootDir = startingDir;
+    private final Set<String> dirNames = new LinkedHashSet<>();
+    private ListAdapter dnAdapter;
+    private File currentDir;
+    boolean showHiddenFiles;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
+        showHiddenFiles = prefs.getBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, false);
+        currentDir = new File(prefs.getString(Constants.PATH, Environment.getExternalStorageDirectory().getAbsolutePath()));
 
-        ListView listView = findViewById(R.id.activity_choose_dir_lv_dirs);
-        listView.setAdapter(adapter = new ListAdapter());
+        ListView lvDirs = findViewById(R.id.activity_choose_dir_lv_dirs);
+        lvDirs.setAdapter(dnAdapter = new ListAdapter());
 
         listDirs();
 
-        listView.setOnItemClickListener((list, item, position, id) -> {
-            Folder f = dirList.get(position);
-            rootDir = new File(f.getFullPath());
+        lvDirs.setOnItemClickListener((list, item, position, id) -> {
+            TextView tvDir = item.findViewById(R.id.activity_choose_dir_tv_dir);
+            String fileName = tvDir.getText().toString();
+            if (!fileName.equals("...")) {
+                currentDir = new File(currentDir, fileName);
+            } else if (currentDir.getParent() != null){
+                currentDir = currentDir.getParentFile();
+            }
             listDirs();
         });
 
         Button confirmDirButton = findViewById(R.id.activity_choose_dir_btn_confirm);
         confirmDirButton.setOnClickListener(v -> {
             Intent i = new Intent();
-            i.putExtra(Constants.PATH, rootDir.getAbsolutePath());
+            i.putExtra(Constants.PATH, currentDir.getAbsolutePath());
             setResult(RESULT_OK, i);
             finish();
         });
     }
 
-    @Override
-    protected int getLayoutResourceId() {
-        return R.layout.activity_choose_dir;
-    }
-
+    /**
+     * Lists all directories within currentDir, and a '...' one for backing out.
+     */
+    //TODO: Async this and add a progress bar, specifically for the File::isDirectory check
     private void listDirs() {
-        dirList.clear();
-        File[] dirs = rootDir.listFiles(File::isDirectory);
-        if (rootDir.getParent() != null) {
-            dirList.add(new Folder("...", rootDir.getParent()));
+        dirNames.clear();
+        File[] dirs = currentDir.listFiles(File::isDirectory);
+        if (currentDir.getParent() != null) {
+            //If the dir has a parent, add a '...' entry that represents it
+            dirNames.add("...");
         }
         if (dirs != null) {
-            SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
-            boolean showHiddenFiles = prefs.getBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, false);
             for (File f : dirs) {
+                //Only show files the user has access to
                 if (showHiddenFiles || !f.getName().contains(".")) {
-                    dirList.add(new Folder(f.getName(), f.getAbsolutePath()));
+                    dirNames.add(f.getName());
                 }
             }
         }
-        adapter.notifyDataSetChanged();
+        dnAdapter.notifyDataSetChanged();
     }
 
 //    @Override
@@ -84,30 +93,16 @@ public class ChooseDirActivity extends BaseActivity {
 //        }
 //    }
 
-    private static class Folder {
-        String name;
-        String fullPath;
-
-        Folder(String name, String fullPath) {
-            this.name = name;
-            this.fullPath = fullPath;
-        }
-
-        public String getName() {
-            return name;
-        }
-        public String getFullPath() {
-            return fullPath;
-        }
-    }
-
+    /**
+     * ListAdapter for showing each folder in dirNames.
+     */
     private class ListAdapter extends BaseAdapter {
 
         @Override
-        public int getCount() { return dirList.size(); }
+        public int getCount() { return dirNames.size(); }
 
         @Override
-        public Object getItem(int i) { return dirList.get(i); }
+        public Object getItem(int i) { return dirNames.toArray()[i]; }
 
         @Override
         public long getItemId(int position) { return position; }
@@ -116,7 +111,8 @@ public class ChooseDirActivity extends BaseActivity {
         public View getView(int i, View old, ViewGroup parent) {
             View newView = old;
             LayoutInflater inflater = getLayoutInflater();
-            Folder f = ((Folder) getItem(i));
+
+            String fileName = (String) getItem(i);
 
             //Initialize new view based on message_send layout
             if (old == null) {
@@ -124,10 +120,16 @@ public class ChooseDirActivity extends BaseActivity {
             }
 
             //Find message widget and set it to the corresponding message text in the arraylist
-            TextView name = newView.findViewById(R.id.activity_choose_dir_tv_dir);
-            name.setText(f.getName());
+            TextView tvDir = newView.findViewById(R.id.activity_choose_dir_tv_dir);
+            tvDir.setText(fileName);
 
             return newView;
         }
     }
+
+    @Override
+    protected int getLayoutResourceId() { return R.layout.activity_choose_dir; }
+
+    @Override
+    protected void isVerified() { }
 }

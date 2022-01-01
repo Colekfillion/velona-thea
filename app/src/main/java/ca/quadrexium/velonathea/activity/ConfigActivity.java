@@ -1,10 +1,5 @@
 package ca.quadrexium.velonathea.activity;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.widget.SwitchCompat;
-
 import android.app.Activity;
 import android.app.KeyguardManager;
 import android.content.Context;
@@ -12,9 +7,13 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.widget.Button;
 import android.widget.EditText;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.widget.SwitchCompat;
 
 import java.util.Objects;
 
@@ -23,8 +22,7 @@ import ca.quadrexium.velonathea.pojo.Constants;
 
 public class ConfigActivity extends BaseActivity {
 
-    private boolean verified = false;
-
+    //Activity for choosing a root directory
     private final ActivityResultLauncher<Intent> chooseDirActivity = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
@@ -39,49 +37,35 @@ public class ConfigActivity extends BaseActivity {
                 }
             });
 
-    protected final ActivityResultLauncher<Intent> verifyActivity = registerForActivityResult(
-            new ActivityResultContracts.StartActivityForResult(),
-            result -> {
-                if (result.getResultCode() == Activity.RESULT_OK) {
-                    verified = true;
-                    SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
-                    SharedPreferences.Editor edit = prefs.edit();
-
-                    SwitchCompat showHiddenFiles = findViewById(R.id.activity_config_swtch_hiddenfiles);
-                    edit.putBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, showHiddenFiles.isChecked());
-                    edit.apply();
-                    showHiddenFiles.setChecked(true);
-                }
-            });
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         createToolbar(R.id.activity_tb_default_toolbar);
         Objects.requireNonNull(getSupportActionBar()).setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setDisplayShowHomeEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true); //set back button in toolbar
 
-        Button dbConfigButton = findViewById(R.id.activity_config_btn_dbconfig);
-        dbConfigButton.setOnClickListener(v -> {
-            Intent i = new Intent(ConfigActivity.this, DatabaseConfigActivity.class);
-            startActivity(i);
+        //Launches DatabaseConfigActivity
+        Button btnDbConfig = findViewById(R.id.activity_config_btn_dbconfig);
+        btnDbConfig.setOnClickListener(v -> {
+            Intent intent = new Intent(ConfigActivity.this, DatabaseConfigActivity.class);
+            startActivity(intent);
         });
 
-        //Launches the chooseDirActivity
-        Button chooseDirButton = findViewById(R.id.activity_config_choosedirbutton);
-        chooseDirButton.setOnClickListener(v -> {
-            Intent i = new Intent(this, ChooseDirActivity.class);
-            chooseDirActivity.launch(i);
+        //Launches ChooseDirActivity
+        Button btnChooseDir = findViewById(R.id.activity_config_btn_choosedir);
+        btnChooseDir.setOnClickListener(v -> {
+            Intent intent = new Intent(ConfigActivity.this, ChooseDirActivity.class);
+            chooseDirActivity.launch(intent);
         });
 
         SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
 
-        EditText imageCacheSize = findViewById(R.id.activity_config_maxcachesize);
-        imageCacheSize.setText(String.valueOf(prefs.getInt(Constants.PREFS_CACHE_SIZE, 20)));
+        EditText etCacheSize = findViewById(R.id.activity_config_et_cachesize);
+        etCacheSize.setText(String.valueOf(prefs.getInt(Constants.PREFS_CACHE_SIZE, 150)));
 
-        SwitchCompat invalidFiles = findViewById(R.id.activity_config_swtch_invalidfiles);
-        invalidFiles.setChecked(prefs.getBoolean(Constants.PREFS_SHOW_INVALID_FILES, true));
-        invalidFiles.setOnLongClickListener(v -> {
+        SwitchCompat swtchShowInvalidFiles = findViewById(R.id.activity_config_swtch_showinvalidfiles);
+        swtchShowInvalidFiles.setChecked(prefs.getBoolean(Constants.PREFS_SHOW_INVALID_FILES, true));
+        swtchShowInvalidFiles.setOnLongClickListener(v -> {
             AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
 
             alertDialogBuilder.setTitle(R.string.show_invalid_files)
@@ -97,9 +81,10 @@ public class ConfigActivity extends BaseActivity {
             return true;
         });
 
-        SwitchCompat showHiddenFiles = findViewById(R.id.activity_config_swtch_hiddenfiles);
+        SwitchCompat showHiddenFiles = findViewById(R.id.activity_config_swtch_showhiddenfiles);
         showHiddenFiles.setChecked(prefs.getBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, false));
         showHiddenFiles.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            //Make sure the user is verified to do this
             if (isChecked && !verified) {
                 showHiddenFiles.setChecked(false);
                 KeyguardManager km = (KeyguardManager) this.getSystemService(Context.KEYGUARD_SERVICE);
@@ -110,24 +95,35 @@ public class ConfigActivity extends BaseActivity {
     }
 
     @Override
-    protected int getLayoutResourceId() { return R.layout.activity_config; }
-
-    @Override
     protected void onPause() {
         super.onPause();
         SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
         SharedPreferences.Editor edit = prefs.edit();
 
-        EditText imageCacheSize = findViewById(R.id.activity_config_maxcachesize);
-        edit.putInt(Constants.PREFS_CACHE_SIZE, Integer.parseInt(imageCacheSize.getText().toString()));
+        EditText etCacheSize = findViewById(R.id.activity_config_et_cachesize);
+        edit.putInt(Constants.PREFS_CACHE_SIZE, Integer.parseInt(etCacheSize.getText().toString()));
 
-        SwitchCompat showHiddenFiles = findViewById(R.id.activity_config_swtch_hiddenfiles);
-        edit.putBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, showHiddenFiles.isChecked());
+        SwitchCompat swtchShowHiddenFiles = findViewById(R.id.activity_config_swtch_showhiddenfiles);
+        edit.putBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, swtchShowHiddenFiles.isChecked());
 
-        SwitchCompat invalidFiles = findViewById(R.id.activity_config_swtch_invalidfiles);
-        edit.putBoolean(Constants.PREFS_SHOW_INVALID_FILES, invalidFiles.isChecked());
+        SwitchCompat swtchShowInvalidFiles = findViewById(R.id.activity_config_swtch_showinvalidfiles);
+        edit.putBoolean(Constants.PREFS_SHOW_INVALID_FILES, swtchShowInvalidFiles.isChecked());
         edit.apply();
     }
+
+    @Override
+    protected void isVerified() {
+        SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
+        SharedPreferences.Editor edit = prefs.edit();
+
+        SwitchCompat swtchShowHiddenFiles = findViewById(R.id.activity_config_swtch_showhiddenfiles);
+        edit.putBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, swtchShowHiddenFiles.isChecked());
+        edit.apply();
+        swtchShowHiddenFiles.setChecked(true);
+    }
+
+    @Override
+    protected int getLayoutResourceId() { return R.layout.activity_config; }
 
     //No options menu
     @Override

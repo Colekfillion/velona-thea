@@ -19,4 +19,7 @@
     <string name="import_from_file">Import from file</string>
     <string name="database_config">Database config</string>
     <string name="show_invalid_files">Show invalid files</string>
+    <string name="yes">Yes</string>
+    <string name="are_you_sure">Are you sure?</string>
+    <string name="no">No</string>
 </resources>

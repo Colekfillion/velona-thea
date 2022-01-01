@@ -18,7 +18,7 @@
             android:name=".activity.BaseActivity"
             android:exported="false" />
         <activity
-            android:name=".activity.MediaDetailsActivity"
+            android:name=".fragment.MediaDetailsFragment"
             android:exported="false" />
         <activity
             android:name=".activity.FullMediaActivity"

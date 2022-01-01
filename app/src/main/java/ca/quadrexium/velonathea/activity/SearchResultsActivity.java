@@ -1,11 +1,5 @@
 package ca.quadrexium.velonathea.activity;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -27,40 +21,50 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
+import androidx.fragment.app.FragmentManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import ca.quadrexium.velonathea.R;
 import ca.quadrexium.velonathea.database.MyOpenHelper;
+import ca.quadrexium.velonathea.fragment.MediaDetailsFragment;
 import ca.quadrexium.velonathea.pojo.Constants;
 import ca.quadrexium.velonathea.pojo.Media;
 
 public class SearchResultsActivity extends BaseActivity {
 
     private String path;
-    private int maxCacheSize;
+    private int cacheSize;
     private final ArrayList<Media> mediaList = new ArrayList<>();
     private final LinkedHashMap<String, Bitmap> imageCache = new LinkedHashMap<String, Bitmap>() {
         //Keep the cache size down for performance. Removes oldest entry if size is above max cache size
         @Override
         protected boolean removeEldestEntry(final Map.Entry eldest) {
-            return size() > maxCacheSize;
+            return size() > cacheSize;
         }
     };
     private RecyclerView rv;
-    private MyAdapter adapter;
+    private MyAdapter rvAdapter;
     float screenDensity;
     int lastUpdatedPosition = 0;
 
@@ -75,10 +79,13 @@ public class SearchResultsActivity extends BaseActivity {
                             throw new IllegalStateException("Media position cannot be -1");
                         }
                         mediaList.set(position, data.getParcelableExtra(Constants.MEDIA));
-                        adapter.notifyItemChanged(position);
+                        rvAdapter.notifyItemChanged(position);
                     }
                 }
             });
+
+    @Override
+    protected void isVerified() { }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,11 +100,11 @@ public class SearchResultsActivity extends BaseActivity {
 
         //Setting global variables
         path = prefs.getString(Constants.PATH, Environment.DIRECTORY_PICTURES);
-        maxCacheSize = prefs.getInt(Constants.PREFS_CACHE_SIZE, 20);
+        cacheSize = prefs.getInt(Constants.PREFS_CACHE_SIZE, 150);
         boolean showHiddenFiles = prefs.getBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, false);
 
         //Local variables
-        String fileName = data.getString(Constants.PREFS_MEDIA_FILENAME);
+        String fileNameFilter = data.getString(Constants.PREFS_MEDIA_FILENAME);
         String nameFilter = data.getString(Constants.PREFS_MEDIA_NAME);
         String author = data.getString(Constants.PREFS_MEDIA_AUTHOR);
         String tag = data.getString(Constants.PREFS_MEDIA_TAG);
@@ -113,14 +120,17 @@ public class SearchResultsActivity extends BaseActivity {
         rv.setDrawingCacheQuality(View.DRAWING_CACHE_QUALITY_HIGH);
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getApplicationContext());
         rv.setLayoutManager(layoutManager);
-        rv.setAdapter(adapter = new MyAdapter());
+        rv.setAdapter(rvAdapter = new MyAdapter());
 
         //Loading media into recyclerview
+        //Make sure user is authorized to view the files in the root directory
         if (showHiddenFiles || !path.contains(".")) {
+            //Try to load from the query cache
             String queryCacheLocation = this.getExternalFilesDir(Environment.DIRECTORY_PICTURES).getPath();
             if (doesQueryCacheExist(queryCacheLocation)) {
                 mediaList.addAll(loadMediaFromCache(queryCacheLocation));
-                Toast.makeText(this, "Loaded from cache", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "Loaded " + mediaList.size() + " media from cache", Toast.LENGTH_LONG).show();
+                rvAdapter.notifyItemRangeInserted(0, mediaList.size());
             } else {
                 MyOpenHelper myOpenHelper = openMediaDatabase();
                 SQLiteDatabase db = myOpenHelper.getReadableDatabase();
@@ -130,20 +140,20 @@ public class SearchResultsActivity extends BaseActivity {
                     orderBy.add("RANDOM()");
                 }
 
-                TreeMap<String, String[]> whereFilters = new TreeMap<>();
-                if (!fileName.equals("")) {
-                    whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME, new String[] { fileName });
+                Map<String, String[]> whereFilters = new HashMap<>();
+                if (!fileNameFilter.equals("")) {
+                    whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME, new String[] { fileNameFilter });
                 }
                 if (!nameFilter.equals("")) {
-                    selectedColumns.add(MyOpenHelper.COL_MEDIA_NAME_ALIAS);
+                    //selectedColumns.add(MyOpenHelper.COL_MEDIA_NAME_ALIAS);
                     whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_NAME, new String[] { nameFilter });
                 }
                 if (!author.equals("")) {
-                    selectedColumns.add(MyOpenHelper.COL_AUTHOR_NAME_ALIAS);
+                    //selectedColumns.add(MyOpenHelper.COL_AUTHOR_NAME_ALIAS);
                     whereFilters.put(MyOpenHelper.AUTHOR_TABLE + "." + MyOpenHelper.COL_AUTHOR_NAME, new String[] { author });
                 }
                 if (!tag.equals("")) {
-                    selectedColumns.add(MyOpenHelper.COL_MEDIA_TAGS_GROUPED_ALIAS);
+                    //selectedColumns.add(MyOpenHelper.COL_MEDIA_TAGS_GROUPED_ALIAS);
                     //selectedColumns.add(MyOpenHelper.COL_TAG_NAME_ALIAS);
                     whereFilters.put(MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_TAG_NAME, new String[] { tag });
                 }
@@ -156,29 +166,64 @@ public class SearchResultsActivity extends BaseActivity {
                         whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME, videoExtensions.toArray(new String[0]));
                     }
                 }
-                if (!nameFilter.equals("") || !fileName.equals("")) {
+                if (!nameFilter.equals("") || !fileNameFilter.equals("")) {
                     String naturalSortColumn = MyOpenHelper.MEDIA_TABLE + ".";
-                    naturalSortColumn += fileName.length() >= nameFilter.length() ? MyOpenHelper.COL_MEDIA_FILENAME : MyOpenHelper.COL_MEDIA_NAME;
+                    naturalSortColumn += fileNameFilter.length() >= nameFilter.length() ? MyOpenHelper.COL_MEDIA_FILENAME : MyOpenHelper.COL_MEDIA_NAME;
                     orderBy.add("LENGTH(" + naturalSortColumn + ")");
                 }
                 try {
+                    Date start = new Date();
                     mediaList.addAll(myOpenHelper.mediaQuery(db, selectedColumns, whereFilters, orderBy.toArray(new String[0]), 0));
+                    Date end = new Date();
+                    rvAdapter.notifyItemRangeInserted(0, mediaList.size());
+                    Toast.makeText(getApplicationContext(), mediaList.size() + " results in " + (end.getTime() - start.getTime()), Toast.LENGTH_SHORT).show();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+                db.close();
 
-                int i = 0;
+                //Remove invalid files
+                int resultsRemoved = 0;
                 if (!showInvalidFiles) {
-                    ArrayList<Media> mediaToRemove = new ArrayList<>();
-                    for (Media media : mediaList) {
-                        File f = new File(path + "/" + media.getFileName());
-                        if (!f.exists() || (f.exists() && f.length() == 0)) {
-                            mediaToRemove.add(media);
+                    File root = new File(path);
+                    if (root.exists()) {
+                        String[] fileNamesArray = root.list((dir, name) -> {
+                            int extensionIndex = name.lastIndexOf(".");
+                            if (extensionIndex == -1) { return false; }
+                            String extension = name.substring(extensionIndex);
+                            return Constants.VIDEO_EXTENSIONS.contains(extension) ||
+                                    Constants.IMAGE_EXTENSIONS.contains(extension) ||
+                                    extension.equals(".gif");
+                        });
+                        if (fileNamesArray != null && fileNamesArray.length != 0) {
+
+                            Set<String> fileNames = new HashSet<>(Arrays.asList(fileNamesArray));
+
+                            ArrayList<Media> mediaListCopy = new ArrayList<>(mediaList);
+                            for (Media media : mediaListCopy) {
+                                if (fileNames.contains(media.getFileName())) {
+                                    File f = new File(root, media.getFileName());
+                                    if (!f.exists() || (f.exists() && f.length() == 0)) {
+                                        int removedMediaIndex = mediaList.indexOf(media);
+                                        mediaList.remove(media);
+                                        resultsRemoved++;
+                                        rvAdapter.notifyItemRemoved(removedMediaIndex);
+                                    }
+                                }
+                            }
+                        } else {
+                            resultsRemoved = mediaList.size();
+                            mediaList.clear();
+                            rvAdapter.notifyItemRangeRemoved(0, resultsRemoved);
                         }
-                        i++;
-                        System.out.println(i);
+                    } else {
+                        resultsRemoved = mediaList.size();
+                        mediaList.clear();
+                        rvAdapter.notifyItemRangeRemoved(0, resultsRemoved);
                     }
-                    mediaList.removeAll(mediaToRemove);
+                    if (resultsRemoved > 0) {
+                        Toast.makeText(getApplicationContext(), "Removed " + resultsRemoved + " invalid results", Toast.LENGTH_SHORT).show();
+                    }
                 }
 
                 //Saving the mediaList as a tab-delimited text file
@@ -196,10 +241,7 @@ public class SearchResultsActivity extends BaseActivity {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                db.close();
             }
-            adapter.notifyItemRangeInserted(0, mediaList.size());
-            Toast.makeText(getApplicationContext(), mediaList.size() + " results", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -230,13 +272,11 @@ public class SearchResultsActivity extends BaseActivity {
                 int position = rv.getChildLayoutPosition(view);
                 Media media = mediaList.get(position);
 
-                Bundle dataToPass = new Bundle();
-                dataToPass.putParcelable(Constants.MEDIA, media);
-                dataToPass.putInt(Constants.POSITION, position);
+                cancelDataLoading = true;
+                FragmentManager fm = getSupportFragmentManager();
+                MediaDetailsFragment mediaDetailsFragment = new MediaDetailsFragment(position, media);
+                mediaDetailsFragment.show(fm, "mediaDetailsFragment");
 
-                Intent intent = new Intent(SearchResultsActivity.this, MediaDetailsActivity.class);
-                intent.putExtras(dataToPass);
-                mediaDetailsActivity.launch(intent);
                 return true;
             });
             return new ViewHolder(view);
@@ -255,8 +295,6 @@ public class SearchResultsActivity extends BaseActivity {
             imageLayout.author.setText(media.getAuthor());
         }
 
-        int imagesLoading = 0;
-
         @Override
         public void onViewAttachedToWindow(@NonNull ViewHolder holder) {
             super.onViewAttachedToWindow(holder);
@@ -274,8 +312,6 @@ public class SearchResultsActivity extends BaseActivity {
                 executor.execute(() -> {
                     Bitmap bm = null;
                     do {
-                        imagesLoading++;
-                        System.out.println(imagesLoading);
                         File f = new File(path + "/" + fileName);
                         if (f.exists()) {
                             //Image and gif (gifs can be loaded like a bitmap)
@@ -318,7 +354,6 @@ public class SearchResultsActivity extends BaseActivity {
                         if (holder.fileName.getText().toString().equals(fileName)) {
                             holder.image.setImageBitmap(finalBm);
                         }
-                        --imagesLoading;
                     });
                 });
             }
@@ -421,7 +456,7 @@ public class SearchResultsActivity extends BaseActivity {
                     }
                     mediaList.set(i, newMedia);
                     int finalI = i;
-                    handler.post(() -> adapter.notifyItemChanged(finalI));
+                    handler.post(() -> rvAdapter.notifyItemChanged(finalI));
                     if (cancelDataLoading) {
                         lastUpdatedPosition = i;
                         break;
@@ -435,7 +470,18 @@ public class SearchResultsActivity extends BaseActivity {
 
     @Override
     protected void onPause() {
+        int size = 0;
+        for (Bitmap bm : imageCache.values()) {
+            size += bm.getAllocationByteCount();
+        }
+        System.out.println("Total size of all bitmaps(mb): " + size/1000000);
         super.onPause();
         cancelDataLoading = true;
+    }
+
+    public void mediaChanged(int i, Media media) {
+        mediaList.set(i, media);
+        rvAdapter.notifyItemChanged(i);
+        cancelDataLoading = false;
     }
 }

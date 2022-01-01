@@ -13,7 +13,7 @@
         android:text="@string/database_config" />
 
     <Button
-        android:id="@+id/activity_config_choosedirbutton"
+        android:id="@+id/activity_config_btn_choosedir"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/choose_root_directory" />
@@ -24,7 +24,7 @@
         android:text="@string/image_cache_size" />
 
     <EditText
-        android:id="@+id/activity_config_maxcachesize"
+        android:id="@+id/activity_config_et_cachesize"
         android:inputType="number"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -32,13 +32,13 @@
         android:importantForAutofill="no" />
 
     <androidx.appcompat.widget.SwitchCompat
-        android:id="@+id/activity_config_swtch_hiddenfiles"
+        android:id="@+id/activity_config_swtch_showhiddenfiles"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/show_hidden_files"/>
 
     <androidx.appcompat.widget.SwitchCompat
-        android:id="@+id/activity_config_swtch_invalidfiles"
+        android:id="@+id/activity_config_swtch_showinvalidfiles"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/show_invalid_files"/>

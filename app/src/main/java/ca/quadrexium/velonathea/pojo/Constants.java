@@ -37,7 +37,7 @@ public class Constants {
     public static final String PREFS_MEDIA_TYPE = "mediaType";
     public static final String PREFS_RANDOM_ORDER = "randomOrder";
     public static final String PREFS_SHOW_HIDDEN_FILES = "showHiddenFiles";
-    public static final String PREFS_SHOW_INVALID_FILES = "showValidFiles";
+    public static final String PREFS_SHOW_INVALID_FILES = "showInvalidFiles";
     public static final String PREFS_CACHE_SIZE = "cacheSize";
     public static final String PREFS_UPDATED_MEDIA_POSITION = "positionToUpdate";
 

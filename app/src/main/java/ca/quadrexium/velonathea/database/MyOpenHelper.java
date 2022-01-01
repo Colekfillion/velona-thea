@@ -14,7 +14,6 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 
 import ca.quadrexium.velonathea.pojo.Constants;
 import ca.quadrexium.velonathea.pojo.Media;
@@ -47,14 +46,12 @@ public class MyOpenHelper extends SQLiteOpenHelper {
     public final static String COL_AUTHOR_NAME = COL_NAME;
 
     public final static String COL_MEDIA_TAGS_GROUPED_ALIAS = "tags";
-    public final static String COL_AUTHOR_NAME_FOREIGN = AUTHOR_TABLE + "_" + COL_AUTHOR_NAME;
 
     public final static String COL_MEDIA_ID_ALIAS = MEDIA_TABLE + "_" + COL_MEDIA_ID;
     public final static String COL_MEDIA_NAME_ALIAS = MEDIA_TABLE + "_" + COL_NAME;
     public final static String COL_MEDIA_FILENAME_ALIAS = MEDIA_TABLE + "_" + COL_MEDIA_FILENAME;
     public final static String COL_MEDIA_LINK_ALIAS = MEDIA_TABLE + "_" + COL_MEDIA_LINK;
 
-    public final static String COL_TAG_ID_ALIAS = TAG_TABLE + "_" + COL_TAG_ID;
     public final static String COL_TAG_NAME_ALIAS = TAG_TABLE + "_" + COL_TAG_NAME;
 
     public final static String COL_AUTHOR_NAME_ALIAS = AUTHOR_TABLE + "_" + COL_AUTHOR_NAME;
@@ -71,15 +68,15 @@ public class MyOpenHelper extends SQLiteOpenHelper {
 
         put(COL_TAG_NAME_ALIAS, TAG_TABLE + "." + COL_TAG_NAME);
 
-        put(COL_MEDIA_TAGS_GROUPED_ALIAS, "group_concat(" + TAG_TABLE + "." + COL_TAG_NAME + ", \" \")");
+        put(COL_MEDIA_TAGS_GROUPED_ALIAS, COL_MEDIA_TAGS_GROUPED);
     }});
 
     private final String AUTHOR_JOIN = "JOIN " + AUTHOR_TABLE + " ON " +
             AUTHOR_TABLE + "." + COL_AUTHOR_ID + " = " + MEDIA_TABLE + "." + COL_MEDIA_AUTHOR_ID + " ";
 
-    private final String TAG_JOIN = "JOIN " + MEDIA_TAG_TABLE + " ON " +
+    private final String TAG_JOIN = "LEFT OUTER JOIN " + MEDIA_TAG_TABLE + " ON " +
             MEDIA_TABLE + "." + COL_MEDIA_ID + " = " + MEDIA_TAG_TABLE + "." + COL_MEDIA_TAG_MEDIA_ID + " " +
-            "JOIN " + TAG_TABLE + " ON " +
+            "LEFT OUTER JOIN " + TAG_TABLE + " ON " +
             MEDIA_TAG_TABLE + "." + COL_MEDIA_TAG_TAG_ID + " = " + TAG_TABLE + "." + COL_TAG_ID + " ";
 
     public final static String[] DROP_INDEX_QUERIES = new String[] {
@@ -103,14 +100,14 @@ public class MyOpenHelper extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE " + MEDIA_TABLE + " (" +
                 COL_MEDIA_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                COL_MEDIA_NAME + " VARCHAR(150), " +
-                COL_MEDIA_FILENAME + " VARCHAR(150), " +
+                COL_MEDIA_NAME + " VARCHAR(255), " +
+                COL_MEDIA_FILENAME + " VARCHAR(255), " +
                 COL_MEDIA_AUTHOR_ID + " INTEGER, " +
                 COL_MEDIA_LINK + " VARCHAR(255), " +
                 "FOREIGN KEY (" + COL_MEDIA_AUTHOR_ID + ") REFERENCES " + AUTHOR_TABLE + "(" + COL_ID + "));");
         db.execSQL("CREATE TABLE " + TAG_TABLE + " (" +
                 COL_TAG_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                COL_TAG_NAME + " VARCHAR(150) NOT NULL UNIQUE);");
+                COL_TAG_NAME + " VARCHAR(100) NOT NULL UNIQUE);");
         db.execSQL("CREATE TABLE " + MEDIA_TAG_TABLE + " (" +
                 COL_MEDIA_TAG_MEDIA_ID + " INTEGER NOT NULL, " +
                 COL_MEDIA_TAG_TAG_ID + " INTEGER NOT NULL, " +
@@ -119,7 +116,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
                 "FOREIGN KEY(" + COL_MEDIA_TAG_TAG_ID + ") REFERENCES " + TAG_TABLE + "(" + COL_TAG_ID + "));");
         db.execSQL("CREATE TABLE " + AUTHOR_TABLE + " (" +
                 COL_AUTHOR_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                COL_AUTHOR_NAME + " VARCHAR(80));");
+                COL_AUTHOR_NAME + " VARCHAR(100));");
         for (String query : CREATE_INDEX_QUERIES) {
             db.execSQL(query);
         }
@@ -148,26 +145,38 @@ public class MyOpenHelper extends SQLiteOpenHelper {
 
     }
 
-    //Gets the author id from the database, or creates an author if they do not exist
-    public synchronized int getAuthorId(SQLiteDatabase db, String author) {
+    /**
+     * Gets the provided author's id from the database or inserts if the author does not exist.
+     * @param db a writable SQLite database
+     * @param author the author's name
+     * @return the id of the author
+     */
+    public synchronized int getAuthorIdOrInsert(SQLiteDatabase db, String author) {
         Cursor authorCursor = db.rawQuery("SELECT " + COL_AUTHOR_ID + " " +
                 "FROM " + AUTHOR_TABLE +" " +
-                "WHERE " + COL_AUTHOR_NAME + " = ? " +
+                "WHERE " + COL_AUTHOR_NAME + " LIKE ? " +
                 "LIMIT 1;", new String[]{ author });
         int authorId;
         //If author does not exist, insert author into database
         if (authorCursor.getCount() == 0) {
+            authorCursor.close();
             ContentValues cv = new ContentValues();
             cv.put(COL_AUTHOR_NAME, author);
             authorId = (int) db.insert(AUTHOR_TABLE, null, cv);
         } else {
             authorCursor.moveToFirst();
             authorId = (int) authorCursor.getLong(authorCursor.getColumnIndex(COL_AUTHOR_ID));
+            authorCursor.close();
         }
-        authorCursor.close();
         return authorId;
     }
 
+    /**
+     * Gets the provided tag's id from the database, or inserts it if it does not exist.
+     * @param db a writable SQLite database
+     * @param tag the tag name
+     * @return the id of the tag
+     */
     public synchronized int getTagIdOrInsert(SQLiteDatabase db, String tag) {
         Cursor tagCursor = db.rawQuery("SELECT " + COL_TAG_ID + " " +
                 "FROM " + TAG_TABLE + " " +
@@ -176,34 +185,27 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         int tagId;
         //If tag does not exist, insert tag into database
         if (tagCursor.getCount() == 0) {
+            tagCursor.close();
             ContentValues cv = new ContentValues();
             cv.put(COL_TAG_NAME, tag);
             tagId = (int) db.insert(TAG_TABLE, null, cv);
         } else {
             tagCursor.moveToFirst();
             tagId = (int) tagCursor.getLong(tagCursor.getColumnIndex(COL_TAG_ID));
+            tagCursor.close();
         }
-        tagCursor.close();
         return tagId;
     }
 
-//    public synchronized int getTagId(SQLiteDatabase db, String tag) {
-//        Cursor tagCursor = db.rawQuery("SELECT id FROM tag WHERE name = ? LIMIT 1;", new String[]{ tag } );
-//        int tagId;
-//        if (tagCursor.getCount() == 0) {
-//            tagId = -1;
-//        } else {
-//            tagCursor.moveToFirst();
-//            tagId = (int) tagCursor.getLong(tagCursor.getColumnIndex(COL_ID));
-//        }
-//        tagCursor.close();
-//        return tagId;
-//    }
-
+    /**
+     * Inserts the provided media into the database and returns its id.
+     * @param db a writable SQLite database
+     * @param media the media to insert
+     * @return the id of the inserted media, or -1 if an error occured
+     */
     public synchronized int insertMedia(SQLiteDatabase db, Media media) {
-        int authorId = getAuthorId(db, media.getAuthor());
+        int authorId = getAuthorIdOrInsert(db, media.getAuthor());
 
-        //Insert new row into database
         ContentValues cv = new ContentValues();
         cv.put(COL_MEDIA_FILENAME, media.getFileName());
         cv.put(COL_MEDIA_NAME, media.getName());
@@ -214,13 +216,19 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         return imageId;
     }
 
+    /**
+     * @param db a writable SQLite database
+     * @param oldMedia the old version of media
+     * @param newMedia the new version of media
+     * @return true if the media changed in the database, false if provided media are identical
+     */
     public synchronized boolean updateMedia(SQLiteDatabase db, Media oldMedia, Media newMedia) {
         if (!oldMedia.equals(newMedia)) {
             ContentValues cv = new ContentValues();
             cv.put(COL_MEDIA_FILENAME, newMedia.getFileName());
             cv.put(COL_MEDIA_NAME, newMedia.getName());
             cv.put(COL_MEDIA_LINK, newMedia.getLink());
-            cv.put(COL_MEDIA_AUTHOR_ID, getAuthorId(db, newMedia.getAuthor()));
+            cv.put(COL_MEDIA_AUTHOR_ID, getAuthorIdOrInsert(db, newMedia.getAuthor()));
 
             db.update(MEDIA_TABLE, cv, COL_MEDIA_ID + " = ?", new String[]{String.valueOf(newMedia.getId())});
             return true;
@@ -228,19 +236,28 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         return false;
     }
 
-    //Creates a media list from a given cursor
+    /**
+     * @param c a cursor for the media table
+     * @return a arraylist of media created from all rows in the cursor
+     */
     private synchronized ArrayList<Media> parseMediaListFromCursor(Cursor c) {
         ArrayList<Media> mediaList = new ArrayList<>();
         Media media;
         while (!c.isAfterLast()) {
             media = parseMediaFromCursor(c);
-            if (media != null) {
+            if (media != null) { //making sure the cursor is not after last
                 mediaList.add(media);
             }
         }
         return mediaList;
     }
 
+    /**
+     * Parses a media object from the next row in the provided cursor. Dynamically sets the
+     *  media object's values based on the columns selected in the cursor.
+     * @param c a cursor for the media table
+     * @return a media object, or null if the cursor is after last row
+     */
     public Media parseMediaFromCursor(Cursor c) {
         String[] columns = c.getColumnNames();
         if (c.moveToNext() && !c.isAfterLast()) {
@@ -263,25 +280,31 @@ public class MyOpenHelper extends SQLiteOpenHelper {
                         mediaBuilder.link(c.getString(c.getColumnIndex(COL_MEDIA_LINK_ALIAS)));
                         break;
                     case COL_MEDIA_TAGS_GROUPED_ALIAS:
-                        String[] tags = c.getString(c.getColumnIndex(COL_MEDIA_TAGS_GROUPED_ALIAS)).split(" ");
-                        mediaBuilder.tags(new ArrayList<>(Arrays.asList(tags)));
+                        String[] tags;
+                        String tagString = c.getString(c.getColumnIndex(COL_MEDIA_TAGS_GROUPED_ALIAS));
+                        if (tagString != null) {
+                            tags = tagString.split(" ");
+                            mediaBuilder.tags(new HashSet<>(Arrays.asList(tags)));
+                        }
+                        break;
                 }
             }
-            return mediaBuilder.build();
+            Media media = mediaBuilder.build();
+            //System.out.println(media.toString());
+            return media;
         }
-        return null;
+        return null; //if cursor is after last
     }
 
-    //Use the code from this view to select image tags.
-//    db.execSQL("CREATE VIEW v_image_tags AS " +
-//                "SELECT image.*, group_concat(tag.name, \" \") AS tags FROM image " +
-//                "JOIN image_tag ON image.id = image_tag.image_id " +
-//                "JOIN tag ON tag.id = image_tag.tag_id " +
-//                "GROUP BY image.file_name;");
-
-    //For when a given media has some null values, eg the link, returns the media object with those
-    // values set
-    public synchronized Media getRemainingData(SQLiteDatabase db, Media media) throws Exception {
+    /**
+     * Method that takes a media object with unset values and returns the same media with
+     *  those values set
+     * @param db a readable SQLite database
+     * @param media the media to get values for
+     * @return the media with set values
+     */
+    public synchronized Media getRemainingData(SQLiteDatabase db, Media media) {
+        //Find out what data needs to be selected
         Set<String> selectedColumns = new LinkedHashSet<>();
         if (Constants.isStringEmpty(media.getName())) {
             selectedColumns.add(COL_MEDIA_NAME_ALIAS);
@@ -292,15 +315,43 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         if (Constants.isStringEmpty(media.getAuthor())) {
             selectedColumns.add(COL_AUTHOR_NAME_ALIAS);
         }
+        if (media.getTags() == null || media.getTags().size() == 0) {
+            selectedColumns.add(COL_MEDIA_TAGS_GROUPED_ALIAS);
+        }
+
+        //Make sure there is data to query
         if (selectedColumns.size() == 0) {
             return media;
         }
-        TreeMap<String, String[]> whereFilters = new TreeMap<>();
-        whereFilters.put(MEDIA_TABLE + "." + COL_MEDIA_ID, new String[] { String.valueOf( media.getId() )});
-        Media newMedia = mediaQuery(db, selectedColumns, whereFilters, null, 1).get(0);
+
+        //Select the exact same media
+        Map<String, String[]> whereFilters = new HashMap<>();
+        whereFilters.put(MEDIA_TABLE + "." + COL_MEDIA_ID, new String[]{String.valueOf(media.getId())});
+
+        Media newMedia = media;
+        try {
+            newMedia = mediaQuery(db, selectedColumns, whereFilters, null, 1).get(0);
+        } catch (IllegalArgumentException ignored) {
+            //will never happen in this case
+        } /*catch (IndexOutOfBoundsException e) {
+            if (media.getTags() == null || media.getTags().size() == 0) {
+                selectedColumns.remove(COL_MEDIA_TAGS_GROUPED_ALIAS);
+            }
+            newMedia = mediaQuery(db, selectedColumns, whereFilters, null, 1).get(0);
+        }*/
+        if (newMedia.equals(media)) {
+            return newMedia;
+        }
         return mergeMedia(media, newMedia);
     }
 
+    /**
+     * Merges two media together so that any unset values in oldMedia are set to their
+     *  equivalent set values in newMedia.
+     * @param oldMedia a media with unset values
+     * @param newMedia a media with the unset values from oldMedia set
+     * @return oldMedia with the unset values set to the ones from newMedia
+     */
     public Media mergeMedia(Media oldMedia, Media newMedia) {
         if (Constants.isStringEmpty(oldMedia.getName())/* || !newMedia.getName().equals(oldMedia.getName())*/) {
             oldMedia.setName(newMedia.getName());
@@ -339,85 +390,134 @@ public class MyOpenHelper extends SQLiteOpenHelper {
 //        }
 //    }
 
+    /**
+     * Method that can build queries at runtime to select media from the database
+     * @param db an SQLite readable database
+     * @param selectedColumns the columns to return. must be a defined alias
+     * @param whereFilters conditions for the media to be returned
+     * @param orderBy the order of the rows
+     * @param limit how many media to return
+     * @return a mediaList
+     * @throws IllegalArgumentException when selected a column using an undefined alias or column
+     */
     public ArrayList<Media> mediaQuery(SQLiteDatabase db, Set<String> selectedColumns,
-                                        TreeMap<String, String[]> whereFilters,
-                                        String[] orderBy, long limit) throws Exception {
-        ArrayList<String> selectionArgs = new ArrayList<>();
+                                        Map<String, String[]> whereFilters,
+                                        String[] orderBy, long limit) throws IllegalArgumentException {
+
+        Set<String> selectionArgs = new HashSet<>();
+
+        //Always select the id and filename
         selectedColumns.add(COL_MEDIA_ID_ALIAS);
         selectedColumns.add(COL_MEDIA_FILENAME_ALIAS);
-        StringBuilder query = new StringBuilder("SELECT ");
-        String[] selectedColumnsAsArray = new String[selectedColumns.size()];
-        selectedColumnsAsArray = selectedColumns.toArray(selectedColumnsAsArray);
-        String lastColumn = selectedColumnsAsArray[(selectedColumnsAsArray.length-1)];
-        HashSet<String> joins = new HashSet<>();
-        for (String columnAlias : selectedColumns) {
-            String column = columns.get(columnAlias);
-            if (column == null) {
-                throw new Exception("Must use aliases to select columns");
-            } else {
-                int startOfTableName = column.contains("(") ? column.indexOf("(")+1 : 0;
-                String tableName = column.substring(startOfTableName, column.indexOf("."));
-                switch (tableName) {
-                    case Constants.PREFS_MEDIA_AUTHOR:
-                        joins.add(AUTHOR_JOIN);
+
+        StringBuilder query = new StringBuilder();
+
+        //SELECT
+        query.append("SELECT ");
+        Set<String> selection = new HashSet<>();
+        Set<String> joins = new HashSet<>();
+        Set<String> columnAliases = new HashSet<>();
+        columnAliases.addAll(whereFilters.keySet());
+        columnAliases.addAll(selectedColumns);
+        for (String columnAlias : columnAliases) {
+            String columnToSelect = columns.get(columnAlias);
+            //If the column is not an alias, then it is a columnToSelect. Try to find the
+            // column alias using this columnToSelect as a value in the columns set
+            if (columnToSelect == null && columns.containsValue(columnAlias)) {
+                String trueColumnToSelect = columnAlias;
+                columnAlias = null;
+                for (Map.Entry<String, String> entry : columns.entrySet()) {
+                    if (entry.getValue().equals(trueColumnToSelect)) {
+                        columnAlias = entry.getKey();
                         break;
-                    case Constants.PREFS_MEDIA_TAG:
-                        joins.add(TAG_JOIN);
-                        break;
+                    }
                 }
+                columnToSelect = trueColumnToSelect;
             }
-            query.append(column).append(" AS ").append(columnAlias);
-            if (!columnAlias.equals(lastColumn)) {
-                query.append(",");
+            if (columnToSelect == null) {
+                throw new IllegalArgumentException("Must use a defined alias");
             }
-            query.append(" ");
+            //Remove the column name and any functions from columnToSelect
+            int startOfTableName = columnToSelect.contains("(") ? columnToSelect.indexOf("(")+1 : 0;
+            String tableName = columnToSelect.substring(startOfTableName, columnToSelect.indexOf("."));
+            switch (tableName) {
+                case Constants.PREFS_MEDIA_AUTHOR:
+                    joins.add(AUTHOR_JOIN);
+                    break;
+                case Constants.PREFS_MEDIA_TAG:
+                    joins.add(TAG_JOIN);
+                    break;
+            }
+            selection.add(columnToSelect + " AS " + columnAlias + ", ");
         }
+        for (String selectColumn : selection) {
+            query.append(selectColumn);
+        }
+        query.replace(query.lastIndexOf(","), query.length(), " "); //removing comma
+
+        //FROM
         query.append("FROM " + MEDIA_TABLE + " ");
+
+        //JOIN
         for (String join : joins) {
             query.append(join);
         }
-        //Creates the where clause
-        //whereFilters values can be an arraylist with one or more values. If there is only one:
-        // "WHERE (column LIKE value) AND (column2 LIKE value2)"
-        // If there are multiple:
-        // "WHERE (column LIKE valueA OR column LIKE valueB) AND (column2 LIKE value2)
+
+        //WHERE
         if (whereFilters.size() != 0) {
             query.append("WHERE ");
             for (Map.Entry<String, String[]> entry : whereFilters.entrySet()) {
                 //For filtering when the column value may match multiple values (OR clause)
                 query.append("(");
-                for (int i = 0; i < entry.getValue().length; i++) {
+                for (String value : entry.getValue()) {
                     query.append(entry.getKey()).append(" LIKE ?");
-                    selectionArgs.add("%" + entry.getValue()[i] + "%");
-                    if (entry.getValue().length > 1 && i != entry.getValue().length-1) {
-                        query.append(" OR ");
-                    }
+                    selectionArgs.add("%" + value + "%");
+                    query.append(" OR ");
                 }
-                query.append(") ");
+                query.setLength(query.length()-(" OR ").length()+1);
                 //For filtering other columns, append AND (AND clause)
-                if (!entry.equals(whereFilters.lastEntry())) {
-                    query.append("AND ");
-                }
+                query.append(") AND ");
             }
+            query.setLength(query.length()-(") AND ").length()+1); //remove trailing AND
         }
+
+        //GROUP BY
         query.append("GROUP BY (").append(columns.get(COL_MEDIA_FILENAME_ALIAS)).append(") ");
+
+        //ORDER BY
         if (orderBy != null && orderBy.length != 0) {
             query.append("ORDER BY ");
-            for (int i = 0; i < orderBy.length; i++) {
-                query.append(orderBy[i]);
-                if (i != orderBy.length-1) {
-                    query.append(", ");
-                }
+            for (String orderColumn : orderBy) {
+                query.append(orderColumn).append(", ");
             }
-            query.append(" ");
+            query.replace(query.lastIndexOf(","), query.length(), ""); //removing comma
         }
+
+        //LIMIT
         if (limit != 0) {
             query.append("LIMIT ").append(limit);
         }
 
-        String[] stringSelectionArgs = selectionArgs.toArray(new String[0]);
         //System.out.println(query.toString());
-        Cursor c = db.rawQuery(query.toString(), stringSelectionArgs);
+//        query.insert(0, "EXPLAIN QUERY PLAN ");
+        Cursor c = db.rawQuery(query.toString(), selectionArgs.toArray(new String[0]));
+//        c.moveToFirst();
+//        for (String column : c.getColumnNames()) {
+//            System.out.println(column + ": " + c.getString(c.getColumnIndex(column)));
+//        }
+        //In the event that a specific media was selected by its ID but nothing was returned
+//        if (c.getCount() == 0 && whereFilters.containsKey(MEDIA_TABLE + "." + COL_MEDIA_ID) && whereFilters.size() == 1) {
+//            //The target must not have any tags, so it is implicitly filtered by the tag join. Remove it
+//            int start = query.indexOf(TAG_JOIN);
+//            query.replace(start, start+TAG_JOIN.length(), "");
+//            for (String column : selection) {
+//                if (column.contains("tag")) {
+//                    int start2 = query.indexOf(column);
+//                    query.replace(start2, start2+column.length(), "");
+//                }
+//            }
+//            c = db.rawQuery(query.toString(), selectionArgs.toArray(new String[0]));
+//        }
         ArrayList<Media> mediaList = parseMediaListFromCursor(c);
         c.close();
         return mediaList;
