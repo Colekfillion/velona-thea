@@ -213,6 +213,16 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         cv.put(COL_MEDIA_LINK, media.getLink());
         int imageId = (int) db.insert(MEDIA_TABLE, null, cv);
         cv.clear();
+
+        if (media.getTags() != null) {
+            for (String tag : media.getTags()) {
+                int tagId = getTagIdOrInsert(db, tag);
+                cv.put(COL_MEDIA_TAG_MEDIA_ID, imageId);
+                cv.put(COL_MEDIA_TAG_TAG_ID, tagId);
+                db.insert(MEDIA_TAG_TABLE, null, cv);
+                cv.clear();
+            }
+        }
         return imageId;
     }
 
@@ -222,16 +232,26 @@ public class MyOpenHelper extends SQLiteOpenHelper {
      * @return true if the media changed in the database, false if provided media are identical
      */
     public synchronized boolean updateMedia(SQLiteDatabase db, Media media) {
+        String[] mediaId = new String[] {String.valueOf(media.getId())};
         ContentValues cv = new ContentValues();
         cv.put(COL_MEDIA_FILENAME, media.getFileName());
         cv.put(COL_MEDIA_NAME, media.getName());
         cv.put(COL_MEDIA_LINK, media.getLink());
         cv.put(COL_MEDIA_AUTHOR_ID, getAuthorIdOrInsert(db, media.getAuthor()));
+        db.update(MEDIA_TABLE, cv, COL_MEDIA_ID + " = ?", mediaId);
+        cv.clear();
 
-        db.update(MEDIA_TABLE, cv, COL_MEDIA_ID + " = ?", new String[]{String.valueOf(media.getId())});
+        //Delete all existing media tags
+        db.delete(MEDIA_TAG_TABLE, COL_MEDIA_TAG_MEDIA_ID + " = ?", mediaId);
+        for (String tag : media.getTags()) {
+            int tagId = getTagIdOrInsert(db, tag);
+            cv.put(COL_MEDIA_TAG_MEDIA_ID, media.getId());
+            cv.put(COL_MEDIA_TAG_TAG_ID, tagId);
+            db.insert(MEDIA_TAG_TABLE, null, cv);
+            cv.clear();
+        }
         return true;
     }
-
 
     /**
      * @param c a cursor for the media table
@@ -325,14 +345,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         Map<String, String[]> whereFilters = new HashMap<>();
         whereFilters.put(MEDIA_TABLE + "." + COL_MEDIA_ID, new String[]{String.valueOf(media.getId())});
 
-        Media newMedia = media;
-        try {
-            newMedia = mediaQuery(db, selectedColumns, whereFilters, null, 1).get(0);
-        } catch (IllegalArgumentException ignored) {
-            //will never happen in this case
-        } /*catch (IndexOutOfBoundsException e) {
-            e.printStackTrace();
-        }*/
+        Media newMedia = mediaQuery(db, selectedColumns, whereFilters, null, 1).get(0);
         if (newMedia.equals(media)) {
             return newMedia;
         }
@@ -362,16 +375,18 @@ public class MyOpenHelper extends SQLiteOpenHelper {
                 oldMedia.setLink(newMedia.getLink());
             }
         }
+        if (oldMedia.getTags() == null || oldMedia.getTags().size() == 0) {
+            if (newMedia.getTags() != null && newMedia.getTags().size() > 0) {
+                oldMedia.setTags(newMedia.getTags());
+            }
+        }
         return oldMedia;
     }
 
-//    public synchronized boolean writeMediaToFile(SQLiteDatabase db, String fileName, boolean withIds) {
+//    public synchronized boolean writeMediaToFile(SQLiteDatabase db, String fileName) {
 //        ArrayList<Media> mediaList = getMediaList(db, new TreeMap<>(), new String[] { MEDIA_TABLE + "." + COL_MEDIA_FILENAME + " ASC"});
 //        StringBuilder mediaListAsString = new StringBuilder();
 //        for (Media media : mediaList) {
-//            if (withIds) {
-//                mediaListAsString.append(media.getId()).append("\t");
-//            }
 //            mediaListAsString.append(media.getFileName()).append("\t");
 //            mediaListAsString.append(media.getName()).append("\t");
 //            mediaListAsString.append(media.getAuthor()).append("\t");

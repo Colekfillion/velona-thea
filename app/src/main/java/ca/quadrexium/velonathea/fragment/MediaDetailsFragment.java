@@ -13,6 +13,10 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
 import ca.quadrexium.velonathea.R;
 import ca.quadrexium.velonathea.activity.SearchResultsActivity;
 import ca.quadrexium.velonathea.database.MyOpenHelper;
@@ -37,13 +41,14 @@ public class MediaDetailsFragment extends DialogFragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        EditText etFileName = view.findViewById(R.id.fragment_image_details_et_filename);
-        EditText etName = view.findViewById(R.id.fragment_image_details_et_name);
-        EditText etAuthor = view.findViewById(R.id.fragment_image_details_et_author);
-        EditText etLink = view.findViewById(R.id.fragment_image_details_et_link);
-        Button btnUpdate = view.findViewById(R.id.fragment_image_details_btn_update);
+        EditText etFileName = view.findViewById(R.id.fragment_media_details_et_filename);
+        EditText etName = view.findViewById(R.id.fragment_media_details_et_name);
+        EditText etAuthor = view.findViewById(R.id.fragment_media_details_et_author);
+        EditText etLink = view.findViewById(R.id.fragment_media_details_et_link);
+        EditText etTags = view.findViewById(R.id.fragment_media_details_et_tags);
+        Button btnUpdate = view.findViewById(R.id.fragment_media_details_btn_update);
 
-        if (media.getLink() == null) {
+        if (media.getLink() == null || (media.getTags() == null || media.getTags().size() == 0)) {
             MyOpenHelper myOpenHelper = new MyOpenHelper(getContext(), MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
             SQLiteDatabase db = myOpenHelper.getReadableDatabase();
             try {
@@ -58,6 +63,7 @@ public class MediaDetailsFragment extends DialogFragment {
         etName.setText(media.getName());
         etAuthor.setText(media.getAuthor());
         etLink.setText(media.getLink());
+        etTags.setText(media.getTagsAsString());
 
         btnUpdate.setOnClickListener(v -> {
 
@@ -81,6 +87,15 @@ public class MediaDetailsFragment extends DialogFragment {
             if (!newMediaLink.equals("") && !media.getLink().equals(newMediaLink)) {
                 changed = true;
                 media.setLink(newMediaLink);
+            }
+            String newMediaTags = etTags.getText().toString();
+
+            if (!newMediaTags.equals("")) {
+                Set<String> newMediaTagsSet = new HashSet<>(Arrays.asList(newMediaTags.split(" ")));
+                if (!media.getTags().equals(newMediaTagsSet)) {
+                    changed = true;
+                    media.setTags(newMediaTagsSet);
+                }
             }
 
             String toastText = "no change";

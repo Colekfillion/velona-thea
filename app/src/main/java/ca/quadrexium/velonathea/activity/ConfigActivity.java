@@ -128,6 +128,10 @@ public class ConfigActivity extends BaseActivity {
         return true;
     }
 
+    /**
+     * Called by ChooseDirFragment to change the root path.
+     * @param path the new root path
+     */
     public void changePath(String path) {
         SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
         SharedPreferences.Editor edit = prefs.edit();

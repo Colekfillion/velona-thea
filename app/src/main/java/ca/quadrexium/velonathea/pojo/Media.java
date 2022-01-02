@@ -1,5 +1,7 @@
 package ca.quadrexium.velonathea.pojo;
 
+import androidx.annotation.NonNull;
+
 import java.util.Set;
 
 public class Media {
@@ -26,11 +28,12 @@ public class Media {
     public String getLink() { return link; }
     public Set<String> getTags() { return tags; }
     public String getTagsAsString() {
+        if (tags == null) { return ""; }
         StringBuilder sTags = new StringBuilder();
         for (String tag : tags) {
             sTags.append(tag).append(" ");
         }
-        sTags = new StringBuilder(sTags.substring(0, sTags.length() - 1));
+        sTags = new StringBuilder(sTags.substring(0, sTags.length()));
         return sTags.toString();
     }
 
@@ -39,10 +42,11 @@ public class Media {
     public void setFileName(String fileName) { this.fileName = fileName; }
     public void setAuthor(String author) { this.author = author; }
     public void setLink(String link) { this.link = link; }
-
-    public void addTag(String tag) {
-        tags.add(tag);
+    public void setTags(@NonNull Set<String> tags) {
+        this.tags = tags;
     }
+
+    public void addTag(String tag) { tags.add(tag); }
 
     public void removeTag(String tag) { tags.remove(tag); }
 

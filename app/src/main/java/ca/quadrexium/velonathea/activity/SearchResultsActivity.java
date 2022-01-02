@@ -54,7 +54,7 @@ public class SearchResultsActivity extends BaseActivity {
     private String path;
     private int cacheSize;
     private final ArrayList<Media> mediaList = new ArrayList<>();
-    private final LinkedHashMap<String, Bitmap> imageCache = new LinkedHashMap<String, Bitmap>() {
+    private final Map<String, Bitmap> imageCache = new LinkedHashMap<String, Bitmap>() {
         //Keep the cache size down for performance. Removes oldest entry if size is above max cache size
         @Override
         protected boolean removeEldestEntry(final Map.Entry eldest) {
@@ -63,8 +63,10 @@ public class SearchResultsActivity extends BaseActivity {
     };
     private RecyclerView rv;
     private MyAdapter rvAdapter;
-    float screenDensity;
-    int lastUpdatedPosition = 0;
+    private float screenDensity;
+    private int lastUpdatedPosition = 0;
+    private final int MAX_IMAGES_LOADING = 25;
+    private ExecutorService executorService = Executors.newFixedThreadPool(MAX_IMAGES_LOADING);
 
     @Override
     protected void isVerified() { }
@@ -88,8 +90,8 @@ public class SearchResultsActivity extends BaseActivity {
         //Local variables
         String fileNameFilter = data.getString(Constants.PREFS_MEDIA_FILENAME);
         String nameFilter = data.getString(Constants.PREFS_MEDIA_NAME);
-        String author = data.getString(Constants.PREFS_MEDIA_AUTHOR);
-        String tag = data.getString(Constants.PREFS_MEDIA_TAG);
+        String authorFilter = data.getString(Constants.PREFS_MEDIA_AUTHOR);
+        String tagFilter = data.getString(Constants.PREFS_MEDIA_TAG);
         String mediaType = data.getString(Constants.PREFS_MEDIA_TYPE);
         boolean randomOrder = prefs.getBoolean(Constants.PREFS_RANDOM_ORDER, false);
         boolean showInvalidFiles = prefs.getBoolean(Constants.PREFS_SHOW_INVALID_FILES, true);
@@ -130,14 +132,14 @@ public class SearchResultsActivity extends BaseActivity {
                     //selectedColumns.add(MyOpenHelper.COL_MEDIA_NAME_ALIAS);
                     whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_NAME, new String[] { nameFilter });
                 }
-                if (!author.equals("")) {
+                if (!authorFilter.equals("")) {
                     //selectedColumns.add(MyOpenHelper.COL_AUTHOR_NAME_ALIAS);
-                    whereFilters.put(MyOpenHelper.AUTHOR_TABLE + "." + MyOpenHelper.COL_AUTHOR_NAME, new String[] { author });
+                    whereFilters.put(MyOpenHelper.AUTHOR_TABLE + "." + MyOpenHelper.COL_AUTHOR_NAME, new String[] { authorFilter });
                 }
-                if (!tag.equals("")) {
+                if (!tagFilter.equals("")) {
                     //selectedColumns.add(MyOpenHelper.COL_MEDIA_TAGS_GROUPED_ALIAS);
                     //selectedColumns.add(MyOpenHelper.COL_TAG_NAME_ALIAS);
-                    whereFilters.put(MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_TAG_NAME, new String[] { tag });
+                    whereFilters.put(MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_TAG_NAME, new String[] { tagFilter });
                 }
                 if (mediaType != null) {
                     if (mediaType.equals(Constants.IMAGE)) {
@@ -165,8 +167,9 @@ public class SearchResultsActivity extends BaseActivity {
                 db.close();
 
                 //Remove invalid files
-                int resultsRemoved = 0;
+                //TODO: Replace this with a check in DatabaseConfigActivity, this takes too long
                 if (!showInvalidFiles) {
+                    int resultsRemoved = 0;
                     File root = new File(path);
                     if (root.exists()) {
                         String[] fileNamesArray = root.list((dir, name) -> {
@@ -287,56 +290,61 @@ public class SearchResultsActivity extends BaseActivity {
             } else {
                 holder.image.setImageBitmap(null);
 
-                ExecutorService executor = Executors.newSingleThreadExecutor();
                 Handler handler = new Handler(Looper.getMainLooper());
 
-                executor.execute(() -> {
-                    Bitmap bm = null;
-                    do {
-                        File f = new File(path + "/" + fileName);
-                        if (f.exists()) {
-                            //Image and gif (gifs can be loaded like a bitmap)
-                            String extension = fileName.substring(fileName.lastIndexOf("."));
-                            if (Constants.IMAGE_EXTENSIONS.contains(extension) ||
-                                    extension.equals(".gif")) {
+                //False when the executor is shut down (when leaving activity)
+                if (!executorService.isShutdown() && !executorService.isTerminated()) {
+                    executorService.execute(() -> {
+                        Bitmap bm = null;
+                        //True if this task was queued for execution but user has left activity
+                        if (!cancelDataLoading) {
+                            while (true) {
+                                File f = new File(path + "/" + fileName);
+                                if (f.exists()) {
+                                    String extension = fileName.substring(fileName.lastIndexOf("."));
+                                    //Image and gif (gifs can be loaded like a bitmap)
+                                    if (Constants.IMAGE_EXTENSIONS.contains(extension) ||
+                                            extension.equals(".gif")) {
 
-                                //Just decoding the dimensions of the target image
-                                BitmapFactory.Options options = new BitmapFactory.Options();
-                                options.inJustDecodeBounds = true;
-                                BitmapFactory.decodeFile(f.getAbsolutePath(), options);
-                                if (!fileName.equals(holder.fileName.getText().toString())) {
-                                    break;
+                                        //Just decoding the dimensions of the target image
+                                        BitmapFactory.Options options = new BitmapFactory.Options();
+                                        options.inJustDecodeBounds = true;
+                                        BitmapFactory.decodeFile(f.getAbsolutePath(), options);
+                                        if (!fileName.equals(holder.fileName.getText().toString())) {
+                                            break;
+                                        }
+                                        int height = Math.round(options.outHeight / screenDensity); //height as dp
+
+                                        int sampleSize = 1; //how much smaller the image should be loaded
+                                        if (height != 80) {
+                                            //if the height is 160dp, image will be loaded half as big
+                                            sampleSize = Math.round(height / 80f);
+                                        }
+
+                                        //Loading the image with subsampling to save memory (smaller version of image)
+                                        options.inJustDecodeBounds = false;
+                                        options.inSampleSize = sampleSize;
+                                        options.inPreferredConfig = Bitmap.Config.RGB_565; //less colours
+                                        bm = BitmapFactory.decodeFile(f.getAbsolutePath(), options);
+                                        imageCache.put(fileName, bm);
+                                        //Video
+                                    } else if (Constants.VIDEO_EXTENSIONS.contains(extension)) {
+                                        //thumbnails can be created easier for videos
+                                        bm = ThumbnailUtils.createVideoThumbnail(path + "/" + fileName, MediaStore.Video.Thumbnails.MINI_KIND);
+                                        imageCache.put(fileName, bm);
+                                    }
                                 }
-                                int height = Math.round(options.outHeight / screenDensity); //height as dp
-
-                                int sampleSize = 1; //how much smaller the image should be loaded
-                                if (height != 80) {
-                                    //if the height is 160dp, image will be loaded half as big
-                                    sampleSize = Math.round(height / 80f);
-                                }
-
-                                //Loading the image with subsampling to save memory (smaller version of image)
-                                options.inJustDecodeBounds = false;
-                                options.inSampleSize = sampleSize;
-                                options.inPreferredConfig = Bitmap.Config.RGB_565; //less colours
-                                bm = BitmapFactory.decodeFile(f.getAbsolutePath(), options);
-                                imageCache.put(fileName, bm);
-                                //Video
-                            } else if (Constants.VIDEO_EXTENSIONS.contains(extension)) {
-                                //thumbnails can be created easier for videos
-                                bm = ThumbnailUtils.createVideoThumbnail(path + "/" + fileName, MediaStore.Video.Thumbnails.MINI_KIND);
-                                imageCache.put(fileName, bm);
+                                break;
                             }
                         }
-                        break;
-                    } while (true);
-                    Bitmap finalBm = bm;
-                    handler.post(() -> {
-                        if (holder.fileName.getText().toString().equals(fileName)) {
-                            holder.image.setImageBitmap(finalBm);
-                        }
+                        Bitmap finalBm = bm;
+                        handler.post(() -> {
+                            if (holder.fileName.getText().toString().equals(fileName)) {
+                                holder.image.setImageBitmap(finalBm);
+                            }
+                        });
                     });
-                });
+                }
             }
         }
 
@@ -346,9 +354,7 @@ public class SearchResultsActivity extends BaseActivity {
         }
 
         @Override
-        public int getItemCount() {
-            return mediaList.size();
-        }
+        public int getItemCount() { return mediaList.size(); }
 
         public class ViewHolder extends RecyclerView.ViewHolder {
             private final ImageView image;
@@ -410,10 +416,14 @@ public class SearchResultsActivity extends BaseActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        cancelDataLoading = false;
+
+        if (executorService.isShutdown() || executorService.isTerminated()) {
+            executorService = Executors.newFixedThreadPool(MAX_IMAGES_LOADING);
+        }
 
         //Loading image data
         if (mediaList.size() > lastUpdatedPosition) {
-            cancelDataLoading = false;
             ExecutorService executor = Executors.newSingleThreadExecutor();
             Handler handler = new Handler(Looper.getMainLooper());
 
@@ -424,17 +434,7 @@ public class SearchResultsActivity extends BaseActivity {
                 db.beginTransaction();
                 for (int i = lastUpdatedPosition; i < mediaList.size(); i++) {
                     Media oldMedia = mediaList.get(i);
-                    Media newMedia = null;
-                    try {
-                        newMedia = myOpenHelper.getRemainingData(db, oldMedia);
-//                        if (newMedia.equals(oldMedia)) {
-//                            continue;
-//                        }
-//                        System.out.println(oldMedia.toString());
-//                        System.out.println(newMedia.toString());
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
+                    Media newMedia = myOpenHelper.getRemainingData(db, oldMedia);
                     mediaList.set(i, newMedia);
                     int finalI = i;
                     handler.post(() -> rvAdapter.notifyItemChanged(finalI));
@@ -451,18 +451,22 @@ public class SearchResultsActivity extends BaseActivity {
 
     @Override
     protected void onPause() {
-        int size = 0;
-        for (Bitmap bm : imageCache.values()) {
-            size += bm.getAllocationByteCount();
-        }
-        System.out.println("Total size of all bitmaps(mb): " + size/1000000);
         super.onPause();
         cancelDataLoading = true;
+        executorService.shutdownNow();
     }
 
     public void mediaChanged(int i, Media media) {
         mediaList.set(i, media);
         rvAdapter.notifyItemChanged(i);
         cancelDataLoading = false;
+    }
+
+    private int sizeOfCachedBitmaps() {
+        int size = 0;
+        for (Bitmap bm : imageCache.values()) {
+            size += bm.getAllocationByteCount();
+        }
+        return size/1000000;
     }
 }

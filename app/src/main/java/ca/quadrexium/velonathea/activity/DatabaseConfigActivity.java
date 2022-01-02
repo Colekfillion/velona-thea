@@ -1,7 +1,6 @@
 package ca.quadrexium.velonathea.activity;
 
 import android.app.Activity;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -59,6 +58,7 @@ public class DatabaseConfigActivity extends BaseActivity {
                         Handler handler = new Handler(Looper.getMainLooper());
 
                         executor.execute(() -> {
+                            //Read the file as a string
                             String content = "";
                             ProgressBar pb = findViewById(R.id.activity_database_config_pb_loading);
                             handler.post(() -> pb.setVisibility(View.VISIBLE));
@@ -84,48 +84,30 @@ public class DatabaseConfigActivity extends BaseActivity {
                                 for (String query : MyOpenHelper.DROP_INDEX_QUERIES) {
                                     db.execSQL(query);
                                 }
-                                ContentValues newRowValues = new ContentValues();
 
                                 String[] rows = content.split("\n");
                                 int numRows = rows.length;
                                 for (int i = 0; i < rows.length; i++) {
                                     String[] rowValues = rows[i].split("\t");
-                                    Media media = new Media.Builder()
+                                    Media.Builder mediaBuilder = new Media.Builder()
                                             .id(-1) //temp value
                                             .fileName(rowValues[0])
                                             .name(rowValues[1])
-                                            .author(Constants.isStringEmpty(rowValues[2]) ? "unknown" : rowValues[2])
-                                            .build();
+                                            .author(Constants.isStringEmpty(rowValues[2]) ? "unknown" : rowValues[2]);
                                     try {
-                                        media.setLink(rowValues[3]);
+                                        mediaBuilder.link(rowValues[3]);
                                     } catch (ArrayIndexOutOfBoundsException e) {
                                         //no link to source, do nothing
                                     }
-                                    String tagsList = "";
                                     try {
-                                        tagsList = rowValues[4];
+                                        mediaBuilder.tags(new HashSet<>(Arrays.asList(rowValues[4].split(" "))));
                                     } catch (ArrayIndexOutOfBoundsException e) {
                                         //no tags, do nothing
                                     }
 
-                                    int imageId = myOpenHelper.insertMedia(db, media);
+                                    Media media = mediaBuilder.build();
 
-                                    //If there are tags
-                                    if (!tagsList.equals("")) {
-
-                                        String[] tagsArray = tagsList.split(" ");
-                                        Set<String> tags = new HashSet<>(Arrays.asList(tagsArray));
-                                        for (String tag : tags) {
-
-                                            int tagId = myOpenHelper.getTagIdOrInsert(db, tag);
-
-                                            //Insert image-tag pair into image_tag table
-                                            newRowValues.put(MyOpenHelper.COL_MEDIA_TAG_MEDIA_ID, imageId);
-                                            newRowValues.put(MyOpenHelper.COL_MEDIA_TAG_TAG_ID, tagId);
-                                            db.insert(MyOpenHelper.MEDIA_TAG_TABLE, null, newRowValues);
-                                            newRowValues.clear();
-                                        }
-                                    }
+                                    myOpenHelper.insertMedia(db, media);
                                     int finalI = i;
                                     handler.post(() -> pb.setProgress((int) (((double) finalI / (double) numRows) * 1000)));
                                 }
@@ -135,8 +117,8 @@ public class DatabaseConfigActivity extends BaseActivity {
                                 }
                                 db.setTransactionSuccessful();
                                 db.endTransaction();
+                                busy = false;
                                 handler.post(() -> {
-                                    busy = false;
                                     pb.setVisibility(View.GONE);
                                     Toast.makeText(this, "Loaded " + numRows + " media", Toast.LENGTH_SHORT).show();
                                 });
@@ -192,7 +174,7 @@ public class DatabaseConfigActivity extends BaseActivity {
                     Set<String> fileNames;
                     int count = 0;
                     if (fileNamesArray != null) {
-                        //Getting all unique file names in rootDir
+                        //Getting all file names in rootDir that are not in the database
                         fileNames = new HashSet<>(Arrays.asList(fileNamesArray));
                         MyOpenHelper myOpenHelper = openMediaDatabase();
                         SQLiteDatabase db = myOpenHelper.getWritableDatabase();
@@ -252,8 +234,8 @@ public class DatabaseConfigActivity extends BaseActivity {
                         db.close();
                     }
                     int finalCount1 = count;
+                    busy = false;
                     handler.post(() -> {
-                        busy = false;
                         pb.setVisibility(View.GONE);
                         Toast.makeText(this, "Loaded " + finalCount1 + " media", Toast.LENGTH_SHORT).show();
                     });

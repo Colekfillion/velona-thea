@@ -46,7 +46,7 @@ public abstract class BaseActivity extends AppCompatActivity {
 
         //Request read permissions if not granted
         if (ActivityCompat.checkSelfPermission(getApplicationContext(),
-                Manifest.permission.READ_EXTERNAL_STORAGE)!= PackageManager.PERMISSION_GRANTED){
+                Manifest.permission.READ_EXTERNAL_STORAGE)!= PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{
                     Manifest.permission.READ_EXTERNAL_STORAGE
             },1);
@@ -85,11 +85,12 @@ public abstract class BaseActivity extends AppCompatActivity {
      * Called after the permissions message is dismissed. App quits if read permissions are not granted
      */
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == 1) {
             if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(getApplicationContext(), "Permission Denied", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, R.string.permission_denied, Toast.LENGTH_LONG).show();
                 finish();
             }
         }
@@ -114,8 +115,8 @@ public abstract class BaseActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
 
         if (item.getItemId() == R.id.config_menubutton) {
-            Intent i = new Intent(this, ConfigActivity.class);
-            startActivity(i);
+            Intent intent = new Intent(this, ConfigActivity.class);
+            startActivity(intent);
             return true;
         }
         return super.onOptionsItemSelected(item);

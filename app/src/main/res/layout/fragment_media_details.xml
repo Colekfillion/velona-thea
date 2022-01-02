@@ -7,7 +7,7 @@
     tools:context=".fragment.MediaDetailsFragment">
 
     <EditText
-        android:id="@+id/fragment_image_details_et_filename"
+        android:id="@+id/fragment_media_details_et_filename"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Filename"
@@ -15,7 +15,7 @@
         android:inputType="text"/>
 
     <EditText
-        android:id="@+id/fragment_image_details_et_name"
+        android:id="@+id/fragment_media_details_et_name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Name"
@@ -23,7 +23,7 @@
         android:inputType="text"/>
 
     <EditText
-        android:id="@+id/fragment_image_details_et_author"
+        android:id="@+id/fragment_media_details_et_author"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Author"
@@ -31,10 +31,18 @@
         android:inputType="text"/>
 
     <EditText
-        android:id="@+id/fragment_image_details_et_link"
+        android:id="@+id/fragment_media_details_et_link"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Link"
+        android:importantForAutofill="no"
+        android:inputType="text"/>
+
+    <EditText
+        android:id="@+id/fragment_media_details_et_tags"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Tags"
         android:importantForAutofill="no"
         android:inputType="text"/>
 
@@ -43,7 +51,7 @@
         android:layout_height="20dp"/>
 
     <Button
-        android:id="@+id/fragment_image_details_btn_update"
+        android:id="@+id/fragment_media_details_btn_update"
         android:layout_width="300dp"
         android:layout_height="wrap_content"
         android:text="@string/update"
