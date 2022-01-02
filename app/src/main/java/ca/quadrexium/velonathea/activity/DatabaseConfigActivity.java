@@ -13,6 +13,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.method.ScrollingMovementMethod;
 import android.view.Menu;
 import android.view.View;
 import android.widget.Button;
@@ -177,6 +178,7 @@ public class DatabaseConfigActivity extends BaseActivity {
                     ProgressBar pb = this.findViewById(R.id.activity_database_config_pb_loading);
                     handler.post(() -> pb.setVisibility(View.VISIBLE));
 
+                    //Getting file names in rootDir
                     File rootDir = new File(path);
                     String[] fileNamesArray = rootDir.list((dir, name) -> {
                         int extensionIndex = name.lastIndexOf(".");
@@ -190,35 +192,57 @@ public class DatabaseConfigActivity extends BaseActivity {
                     Set<String> fileNames;
                     int count = 0;
                     if (fileNamesArray != null) {
+                        //Getting all unique file names in rootDir
                         fileNames = new HashSet<>(Arrays.asList(fileNamesArray));
                         MyOpenHelper myOpenHelper = openMediaDatabase();
                         SQLiteDatabase db = myOpenHelper.getWritableDatabase();
                         Cursor c = db.rawQuery("SELECT " + MyOpenHelper.COL_MEDIA_FILENAME + " " +
                                 "FROM " + MyOpenHelper.MEDIA_TABLE, null);
                         c.moveToFirst();
-
+                        int columnIndex = c.getColumnIndex(MyOpenHelper.COL_MEDIA_FILENAME);
                         while (!c.isAfterLast()) {
-                            fileNames.remove(c.getString(c.getColumnIndex(MyOpenHelper.COL_MEDIA_FILENAME)));
+                            fileNames.remove(c.getString(columnIndex));
                             c.moveToNext();
                         }
-
                         c.close();
-                        db.beginTransaction();
-                        for (String query : MyOpenHelper.DROP_INDEX_QUERIES) {
-                            db.execSQL(query);
-                        }
-                        for (String fileName : fileNames) {
 
-                            Media media = new Media.Builder()
+                        //Loading the media into memory
+                        Set<Media> mediaList = new HashSet<>();
+                        for (String fileName : fileNames) {
+                            mediaList.add(new Media.Builder()
                                     .id(-1) //temp value
                                     .name(fileName.substring(0, fileName.lastIndexOf(".")))
                                     .fileName(fileName)
                                     .author("unknown")
-                                    .build();
-                            media.setId(myOpenHelper.insertMedia(db, media));
+                                    .build());
+                            //Progress
                             count++;
                             int finalCount = count;
-                            handler.post(() -> pb.setProgress((int) (((double) finalCount / (double) fileNames.size()) * 1000)));
+                            handler.post(() -> pb.setProgress((int) (((double) finalCount / (double) fileNames.size()) * 500)));
+                        }
+
+                        //Inserting mediaList media into database
+                        db.beginTransaction();
+                        for (String query : MyOpenHelper.DROP_INDEX_QUERIES) {
+                            db.execSQL(query);
+                        }
+                        count = 0;
+                        for (Media media : mediaList) {
+                            //Check that the media name is the filename without the extension
+                            String fileName = media.getFileName();
+                            if (!fileName.substring(0, fileName.lastIndexOf(".")).equals(media.getName())) {
+                                Toast.makeText(this, "Error: " + fileName + " != " + media.getName(), Toast.LENGTH_LONG).show();
+                            }
+                            if (!media.getAuthor().equals("unknown")) {
+                                Toast.makeText(this, "Error: " + media.getAuthor() + " != unknown", Toast.LENGTH_LONG).show();
+                            }
+
+                            //Insert
+                            myOpenHelper.insertMedia(db, media);
+                            //Progress
+                            count++;
+                            int finalCount = count;
+                            handler.post(() -> pb.setProgress(((int) (((double) finalCount / (double) fileNames.size()) * 500)+500)));
                         }
                         for (String query : MyOpenHelper.CREATE_INDEX_QUERIES) {
                             db.execSQL(query);
@@ -281,6 +305,7 @@ public class DatabaseConfigActivity extends BaseActivity {
         });
 
         //Show various database statistics
+        //TODO: Have additional info be shown in a popup, ex. button that says "Show duplicate files"
         Button btnDebugDb = findViewById(R.id.activity_database_config_btn_debugdb);
         btnDebugDb.setOnClickListener(v -> {
             if (!busy) {
@@ -290,6 +315,7 @@ public class DatabaseConfigActivity extends BaseActivity {
 
                 executor.execute(() -> {
                     TextView tvDbStats = findViewById(R.id.activity_database_config_tv_dbstats);
+                    tvDbStats.setMovementMethod(new ScrollingMovementMethod());
                     handler.post(() -> tvDbStats.setVisibility(View.VISIBLE));
 
                     StringBuilder dbStats = new StringBuilder();
@@ -307,6 +333,7 @@ public class DatabaseConfigActivity extends BaseActivity {
                     dbStats.append("Media-tag relationships: ").append(numMediaTags).append("\n");
                     handler.post(() -> tvDbStats.setText(dbStats.toString()));
 
+                    //Media with/without tags
                     String sql = "SELECT COUNT(*) AS count FROM (" +
                             "SELECT " + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_ID + " " +
                             "FROM " + MyOpenHelper.MEDIA_TABLE + " " +
@@ -326,6 +353,32 @@ public class DatabaseConfigActivity extends BaseActivity {
                     dbStats.append("Media without tags: ").append(numMedia - numMediaWithTags).append("\n");
                     handler.post(() -> tvDbStats.setText(dbStats.toString()));
 
+                    //Most common tags
+                    sql = "SELECT " + MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_TAG_NAME + ", " +
+                            "COUNT(" + MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_TAG_NAME + ") AS count " +
+                            "FROM " + MyOpenHelper.TAG_TABLE + " " +
+                            "JOIN " + MyOpenHelper.MEDIA_TAG_TABLE + " ON " +
+                            MyOpenHelper.MEDIA_TAG_TABLE + "." + MyOpenHelper.COL_MEDIA_TAG_TAG_ID + " = " +
+                            MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_TAG_ID + " " +
+                            "GROUP BY " + MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_TAG_NAME + " " +
+                            "ORDER BY count DESC";
+
+                    c = db.rawQuery(sql, null);
+                    if (c.moveToFirst()) {
+                        int numTagsToReturn = Math.min(10, c.getCount());
+                        int nameColIndex = c.getColumnIndex(MyOpenHelper.COL_TAG_NAME);
+                        int countColIndex = c.getColumnIndex("count");
+                        dbStats.append("Most common tag(s): \n");
+                        while (!c.isAfterLast() && numTagsToReturn != 0) {
+                            dbStats.append("\t").append(c.getString(nameColIndex)).append(" (").append(c.getLong(countColIndex)).append(")\n");
+                            --numTagsToReturn;
+                            c.moveToNext();
+                        }
+                        handler.post(() -> tvDbStats.setText(dbStats.toString()));
+                    }
+                    c.close();
+
+                    //Most common authors
                     sql = "SELECT " + MyOpenHelper.AUTHOR_TABLE + "." + MyOpenHelper.COL_AUTHOR_NAME + ", " +
                             "COUNT(" + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_AUTHOR_ID + ") AS count " +
                             "FROM " + MyOpenHelper.MEDIA_TABLE + " " +
@@ -350,6 +403,7 @@ public class DatabaseConfigActivity extends BaseActivity {
                     }
                     c.close();
 
+                    //Duplicate filenames
                     sql = "SELECT " + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME + ", " +
                             "COUNT(" + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME + ") AS count " +
                             "FROM " + MyOpenHelper.MEDIA_TABLE + " " +
@@ -360,7 +414,7 @@ public class DatabaseConfigActivity extends BaseActivity {
                         dbStats.append("Duplicate filenames: ");
                         while (!c.isAfterLast()) {
                             dbStats.append("\t").append(c.getString(c.getColumnIndex(MyOpenHelper.COL_MEDIA_FILENAME)))
-                                    .append("(").append(c.getInt(c.getColumnIndex("count"))).append(")");
+                                    .append("(").append(c.getInt(c.getColumnIndex("count"))).append(")\n");
                             c.moveToNext();
                         }
                         handler.post(() -> tvDbStats.setText(dbStats.toString()));

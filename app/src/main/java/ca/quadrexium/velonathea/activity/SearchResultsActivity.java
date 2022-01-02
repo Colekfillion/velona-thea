@@ -1,6 +1,5 @@
 package ca.quadrexium.velonathea.activity;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -21,8 +20,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -51,6 +48,7 @@ import ca.quadrexium.velonathea.fragment.MediaDetailsFragment;
 import ca.quadrexium.velonathea.pojo.Constants;
 import ca.quadrexium.velonathea.pojo.Media;
 
+//TODO: Make this activity take an SQL string so it doesn't have to worry about making the query
 public class SearchResultsActivity extends BaseActivity {
 
     private String path;
@@ -67,22 +65,6 @@ public class SearchResultsActivity extends BaseActivity {
     private MyAdapter rvAdapter;
     float screenDensity;
     int lastUpdatedPosition = 0;
-
-    ActivityResultLauncher<Intent> mediaDetailsActivity = registerForActivityResult(
-            new ActivityResultContracts.StartActivityForResult(),
-            result -> {
-                if (result.getResultCode() == Activity.RESULT_OK) {
-                    Intent data = result.getData();
-                    if (data != null) {
-                        int position = data.getIntExtra(Constants.PREFS_UPDATED_MEDIA_POSITION, -1);
-                        if (position == -1) {
-                            throw new IllegalStateException("Media position cannot be -1");
-                        }
-                        mediaList.set(position, data.getParcelableExtra(Constants.MEDIA));
-                        rvAdapter.notifyItemChanged(position);
-                    }
-                }
-            });
 
     @Override
     protected void isVerified() { }
@@ -227,7 +209,6 @@ public class SearchResultsActivity extends BaseActivity {
                 }
 
                 //Saving the mediaList as a tab-delimited text file
-                //TODO: Async this
                 StringBuilder mediaListAsString = new StringBuilder();
                 for (Media media : mediaList) {
                     mediaListAsString.append(media.getId()).append("\t");

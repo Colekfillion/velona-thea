@@ -48,6 +48,7 @@
         android:id="@+id/activity_database_config_tv_dbstats"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:visibility="gone"/>
+        android:visibility="gone"
+        android:scrollbars="vertical"/>
 
 </LinearLayout>

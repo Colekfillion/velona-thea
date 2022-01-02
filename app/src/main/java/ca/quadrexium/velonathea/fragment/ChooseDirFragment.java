@@ -90,13 +90,13 @@ public class ChooseDirFragment extends DialogFragment {
 
         executor.execute(() -> {
             dirNames.clear();
+            ProgressBar pb = view.findViewById(R.id.fragment_choose_dir_pb);
             if (currentDir.getParent() != null) {
                 //If the dir has a parent, add a '...' entry that represents it
                 dirNames.add("...");
             }
             handler.post(() -> {
                 dnAdapter.notifyDataSetChanged();
-                ProgressBar pb = view.findViewById(R.id.fragment_choose_dir_pb);
                 pb.setProgress(0);
                 pb.setVisibility(View.VISIBLE);
             });
@@ -111,7 +111,6 @@ public class ChooseDirFragment extends DialogFragment {
                 handler.post(() -> {
                     //Setting progress
                     count.getAndIncrement();
-                    ProgressBar pb = view.findViewById(R.id.fragment_choose_dir_pb);
                     pb.setProgress((int) (((double)count.get() / (double)numFilesInDir)*100));
                 });
                 //Add to dirs if the file is a directory and either showHiddenFiles is true or, if false,
@@ -128,7 +127,6 @@ public class ChooseDirFragment extends DialogFragment {
 
             handler.post(() -> {
                 dnAdapter.notifyDataSetChanged();
-                ProgressBar pb = view.findViewById(R.id.fragment_choose_dir_pb);
                 pb.setVisibility(View.INVISIBLE);
             });
         });
