@@ -24,7 +24,7 @@
             android:name=".activity.FullMediaActivity"
             android:exported="false" />
         <activity
-            android:name=".activity.ChooseDirActivity"
+            android:name=".fragment.ChooseDirFragment"
             android:exported="false" />
         <activity
             android:name=".activity.ConfigActivity"

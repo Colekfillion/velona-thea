@@ -218,23 +218,20 @@ public class MyOpenHelper extends SQLiteOpenHelper {
 
     /**
      * @param db a writable SQLite database
-     * @param oldMedia the old version of media
-     * @param newMedia the new version of media
+     * @param media the media object with new values
      * @return true if the media changed in the database, false if provided media are identical
      */
-    public synchronized boolean updateMedia(SQLiteDatabase db, Media oldMedia, Media newMedia) {
-        if (!oldMedia.equals(newMedia)) {
-            ContentValues cv = new ContentValues();
-            cv.put(COL_MEDIA_FILENAME, newMedia.getFileName());
-            cv.put(COL_MEDIA_NAME, newMedia.getName());
-            cv.put(COL_MEDIA_LINK, newMedia.getLink());
-            cv.put(COL_MEDIA_AUTHOR_ID, getAuthorIdOrInsert(db, newMedia.getAuthor()));
+    public synchronized boolean updateMedia(SQLiteDatabase db, Media media) {
+        ContentValues cv = new ContentValues();
+        cv.put(COL_MEDIA_FILENAME, media.getFileName());
+        cv.put(COL_MEDIA_NAME, media.getName());
+        cv.put(COL_MEDIA_LINK, media.getLink());
+        cv.put(COL_MEDIA_AUTHOR_ID, getAuthorIdOrInsert(db, media.getAuthor()));
 
-            db.update(MEDIA_TABLE, cv, COL_MEDIA_ID + " = ?", new String[]{String.valueOf(newMedia.getId())});
-            return true;
-        }
-        return false;
+        db.update(MEDIA_TABLE, cv, COL_MEDIA_ID + " = ?", new String[]{String.valueOf(media.getId())});
+        return true;
     }
+
 
     /**
      * @param c a cursor for the media table
@@ -334,10 +331,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         } catch (IllegalArgumentException ignored) {
             //will never happen in this case
         } /*catch (IndexOutOfBoundsException e) {
-            if (media.getTags() == null || media.getTags().size() == 0) {
-                selectedColumns.remove(COL_MEDIA_TAGS_GROUPED_ALIAS);
-            }
-            newMedia = mediaQuery(db, selectedColumns, whereFilters, null, 1).get(0);
+            e.printStackTrace();
         }*/
         if (newMedia.equals(media)) {
             return newMedia;
@@ -354,13 +348,19 @@ public class MyOpenHelper extends SQLiteOpenHelper {
      */
     public Media mergeMedia(Media oldMedia, Media newMedia) {
         if (Constants.isStringEmpty(oldMedia.getName())/* || !newMedia.getName().equals(oldMedia.getName())*/) {
-            oldMedia.setName(newMedia.getName());
+            if (!Constants.isStringEmpty(newMedia.getName())) {
+                oldMedia.setName(newMedia.getName());
+            }
         }
         if (Constants.isStringEmpty(oldMedia.getAuthor())) {
-            oldMedia.setAuthor(newMedia.getAuthor());
+            if (!Constants.isStringEmpty(newMedia.getAuthor())) {
+                oldMedia.setAuthor(newMedia.getAuthor());
+            }
         }
         if (Constants.isStringEmpty(oldMedia.getLink())) {
-            oldMedia.setLink(newMedia.getLink());
+            if (!Constants.isStringEmpty(newMedia.getLink())) {
+                oldMedia.setLink(newMedia.getLink());
+            }
         }
         return oldMedia;
     }
@@ -504,19 +504,6 @@ public class MyOpenHelper extends SQLiteOpenHelper {
 //        c.moveToFirst();
 //        for (String column : c.getColumnNames()) {
 //            System.out.println(column + ": " + c.getString(c.getColumnIndex(column)));
-//        }
-        //In the event that a specific media was selected by its ID but nothing was returned
-//        if (c.getCount() == 0 && whereFilters.containsKey(MEDIA_TABLE + "." + COL_MEDIA_ID) && whereFilters.size() == 1) {
-//            //The target must not have any tags, so it is implicitly filtered by the tag join. Remove it
-//            int start = query.indexOf(TAG_JOIN);
-//            query.replace(start, start+TAG_JOIN.length(), "");
-//            for (String column : selection) {
-//                if (column.contains("tag")) {
-//                    int start2 = query.indexOf(column);
-//                    query.replace(start2, start2+column.length(), "");
-//                }
-//            }
-//            c = db.rawQuery(query.toString(), selectionArgs.toArray(new String[0]));
 //        }
         ArrayList<Media> mediaList = parseMediaListFromCursor(c);
         c.close();

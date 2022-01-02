@@ -1,41 +1,27 @@
 package ca.quadrexium.velonathea.activity;
 
-import android.app.Activity;
 import android.app.KeyguardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Environment;
 import android.view.Menu;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.SwitchCompat;
+import androidx.fragment.app.FragmentManager;
 
 import java.util.Objects;
 
 import ca.quadrexium.velonathea.R;
+import ca.quadrexium.velonathea.fragment.ChooseDirFragment;
 import ca.quadrexium.velonathea.pojo.Constants;
 
 public class ConfigActivity extends BaseActivity {
-
-    //Activity for choosing a root directory
-    private final ActivityResultLauncher<Intent> chooseDirActivity = registerForActivityResult(
-            new ActivityResultContracts.StartActivityForResult(),
-            result -> {
-                if (result.getResultCode() == Activity.RESULT_OK) {
-                    Intent data = result.getData();
-                    if (data != null) {
-                        SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
-                        SharedPreferences.Editor edit = prefs.edit();
-                        edit.putString(Constants.PATH, data.getStringExtra(Constants.PATH));
-                        edit.apply();
-                    }
-                }
-            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,14 +37,18 @@ public class ConfigActivity extends BaseActivity {
             startActivity(intent);
         });
 
+        SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
+
+        TextView tvRootDir = findViewById(R.id.activity_config_tv_rootdir);
+        tvRootDir.setText(prefs.getString(Constants.PATH, Environment.getExternalStorageDirectory().getAbsolutePath()));
+
         //Launches ChooseDirActivity
         Button btnChooseDir = findViewById(R.id.activity_config_btn_choosedir);
         btnChooseDir.setOnClickListener(v -> {
-            Intent intent = new Intent(ConfigActivity.this, ChooseDirActivity.class);
-            chooseDirActivity.launch(intent);
+            FragmentManager fm = getSupportFragmentManager();
+            ChooseDirFragment chooseDirFragment = new ChooseDirFragment();
+            chooseDirFragment.show(fm, "chooseDirFragment");
         });
-
-        SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
 
         EditText etCacheSize = findViewById(R.id.activity_config_et_cachesize);
         etCacheSize.setText(String.valueOf(prefs.getInt(Constants.PREFS_CACHE_SIZE, 150)));
@@ -136,5 +126,15 @@ public class ConfigActivity extends BaseActivity {
     public boolean onSupportNavigateUp() {
         onBackPressed();
         return true;
+    }
+
+    public void changePath(String path) {
+        SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
+        SharedPreferences.Editor edit = prefs.edit();
+        edit.putString(Constants.PATH, path);
+        edit.apply();
+
+        TextView tvRootDir = findViewById(R.id.activity_config_tv_rootdir);
+        tvRootDir.setText(path);
     }
 }

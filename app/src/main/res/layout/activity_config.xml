@@ -19,6 +19,11 @@
         android:text="@string/choose_root_directory" />
 
     <TextView
+        android:id="@+id/activity_config_tv_rootdir"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/image_cache_size" />
@@ -28,7 +33,7 @@
         android:inputType="number"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="20"
+        android:hint="150"
         android:importantForAutofill="no" />
 
     <androidx.appcompat.widget.SwitchCompat

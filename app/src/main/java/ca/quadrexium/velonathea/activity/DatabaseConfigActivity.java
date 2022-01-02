@@ -255,7 +255,6 @@ public class DatabaseConfigActivity extends BaseActivity {
                                 ProgressBar pb = this.findViewById(R.id.activity_database_config_pb_loading);
                                 handler.post(() -> pb.setVisibility(View.VISIBLE));
                                 busy = true;
-                                //TODO: Use a progress bar here
                                 MyOpenHelper myOpenHelper = openMediaDatabase();
                                 SQLiteDatabase db = myOpenHelper.getWritableDatabase();
                                 db.delete(MyOpenHelper.MEDIA_TABLE, null, null);

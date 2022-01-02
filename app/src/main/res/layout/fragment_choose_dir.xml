@@ -1,27 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context=".activity.ChooseDirActivity">
+    tools:context=".fragment.ChooseDirFragment">
 
     <LinearLayout
-        android:id="@+id/activity_choose_dir_ll_confirm"
+        android:id="@+id/fragment_choose_dir_ll_confirm"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:orientation="vertical"
         android:layout_alignParentBottom="true">
 
-        <Space
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
+        <ProgressBar
+            android:id="@+id/fragment_choose_dir_pb"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:visibility="invisible"
+            android:max="100"/>
 
         <Button
-            android:id="@+id/activity_choose_dir_btn_confirm"
+            android:id="@+id/fragment_choose_dir_btn_confirm"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_gravity="end"
             android:text="@android:string/ok"/>
 
     </LinearLayout>
@@ -30,11 +34,11 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:layout_above="@id/activity_choose_dir_ll_confirm"
+        android:layout_above="@id/fragment_choose_dir_ll_confirm"
         android:layout_alignParentTop="true" >
 
         <ListView
-            android:id="@+id/activity_choose_dir_lv_dirs"
+            android:id="@+id/fragment_choose_dir_lv_dirs"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 

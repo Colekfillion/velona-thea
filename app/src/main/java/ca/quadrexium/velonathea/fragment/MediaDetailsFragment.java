@@ -41,7 +41,7 @@ public class MediaDetailsFragment extends DialogFragment {
         EditText etName = view.findViewById(R.id.fragment_image_details_et_name);
         EditText etAuthor = view.findViewById(R.id.fragment_image_details_et_author);
         EditText etLink = view.findViewById(R.id.fragment_image_details_et_link);
-        Button updateImageDataButton = view.findViewById(R.id.fragment_image_details_btn_update);
+        Button btnUpdate = view.findViewById(R.id.fragment_image_details_btn_update);
 
         if (media.getLink() == null) {
             MyOpenHelper myOpenHelper = new MyOpenHelper(getContext(), MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
@@ -59,47 +59,48 @@ public class MediaDetailsFragment extends DialogFragment {
         etAuthor.setText(media.getAuthor());
         etLink.setText(media.getLink());
 
-        Media finalMedia = media;
-        updateImageDataButton.setOnClickListener(v -> {
+        btnUpdate.setOnClickListener(v -> {
 
-            Media newMedia = new Media.Builder()
-                    .id(finalMedia.getId())
-                    .name(etName.getText().toString())
-                    .fileName(etFileName.getText().toString())
-                    .author(etAuthor.getText().toString())
-                    .link(etLink.getText().toString())
-                    .tags(finalMedia.getTags())
-                    .build();
-
-            if (!finalMedia.getFileName().equals(newMedia.getFileName())) {
-                //TODO: Figure out how to rename a file
-//                SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
-//                String path = prefs.getString(Constants.PATH, Environment.DIRECTORY_PICTURES);
-//
-//                File from = new File(path + "/" + finalMedia.getFileName());
-//                File to = new File(path + "/" + newMedia.getFileName());
-//                if (from.exists()) {
-//                    boolean wasRenamed = from.renameTo(to);
-//                    if (!wasRenamed) {
-//                        newMedia.setFileName(finalMedia.getFileName());
-//                        Toast.makeText(getApplicationContext(), "Could not rename", Toast.LENGTH_SHORT).show();
-//                    }
-//                }
+            boolean changed = false;
+            String newMediaName = etName.getText().toString();
+            if (!newMediaName.equals("") && !media.getName().equals(newMediaName)) {
+                changed = true;
+                media.setName(newMediaName);
+            }
+            String newMediaFileName = etFileName.getText().toString();
+            if (!newMediaFileName.equals("") && !media.getFileName().equals(newMediaFileName)) {
+                changed = true;
+                media.setFileName(newMediaFileName);
+            }
+            String newMediaAuthor = etAuthor.getText().toString();
+            if (!newMediaAuthor.equals("") && !media.getAuthor().equals(newMediaAuthor)) {
+                changed = true;
+                media.setAuthor(newMediaAuthor);
+            }
+            String newMediaLink = etLink.getText().toString();
+            if (!newMediaLink.equals("") && !media.getLink().equals(newMediaLink)) {
+                changed = true;
+                media.setLink(newMediaLink);
             }
 
-            MyOpenHelper myOpenHelper = new MyOpenHelper(getContext(), MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
-            SQLiteDatabase db = myOpenHelper.getWritableDatabase();
-            boolean wasUpdated = myOpenHelper.updateMedia(db, finalMedia, newMedia);
-            String toastText = wasUpdated ? "updated" : "no change";
-            if (wasUpdated) {
-                db.close();
-                SearchResultsActivity parentActivity = ((SearchResultsActivity)getContext());
-                if (parentActivity != null) {
-                    parentActivity.mediaChanged(position, media);
+            String toastText = "no change";
+            if (changed) {
+                MyOpenHelper myOpenHelper = new MyOpenHelper(getContext(), MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
+                SQLiteDatabase db = myOpenHelper.getWritableDatabase();
+                boolean wasUpdated = myOpenHelper.updateMedia(db, media);
+                toastText = wasUpdated ? "updated" : "no change";
+                if (wasUpdated) {
+                    SearchResultsActivity parentActivity = ((SearchResultsActivity)getContext());
+                    if (parentActivity != null) {
+                        parentActivity.mediaChanged(position, media);
+                    }
+                } else {
+                    toastText = "error updating media";
                 }
-                dismiss();
+                db.close();
             }
             Toast.makeText(getContext(), toastText, Toast.LENGTH_SHORT).show();
+            dismiss();
         });
     }
 }
