@@ -5,6 +5,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Pair;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -257,7 +258,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
      * @param c a cursor for the media table
      * @return a arraylist of media created from all rows in the cursor
      */
-    private synchronized ArrayList<Media> parseMediaListFromCursor(Cursor c) {
+    public synchronized ArrayList<Media> parseMediaListFromCursor(Cursor c) {
         ArrayList<Media> mediaList = new ArrayList<>();
         Media media;
         while (!c.isAfterLast()) {
@@ -523,5 +524,106 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         ArrayList<Media> mediaList = parseMediaListFromCursor(c);
         c.close();
         return mediaList;
+    }
+
+    public Pair<String, String[]> mediaQueryBuilder(Set<String> selectedColumns,
+                                                    Map<String, String[]> whereFilters,
+                                                    String[] orderBy, long limit) {
+
+        Set<String> selectionArgs = new HashSet<>();
+
+        //Always select the id and filename
+        selectedColumns.add(COL_MEDIA_ID_ALIAS);
+        selectedColumns.add(COL_MEDIA_FILENAME_ALIAS);
+
+        StringBuilder query = new StringBuilder();
+
+        //SELECT
+        query.append("SELECT ");
+        Set<String> selection = new HashSet<>();
+        Set<String> joins = new HashSet<>();
+        Set<String> columnAliases = new HashSet<>();
+        columnAliases.addAll(whereFilters.keySet());
+        columnAliases.addAll(selectedColumns);
+        for (String columnAlias : columnAliases) {
+            String columnToSelect = columns.get(columnAlias);
+            //If the column is not an alias, then it is a columnToSelect. Try to find the
+            // column alias using this columnToSelect as a value in the columns set
+            if (columnToSelect == null && columns.containsValue(columnAlias)) {
+                String trueColumnToSelect = columnAlias;
+                columnAlias = null;
+                for (Map.Entry<String, String> entry : columns.entrySet()) {
+                    if (entry.getValue().equals(trueColumnToSelect)) {
+                        columnAlias = entry.getKey();
+                        break;
+                    }
+                }
+                columnToSelect = trueColumnToSelect;
+            }
+            if (columnToSelect == null) {
+                throw new IllegalArgumentException("Must use a defined alias");
+            }
+            //Remove the column name and any functions from columnToSelect
+            int startOfTableName = columnToSelect.contains("(") ? columnToSelect.indexOf("(")+1 : 0;
+            String tableName = columnToSelect.substring(startOfTableName, columnToSelect.indexOf("."));
+            switch (tableName) {
+                case Constants.PREFS_MEDIA_AUTHOR:
+                    joins.add(AUTHOR_JOIN);
+                    break;
+                case Constants.PREFS_MEDIA_TAG:
+                    joins.add(TAG_JOIN);
+                    break;
+            }
+            selection.add(columnToSelect + " AS " + columnAlias + ", ");
+        }
+        for (String selectColumn : selection) {
+            query.append(selectColumn);
+        }
+        query.replace(query.lastIndexOf(","), query.length(), " "); //removing comma
+
+        //FROM
+        query.append("FROM " + MEDIA_TABLE + " ");
+
+        //JOIN
+        for (String join : joins) {
+            query.append(join);
+        }
+
+        //WHERE
+        if (whereFilters.size() != 0) {
+            query.append("WHERE ");
+            for (Map.Entry<String, String[]> entry : whereFilters.entrySet()) {
+                //For filtering when the column value may match multiple values (OR clause)
+                query.append("(");
+                for (String value : entry.getValue()) {
+                    query.append(entry.getKey()).append(" LIKE ?");
+                    selectionArgs.add("%" + value + "%");
+                    query.append(" OR ");
+                }
+                query.setLength(query.length()-(" OR ").length()+1);
+                //For filtering other columns, append AND (AND clause)
+                query.append(") AND ");
+            }
+            query.setLength(query.length()-(") AND ").length()+1); //remove trailing AND
+        }
+
+        //GROUP BY
+        query.append("GROUP BY (").append(columns.get(COL_MEDIA_FILENAME_ALIAS)).append(") ");
+
+        //ORDER BY
+        if (orderBy != null && orderBy.length != 0) {
+            query.append("ORDER BY ");
+            for (String orderColumn : orderBy) {
+                query.append(orderColumn).append(", ");
+            }
+            query.replace(query.lastIndexOf(","), query.length(), ""); //removing comma
+        }
+
+        //LIMIT
+        if (limit != 0) {
+            query.append("LIMIT ").append(limit);
+        }
+
+        return new Pair<>(query.toString(), selectionArgs.toArray(new String[0]));
     }
 }

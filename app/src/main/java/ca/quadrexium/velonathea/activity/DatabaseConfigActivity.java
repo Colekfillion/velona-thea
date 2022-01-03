@@ -77,7 +77,7 @@ public class DatabaseConfigActivity extends BaseActivity {
 
                             if (!content.equals("")) {
                                 //Prepare for inserting rows into db
-                                MyOpenHelper myOpenHelper = openMediaDatabase();
+                                MyOpenHelper myOpenHelper = getMyOpenHelper();
                                 SQLiteDatabase db = myOpenHelper.getWritableDatabase();
                                 db.beginTransaction();
                                 //Dropping indexes for performance
@@ -176,7 +176,7 @@ public class DatabaseConfigActivity extends BaseActivity {
                     if (fileNamesArray != null) {
                         //Getting all file names in rootDir that are not in the database
                         fileNames = new HashSet<>(Arrays.asList(fileNamesArray));
-                        MyOpenHelper myOpenHelper = openMediaDatabase();
+                        MyOpenHelper myOpenHelper = getMyOpenHelper();
                         SQLiteDatabase db = myOpenHelper.getWritableDatabase();
                         Cursor c = db.rawQuery("SELECT " + MyOpenHelper.COL_MEDIA_FILENAME + " " +
                                 "FROM " + MyOpenHelper.MEDIA_TABLE, null);
@@ -261,7 +261,7 @@ public class DatabaseConfigActivity extends BaseActivity {
                                 ProgressBar pb = this.findViewById(R.id.activity_database_config_pb_loading);
                                 handler.post(() -> pb.setVisibility(View.VISIBLE));
                                 busy = true;
-                                MyOpenHelper myOpenHelper = openMediaDatabase();
+                                MyOpenHelper myOpenHelper = getMyOpenHelper();
                                 SQLiteDatabase db = myOpenHelper.getWritableDatabase();
                                 db.delete(MyOpenHelper.MEDIA_TABLE, null, null);
                                 handler.post(() -> pb.setProgress(250));
@@ -301,7 +301,7 @@ public class DatabaseConfigActivity extends BaseActivity {
                     handler.post(() -> tvDbStats.setVisibility(View.VISIBLE));
 
                     StringBuilder dbStats = new StringBuilder();
-                    MyOpenHelper myOpenHelper = openMediaDatabase();
+                    MyOpenHelper myOpenHelper = getMyOpenHelper();
                     SQLiteDatabase db = myOpenHelper.getReadableDatabase();
 
                     long numMedia = DatabaseUtils.queryNumEntries(db, MyOpenHelper.MEDIA_TABLE);

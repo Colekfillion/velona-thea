@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Environment;
+import android.util.Pair;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioGroup;
@@ -12,8 +13,15 @@ import android.widget.Toast;
 import androidx.appcompat.widget.SwitchCompat;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 
 import ca.quadrexium.velonathea.R;
+import ca.quadrexium.velonathea.database.MyOpenHelper;
 import ca.quadrexium.velonathea.pojo.Constants;
 
 public class MainActivity extends BaseActivity {
@@ -38,10 +46,10 @@ public class MainActivity extends BaseActivity {
         btnSearch.setOnClickListener(v -> {
             Bundle dataToPass = new Bundle();
 
-            dataToPass.putString(Constants.PREFS_MEDIA_FILENAME, etFileName.getText().toString());
-            dataToPass.putString(Constants.PREFS_MEDIA_NAME, etName.getText().toString());
-            dataToPass.putString(Constants.PREFS_MEDIA_AUTHOR, etAuthor.getText().toString());
-            dataToPass.putString(Constants.PREFS_MEDIA_TAG, etTag.getText().toString());
+            String fileName = etFileName.getText().toString();
+            String name = etName.getText().toString();
+            String author = etAuthor.getText().toString();
+            String tag = etTag.getText().toString();
             String mediaType = "";
             int checkedRadioButtonId = rgMediaType.getCheckedRadioButtonId();
             if (checkedRadioButtonId == R.id.activity_main_rg_mediatype_images) {
@@ -49,9 +57,47 @@ public class MainActivity extends BaseActivity {
             } else if (checkedRadioButtonId == R.id.activity_main_rg_mediatype_videos) {
                 mediaType = Constants.VIDEO;
             }
-            if (!mediaType.equals("")) {
-                dataToPass.putString(Constants.PREFS_MEDIA_TYPE, mediaType);
+
+            Set<String> selectedColumns = new LinkedHashSet<>();
+            ArrayList<String> orderBy = new ArrayList<>();
+            if (swtchRandom.isChecked()) {
+                orderBy.add("RANDOM()");
             }
+
+            Map<String, String[]> whereFilters = new HashMap<>();
+            if (!fileName.equals("")) {
+                whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME, new String[] { fileName });
+            }
+            if (!name.equals("")) {
+                whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_NAME, new String[] { name });
+            }
+            if (!author.equals("")) {
+                whereFilters.put(MyOpenHelper.AUTHOR_TABLE + "." + MyOpenHelper.COL_AUTHOR_NAME, new String[] { author });
+            }
+            if (!tag.equals("")) {
+                whereFilters.put(MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_TAG_NAME, new String[] { tag });
+            }
+            if (!mediaType.equals("")) {
+                if (mediaType.equals(Constants.IMAGE)) {
+                    whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME, Constants.IMAGE_EXTENSIONS.toArray(new String[0]));
+                } else if (mediaType.equals(Constants.VIDEO)) {
+                    Set<String> videoExtensions = new HashSet<>(Constants.VIDEO_EXTENSIONS);
+                    videoExtensions.add(".gif"); //gifs are considered videos except for viewing
+                    whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME, videoExtensions.toArray(new String[0]));
+                }
+            }
+            if (!name.equals("") || !fileName.equals("")) {
+                String naturalSortColumn = MyOpenHelper.MEDIA_TABLE + ".";
+                naturalSortColumn += fileName.length() >= name.length() ? MyOpenHelper.COL_MEDIA_FILENAME : MyOpenHelper.COL_MEDIA_NAME;
+                orderBy.add("LENGTH(" + naturalSortColumn + ")");
+            }
+
+            MyOpenHelper myOpenHelper = getMyOpenHelper();
+            Pair<String, String[]> query = myOpenHelper.mediaQueryBuilder(selectedColumns,
+                    whereFilters, orderBy.toArray(new String[0]), 0);
+
+            dataToPass.putString("mediaQuery", query.first);
+            dataToPass.putStringArray("selectionArgs", query.second);
 
             Intent intent = new Intent(this, SearchResultsActivity.class);
             intent.putExtras(dataToPass);

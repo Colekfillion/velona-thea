@@ -77,7 +77,7 @@ public abstract class BaseActivity extends AppCompatActivity {
      * Creates a new MyOpenHelper for the media database.
      * @return a MyOpenHelper for the media database
      */
-    public MyOpenHelper openMediaDatabase() {
+    public MyOpenHelper getMyOpenHelper() {
         return new MyOpenHelper(this, MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
     }
 

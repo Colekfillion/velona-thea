@@ -3,6 +3,7 @@ package ca.quadrexium.velonathea.activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -33,10 +34,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -48,7 +47,6 @@ import ca.quadrexium.velonathea.fragment.MediaDetailsFragment;
 import ca.quadrexium.velonathea.pojo.Constants;
 import ca.quadrexium.velonathea.pojo.Media;
 
-//TODO: Make this activity take an SQL string so it doesn't have to worry about making the query
 public class SearchResultsActivity extends BaseActivity {
 
     private String path;
@@ -85,16 +83,12 @@ public class SearchResultsActivity extends BaseActivity {
         //Setting global variables
         path = prefs.getString(Constants.PATH, Environment.DIRECTORY_PICTURES);
         cacheSize = prefs.getInt(Constants.PREFS_CACHE_SIZE, 150);
-        boolean showHiddenFiles = prefs.getBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, false);
 
         //Local variables
-        String fileNameFilter = data.getString(Constants.PREFS_MEDIA_FILENAME);
-        String nameFilter = data.getString(Constants.PREFS_MEDIA_NAME);
-        String authorFilter = data.getString(Constants.PREFS_MEDIA_AUTHOR);
-        String tagFilter = data.getString(Constants.PREFS_MEDIA_TAG);
-        String mediaType = data.getString(Constants.PREFS_MEDIA_TYPE);
-        boolean randomOrder = prefs.getBoolean(Constants.PREFS_RANDOM_ORDER, false);
+        boolean showHiddenFiles = prefs.getBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, false);
         boolean showInvalidFiles = prefs.getBoolean(Constants.PREFS_SHOW_INVALID_FILES, true);
+        String query = data.getString("mediaQuery");
+        String[] selectionArgs = data.getStringArray("selectionArgs");
 
         //Recyclerview configuration
         rv = findViewById(R.id.activity_search_results_recyclerview_media);
@@ -111,60 +105,31 @@ public class SearchResultsActivity extends BaseActivity {
         if (showHiddenFiles || !path.contains(".")) {
             //Try to load from the query cache
             String queryCacheLocation = this.getExternalFilesDir(Environment.DIRECTORY_PICTURES).getPath();
-            if (doesQueryCacheExist(queryCacheLocation)) {
+            String cachedQuery = getCachedQuery(queryCacheLocation);
+            StringBuilder currentQuery = new StringBuilder();
+            currentQuery.append(query);
+            for (String arg : selectionArgs) {
+                currentQuery.append(arg).append("\t");
+            }
+            if (cachedQuery == null || !cachedQuery.equals(currentQuery.toString())) {
+                File queryCache = new File(queryCacheLocation + "/" + Constants.QUERY_CACHE_FILENAME);
+                boolean wasDeleted = queryCache.delete();
+            }
+            if (cachedQuery != null && cachedQuery.equals(currentQuery.toString())) {
                 mediaList.addAll(loadMediaFromCache(queryCacheLocation));
                 Toast.makeText(this, "Loaded " + mediaList.size() + " media from cache", Toast.LENGTH_LONG).show();
                 rvAdapter.notifyItemRangeInserted(0, mediaList.size());
             } else {
-                MyOpenHelper myOpenHelper = openMediaDatabase();
+                MyOpenHelper myOpenHelper = getMyOpenHelper();
                 SQLiteDatabase db = myOpenHelper.getReadableDatabase();
-                Set<String> selectedColumns = new LinkedHashSet<>();
-                ArrayList<String> orderBy = new ArrayList<>();
-                if (randomOrder) {
-                    orderBy.add("RANDOM()");
-                }
-
-                Map<String, String[]> whereFilters = new HashMap<>();
-                if (!fileNameFilter.equals("")) {
-                    whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME, new String[] { fileNameFilter });
-                }
-                if (!nameFilter.equals("")) {
-                    //selectedColumns.add(MyOpenHelper.COL_MEDIA_NAME_ALIAS);
-                    whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_NAME, new String[] { nameFilter });
-                }
-                if (!authorFilter.equals("")) {
-                    //selectedColumns.add(MyOpenHelper.COL_AUTHOR_NAME_ALIAS);
-                    whereFilters.put(MyOpenHelper.AUTHOR_TABLE + "." + MyOpenHelper.COL_AUTHOR_NAME, new String[] { authorFilter });
-                }
-                if (!tagFilter.equals("")) {
-                    //selectedColumns.add(MyOpenHelper.COL_MEDIA_TAGS_GROUPED_ALIAS);
-                    //selectedColumns.add(MyOpenHelper.COL_TAG_NAME_ALIAS);
-                    whereFilters.put(MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_TAG_NAME, new String[] { tagFilter });
-                }
-                if (mediaType != null) {
-                    if (mediaType.equals(Constants.IMAGE)) {
-                        whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME, Constants.IMAGE_EXTENSIONS.toArray(new String[0]));
-                    } else if (mediaType.equals(Constants.VIDEO)) {
-                        Set<String> videoExtensions = new HashSet<>(Constants.VIDEO_EXTENSIONS);
-                        videoExtensions.add(".gif"); //gifs are considered videos except for viewing
-                        whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME, videoExtensions.toArray(new String[0]));
-                    }
-                }
-                if (!nameFilter.equals("") || !fileNameFilter.equals("")) {
-                    String naturalSortColumn = MyOpenHelper.MEDIA_TABLE + ".";
-                    naturalSortColumn += fileNameFilter.length() >= nameFilter.length() ? MyOpenHelper.COL_MEDIA_FILENAME : MyOpenHelper.COL_MEDIA_NAME;
-                    orderBy.add("LENGTH(" + naturalSortColumn + ")");
-                }
-                try {
-                    Date start = new Date();
-                    mediaList.addAll(myOpenHelper.mediaQuery(db, selectedColumns, whereFilters, orderBy.toArray(new String[0]), 0));
-                    Date end = new Date();
-                    rvAdapter.notifyItemRangeInserted(0, mediaList.size());
-                    Toast.makeText(getApplicationContext(), mediaList.size() + " results in " + (end.getTime() - start.getTime()), Toast.LENGTH_SHORT).show();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                Date start = new Date();
+                Cursor c = db.rawQuery(query, selectionArgs);
+                mediaList.addAll(myOpenHelper.parseMediaListFromCursor(c));
+                c.close();
                 db.close();
+                Date end = new Date();
+                rvAdapter.notifyItemRangeInserted(0, mediaList.size());
+                Toast.makeText(getApplicationContext(), mediaList.size() + " results in " + (end.getTime() - start.getTime()), Toast.LENGTH_SHORT).show();
 
                 //Remove invalid files
                 //TODO: Replace this with a check in DatabaseConfigActivity, this takes too long
@@ -213,6 +178,11 @@ public class SearchResultsActivity extends BaseActivity {
 
                 //Saving the mediaList as a tab-delimited text file
                 StringBuilder mediaListAsString = new StringBuilder();
+                mediaListAsString.append(query);
+                for (String arg : selectionArgs) {
+                    mediaListAsString.append(arg).append("\t");
+                }
+                mediaListAsString.append("\n");
                 for (Media media : mediaList) {
                     mediaListAsString.append(media.getId()).append("\t");
                     mediaListAsString.append(media.getFileName()).append("\t");
@@ -381,6 +351,7 @@ public class SearchResultsActivity extends BaseActivity {
             BufferedReader r = new BufferedReader(new FileReader(queryCache));
             StringBuilder total = new StringBuilder();
             String line;
+            r.readLine(); //reads the first line (the cached query), so it is skipped
 
             while ((line = r.readLine()) != null) {
                 total.append(line);
@@ -407,9 +378,19 @@ public class SearchResultsActivity extends BaseActivity {
         return mediaList;
     }
 
-    public static boolean doesQueryCacheExist(String cacheFileLocation) {
+    public static String getCachedQuery(String cacheFileLocation) {
         File queryCache = new File(cacheFileLocation + "/" + Constants.QUERY_CACHE_FILENAME);
-        return queryCache.exists();
+        if (!queryCache.exists()) {
+            return null;
+        }
+        String cachedQuery = "";
+        try {
+            BufferedReader r = new BufferedReader(new FileReader(queryCache));
+            cachedQuery = r.readLine();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return cachedQuery;
     }
 
     boolean cancelDataLoading = false;
@@ -429,7 +410,7 @@ public class SearchResultsActivity extends BaseActivity {
 
             executor.execute(() -> {
 
-                MyOpenHelper myOpenHelper = openMediaDatabase();
+                MyOpenHelper myOpenHelper = getMyOpenHelper();
                 SQLiteDatabase db = myOpenHelper.getReadableDatabase();
                 db.beginTransaction();
                 for (int i = lastUpdatedPosition; i < mediaList.size(); i++) {
@@ -454,6 +435,7 @@ public class SearchResultsActivity extends BaseActivity {
         super.onPause();
         cancelDataLoading = true;
         executorService.shutdownNow();
+        //finish(); //for testing the query cache
     }
 
     public void mediaChanged(int i, Media media) {
