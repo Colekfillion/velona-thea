@@ -92,7 +92,7 @@ public class MediaDetailsFragment extends DialogFragment {
 
             if (!newMediaTags.equals("")) {
                 Set<String> newMediaTagsSet = new HashSet<>(Arrays.asList(newMediaTags.split(" ")));
-                if (!media.getTags().equals(newMediaTagsSet)) {
+                if (media.getTags() == null || (media.getTags() != null && !media.getTags().equals(newMediaTagsSet))) {
                     changed = true;
                     media.setTags(newMediaTagsSet);
                 }

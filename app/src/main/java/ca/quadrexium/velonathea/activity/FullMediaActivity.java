@@ -1,6 +1,8 @@
 package ca.quadrexium.velonathea.activity;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -245,5 +247,16 @@ public class FullMediaActivity extends BaseActivity {
             vvVideo.stopPlayback();
             vvVideo.seekTo(0);
         }
+    }
+
+
+    @Override
+    public void onBackPressed() {
+        //Return to SearchResultsActivity, set the position to scroll to
+        Intent dataToReturn = new Intent();
+        dataToReturn.putExtra("lastPosition", vp.getCurrentItem());
+        setResult(Activity.RESULT_OK, dataToReturn);
+        finish();
+        super.onBackPressed();
     }
 }

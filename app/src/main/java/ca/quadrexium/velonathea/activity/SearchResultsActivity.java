@@ -1,5 +1,6 @@
 package ca.quadrexium.velonathea.activity;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -21,6 +22,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -65,6 +68,17 @@ public class SearchResultsActivity extends BaseActivity {
     private int lastUpdatedPosition = 0;
     private final int MAX_IMAGES_LOADING = 25;
     private ExecutorService executorService = Executors.newFixedThreadPool(MAX_IMAGES_LOADING);
+    private final ActivityResultLauncher<Intent> fullMediaActivity = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    Intent data = result.getData();
+                    if (data != null) {
+                        Bundle dataPassed = data.getExtras();
+                        rv.scrollToPosition(dataPassed.getInt("lastPosition"));
+                    }
+                }
+            });
 
     @Override
     protected void isVerified() { }
@@ -218,7 +232,7 @@ public class SearchResultsActivity extends BaseActivity {
 
                 Intent intent = new Intent(SearchResultsActivity.this, FullMediaActivity.class);
                 intent.putExtras(dataToPass);
-                startActivity(intent);
+                fullMediaActivity.launch(intent);
             });
 
             //Show image details on long click
