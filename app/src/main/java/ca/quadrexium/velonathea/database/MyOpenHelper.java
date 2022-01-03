@@ -407,125 +407,36 @@ public class MyOpenHelper extends SQLiteOpenHelper {
 //    }
 
     /**
-     * Method that can build queries at runtime to select media from the database
+     * Wrapper method to execute a query from mediaQueryBuilder and parse an arraylist from it.
      * @param db an SQLite readable database
      * @param selectedColumns the columns to return. must be a defined alias
      * @param whereFilters conditions for the media to be returned
      * @param orderBy the order of the rows
      * @param limit how many media to return
      * @return a mediaList
-     * @throws IllegalArgumentException when selected a column using an undefined alias or column
      */
     public ArrayList<Media> mediaQuery(SQLiteDatabase db, Set<String> selectedColumns,
                                         Map<String, String[]> whereFilters,
-                                        String[] orderBy, long limit) throws IllegalArgumentException {
+                                        String[] orderBy, long limit) {
 
-        Set<String> selectionArgs = new HashSet<>();
+        Pair<String, String[]> pair = mediaQueryBuilder(selectedColumns, whereFilters, orderBy, limit);
+        String query = pair.first;
+        String[] selectionArgs = pair.second;
 
-        //Always select the id and filename
-        selectedColumns.add(COL_MEDIA_ID_ALIAS);
-        selectedColumns.add(COL_MEDIA_FILENAME_ALIAS);
-
-        StringBuilder query = new StringBuilder();
-
-        //SELECT
-        query.append("SELECT ");
-        Set<String> selection = new HashSet<>();
-        Set<String> joins = new HashSet<>();
-        Set<String> columnAliases = new HashSet<>();
-        columnAliases.addAll(whereFilters.keySet());
-        columnAliases.addAll(selectedColumns);
-        for (String columnAlias : columnAliases) {
-            String columnToSelect = columns.get(columnAlias);
-            //If the column is not an alias, then it is a columnToSelect. Try to find the
-            // column alias using this columnToSelect as a value in the columns set
-            if (columnToSelect == null && columns.containsValue(columnAlias)) {
-                String trueColumnToSelect = columnAlias;
-                columnAlias = null;
-                for (Map.Entry<String, String> entry : columns.entrySet()) {
-                    if (entry.getValue().equals(trueColumnToSelect)) {
-                        columnAlias = entry.getKey();
-                        break;
-                    }
-                }
-                columnToSelect = trueColumnToSelect;
-            }
-            if (columnToSelect == null) {
-                throw new IllegalArgumentException("Must use a defined alias");
-            }
-            //Remove the column name and any functions from columnToSelect
-            int startOfTableName = columnToSelect.contains("(") ? columnToSelect.indexOf("(")+1 : 0;
-            String tableName = columnToSelect.substring(startOfTableName, columnToSelect.indexOf("."));
-            switch (tableName) {
-                case Constants.PREFS_MEDIA_AUTHOR:
-                    joins.add(AUTHOR_JOIN);
-                    break;
-                case Constants.PREFS_MEDIA_TAG:
-                    joins.add(TAG_JOIN);
-                    break;
-            }
-            selection.add(columnToSelect + " AS " + columnAlias + ", ");
-        }
-        for (String selectColumn : selection) {
-            query.append(selectColumn);
-        }
-        query.replace(query.lastIndexOf(","), query.length(), " "); //removing comma
-
-        //FROM
-        query.append("FROM " + MEDIA_TABLE + " ");
-
-        //JOIN
-        for (String join : joins) {
-            query.append(join);
-        }
-
-        //WHERE
-        if (whereFilters.size() != 0) {
-            query.append("WHERE ");
-            for (Map.Entry<String, String[]> entry : whereFilters.entrySet()) {
-                //For filtering when the column value may match multiple values (OR clause)
-                query.append("(");
-                for (String value : entry.getValue()) {
-                    query.append(entry.getKey()).append(" LIKE ?");
-                    selectionArgs.add("%" + value + "%");
-                    query.append(" OR ");
-                }
-                query.setLength(query.length()-(" OR ").length()+1);
-                //For filtering other columns, append AND (AND clause)
-                query.append(") AND ");
-            }
-            query.setLength(query.length()-(") AND ").length()+1); //remove trailing AND
-        }
-
-        //GROUP BY
-        query.append("GROUP BY (").append(columns.get(COL_MEDIA_FILENAME_ALIAS)).append(") ");
-
-        //ORDER BY
-        if (orderBy != null && orderBy.length != 0) {
-            query.append("ORDER BY ");
-            for (String orderColumn : orderBy) {
-                query.append(orderColumn).append(", ");
-            }
-            query.replace(query.lastIndexOf(","), query.length(), ""); //removing comma
-        }
-
-        //LIMIT
-        if (limit != 0) {
-            query.append("LIMIT ").append(limit);
-        }
-
-        //System.out.println(query.toString());
-//        query.insert(0, "EXPLAIN QUERY PLAN ");
-        Cursor c = db.rawQuery(query.toString(), selectionArgs.toArray(new String[0]));
-//        c.moveToFirst();
-//        for (String column : c.getColumnNames()) {
-//            System.out.println(column + ": " + c.getString(c.getColumnIndex(column)));
-//        }
+        Cursor c = db.rawQuery(query, selectionArgs);
         ArrayList<Media> mediaList = parseMediaListFromCursor(c);
         c.close();
         return mediaList;
     }
 
+    /**
+     * Method that can build queries at runtime to select media from the database
+     * @param selectedColumns the columns to return. must be a defined alias
+     * @param whereFilters conditions for the media to be returned
+     * @param orderBy the order of the rows
+     * @param limit how many media to return
+     * @return a pair containing the query string and a string array of the selection args
+     */
     public Pair<String, String[]> mediaQueryBuilder(Set<String> selectedColumns,
                                                     Map<String, String[]> whereFilters,
                                                     String[] orderBy, long limit) {
