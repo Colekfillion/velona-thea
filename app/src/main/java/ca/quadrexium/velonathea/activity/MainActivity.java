@@ -30,6 +30,7 @@ public class MainActivity extends BaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         createToolbar(R.id.activity_tb_default_toolbar);
+        createNotificationChannel();
 
         SharedPreferences prefs = getSharedPreferences(Constants.PREFS, MODE_PRIVATE);
 

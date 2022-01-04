@@ -36,6 +36,12 @@
         android:layout_height="wrap_content"
         android:text="@string/button_debug" />
 
+    <TextView
+        android:id="@+id/activity_database_config_tv_loading"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone"/>
+
     <ProgressBar
         android:id="@+id/activity_database_config_pb_loading"
         android:layout_width="match_parent"

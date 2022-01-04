@@ -42,7 +42,7 @@ public class FullMediaActivity extends BaseActivity {
 
         Bundle data = getIntent().getExtras();
 
-        mediaList = SearchResultsActivity.loadMediaFromCache(this.getExternalFilesDir(Environment.DIRECTORY_PICTURES).getPath());
+        mediaList = loadMediaFromCache(this.getExternalFilesDir(Environment.DIRECTORY_PICTURES).getPath());
 
         SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
         path = prefs.getString(Constants.PATH, Environment.DIRECTORY_PICTURES);

@@ -357,41 +357,6 @@ public class SearchResultsActivity extends BaseActivity {
         }
     }
 
-    public static ArrayList<Media> loadMediaFromCache(String cacheFileLocation) {
-        ArrayList<Media> mediaList = new ArrayList<>();
-        File queryCache = new File(cacheFileLocation + "/" + Constants.QUERY_CACHE_FILENAME);
-        String content = "";
-        try {
-            BufferedReader r = new BufferedReader(new FileReader(queryCache));
-            StringBuilder total = new StringBuilder();
-            String line;
-            r.readLine(); //reads the first line (the cached query), so it is skipped
-
-            while ((line = r.readLine()) != null) {
-                total.append(line);
-                total.append('\n');
-            }
-            r.close();
-            content = total.toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        if (!content.equals("")) {
-
-            String[] rows = content.split("\n");
-            for (String row : rows) {
-                String[] rowValues = row.split("\t");
-                Media media = new Media.Builder()
-                        .id(Integer.parseInt(rowValues[0]))
-                        .fileName(rowValues[1])
-                        .build();
-                mediaList.add(media);
-            }
-        }
-        return mediaList;
-    }
-
     public static String getCachedQuery(String cacheFileLocation) {
         File queryCache = new File(cacheFileLocation + "/" + Constants.QUERY_CACHE_FILENAME);
         if (!queryCache.exists()) {
