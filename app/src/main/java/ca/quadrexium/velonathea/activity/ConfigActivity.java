@@ -47,7 +47,7 @@ public class ConfigActivity extends BaseActivity {
         btnChooseDir.setOnClickListener(v -> {
             FragmentManager fm = getSupportFragmentManager();
             ChooseDirFragment chooseDirFragment = new ChooseDirFragment();
-            chooseDirFragment.show(fm, "chooseDirFragment");
+            chooseDirFragment.show(fm, Constants.FRAGMENT_CHOOSE_DIR);
         });
 
         EditText etCacheSize = findViewById(R.id.activity_config_et_cachesize);
@@ -78,7 +78,7 @@ public class ConfigActivity extends BaseActivity {
             if (isChecked && !verified) {
                 showHiddenFiles.setChecked(false);
                 KeyguardManager km = (KeyguardManager) this.getSystemService(Context.KEYGUARD_SERVICE);
-                Intent intent = km.createConfirmDeviceCredentialIntent("Velona Thea", "This app requires you to authenticate.");
+                Intent intent = km.createConfirmDeviceCredentialIntent(getString(R.string.app_name), getString(R.string.permission_message));
                 verifyActivity.launch(intent);
             }
         });

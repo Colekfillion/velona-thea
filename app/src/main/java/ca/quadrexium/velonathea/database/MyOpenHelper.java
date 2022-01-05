@@ -7,6 +7,8 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Pair;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -57,19 +59,24 @@ public class MyOpenHelper extends SQLiteOpenHelper {
 
     public final static String COL_AUTHOR_NAME_ALIAS = AUTHOR_TABLE + "_" + COL_AUTHOR_NAME;
 
-    public final static String COL_MEDIA_TAGS_GROUPED = "group_concat(" + TAG_TABLE + "." + COL_TAG_NAME + ", \" \")";
-
     private final static Map<String, String> columns = Collections.unmodifiableMap(new HashMap<String, String>() {{
-        put(COL_MEDIA_ID_ALIAS, MEDIA_TABLE + "." + COL_MEDIA_ID);
-        put(COL_MEDIA_NAME_ALIAS, MEDIA_TABLE + "." + COL_MEDIA_NAME);
-        put(COL_MEDIA_FILENAME_ALIAS, MEDIA_TABLE + "." + COL_MEDIA_FILENAME);
-        put(COL_MEDIA_LINK_ALIAS, MEDIA_TABLE + "." + COL_MEDIA_LINK);
+        put(COL_MEDIA_ID_ALIAS,
+                MEDIA_TABLE + "." + COL_MEDIA_ID);
+        put(COL_MEDIA_NAME_ALIAS,
+                MEDIA_TABLE + "." + COL_MEDIA_NAME);
+        put(COL_MEDIA_FILENAME_ALIAS,
+                MEDIA_TABLE + "." + COL_MEDIA_FILENAME);
+        put(COL_MEDIA_LINK_ALIAS,
+                MEDIA_TABLE + "." + COL_MEDIA_LINK);
 
-        put(COL_AUTHOR_NAME_ALIAS, AUTHOR_TABLE + "." + COL_AUTHOR_NAME);
+        put(COL_AUTHOR_NAME_ALIAS,
+                AUTHOR_TABLE + "." + COL_AUTHOR_NAME);
 
-        put(COL_TAG_NAME_ALIAS, TAG_TABLE + "." + COL_TAG_NAME);
+        put(COL_TAG_NAME_ALIAS,
+                TAG_TABLE + "." + COL_TAG_NAME);
 
-        put(COL_MEDIA_TAGS_GROUPED_ALIAS, COL_MEDIA_TAGS_GROUPED);
+        put(COL_MEDIA_TAGS_GROUPED_ALIAS,
+                "group_concat(" + TAG_TABLE + "." + COL_TAG_NAME + ", \" \")");
     }});
 
     private final String AUTHOR_JOIN = "JOIN " + AUTHOR_TABLE + " ON " +
@@ -142,9 +149,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
     }
 
     @Override
-    public void onOpen(SQLiteDatabase db) {
-
-    }
+    public void onOpen(SQLiteDatabase db) { }
 
     /**
      * Gets the provided author's id from the database or inserts if the author does not exist.
@@ -230,7 +235,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
     /**
      * @param db a writable SQLite database
      * @param media the media object with new values
-     * @return true if the media changed in the database, false if provided media are identical
+     * @return true if the media changed in the database, false if an error occured
      */
     public synchronized boolean updateMedia(SQLiteDatabase db, Media media) {
         String[] mediaId = new String[] {String.valueOf(media.getId())};
@@ -239,17 +244,21 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         cv.put(COL_MEDIA_NAME, media.getName());
         cv.put(COL_MEDIA_LINK, media.getLink());
         cv.put(COL_MEDIA_AUTHOR_ID, getAuthorIdOrInsert(db, media.getAuthor()));
-        db.update(MEDIA_TABLE, cv, COL_MEDIA_ID + " = ?", mediaId);
+        boolean success = db.update(MEDIA_TABLE, cv, COL_MEDIA_ID + " = ?", mediaId) == 1;
         cv.clear();
+        if (!success) { return false; }
 
         //Delete all existing media tags
         db.delete(MEDIA_TAG_TABLE, COL_MEDIA_TAG_MEDIA_ID + " = ?", mediaId);
-        for (String tag : media.getTags()) {
-            int tagId = getTagIdOrInsert(db, tag);
-            cv.put(COL_MEDIA_TAG_MEDIA_ID, media.getId());
-            cv.put(COL_MEDIA_TAG_TAG_ID, tagId);
-            db.insert(MEDIA_TAG_TABLE, null, cv);
-            cv.clear();
+        if (media.getTags() != null) {
+            for (String tag : media.getTags()) {
+                int tagId = getTagIdOrInsert(db, tag);
+                cv.put(COL_MEDIA_TAG_MEDIA_ID, media.getId());
+                cv.put(COL_MEDIA_TAG_TAG_ID, tagId);
+                success = db.insert(MEDIA_TAG_TABLE, null, cv) != -1;
+                cv.clear();
+                if (!success) { return false; }
+            }
         }
         return true;
     }
@@ -384,27 +393,46 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         return oldMedia;
     }
 
-//    public synchronized boolean writeMediaToFile(SQLiteDatabase db, String fileName) {
-//        ArrayList<Media> mediaList = getMediaList(db, new TreeMap<>(), new String[] { MEDIA_TABLE + "." + COL_MEDIA_FILENAME + " ASC"});
-//        StringBuilder mediaListAsString = new StringBuilder();
-//        for (Media media : mediaList) {
-//            mediaListAsString.append(media.getFileName()).append("\t");
-//            mediaListAsString.append(media.getName()).append("\t");
-//            mediaListAsString.append(media.getAuthor()).append("\t");
-//            mediaListAsString.append(media.getLink()).append("\t");
-//            mediaListAsString.append(media.getTagsAsString()).append("\t");
-//            mediaListAsString.append("\n");
-//        }
-//        try {
-//            FileWriter myWriter = new FileWriter(fileName);
-//            myWriter.write(mediaListAsString.toString());
-//            myWriter.close();
-//            return true;
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//            return false;
-//        }
-//    }
+    /**
+     * Writes all media to a text-delimited file.
+     * @param db a readable SQLite database
+     * @param filePath the path to write the file to
+     * @return true if written, else false
+     */
+    public boolean writeMediaToFile(SQLiteDatabase db, String filePath) {
+        Set<String> selectedColumns = new HashSet<>();
+        selectedColumns.add(COL_MEDIA_FILENAME_ALIAS);
+        selectedColumns.add(COL_MEDIA_NAME_ALIAS);
+        selectedColumns.add(COL_AUTHOR_NAME_ALIAS);
+        selectedColumns.add(COL_MEDIA_LINK_ALIAS);
+        selectedColumns.add(COL_MEDIA_TAGS_GROUPED_ALIAS);
+        ArrayList<Media> mediaList = mediaQuery(db, selectedColumns, new HashMap<>(),
+                new String[] { MEDIA_TABLE + "." + COL_MEDIA_FILENAME + " ASC"}, 0);
+
+        StringBuilder mediaListAsString = new StringBuilder();
+        for (Media media : mediaList) {
+            String name = media.getName() != null ? media.getName() : "";
+            String author = media.getAuthor() != null ? media.getAuthor() : "";
+            String link = media.getLink() != null ? media.getLink() : "";
+            //String tags = media.getTagsAsString() != null ? media.getTagsAsString() : "";
+
+            mediaListAsString.append(media.getFileName()).append("\t");
+            mediaListAsString.append(name).append("\t");
+            mediaListAsString.append(author).append("\t");
+            mediaListAsString.append(link).append("\t");
+            mediaListAsString.append(media.getTagsAsString()).append("\t");
+            mediaListAsString.append("\n");
+        }
+        try {
+            FileWriter myWriter = new FileWriter(filePath);
+            myWriter.write(mediaListAsString.toString());
+            myWriter.close();
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 
     /**
      * Wrapper method to execute a query from mediaQueryBuilder and parse an arraylist from it.

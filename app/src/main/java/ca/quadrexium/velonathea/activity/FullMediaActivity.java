@@ -254,7 +254,7 @@ public class FullMediaActivity extends BaseActivity {
     public void onBackPressed() {
         //Return to SearchResultsActivity, set the position to scroll to
         Intent dataToReturn = new Intent();
-        dataToReturn.putExtra("lastPosition", vp.getCurrentItem());
+        dataToReturn.putExtra(Constants.MEDIA_LAST_POSITION, vp.getCurrentItem());
         setResult(Activity.RESULT_OK, dataToReturn);
         finish();
         super.onBackPressed();

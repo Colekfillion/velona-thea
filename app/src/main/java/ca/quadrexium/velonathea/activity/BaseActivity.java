@@ -148,12 +148,13 @@ public abstract class BaseActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    /**
+     * Creates a NotificationChannel for notifications above API 26.
+     */
     protected void createNotificationChannel() {
-        // Create the NotificationChannel, but only on API 26+ because
-        // the NotificationChannel class is new and not in the support library
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            CharSequence name = "channel name";
-            String description = "description";
+            CharSequence name = getString(R.string.app_name);
+            String description = "All notifications";
             int importance = NotificationManager.IMPORTANCE_DEFAULT;
             NotificationChannel channel = new NotificationChannel(NOTIFICATION_CHANNEL_1, name, importance);
             channel.setDescription(description);
@@ -163,6 +164,11 @@ public abstract class BaseActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Reads the contents of a file as a String
+     * @param uri the file to read
+     * @return the file contents as a string
+     */
     protected String readStringFromUri(Uri uri) {
         String text = "";
         try {
@@ -172,7 +178,6 @@ public abstract class BaseActivity extends AppCompatActivity {
             for (String line; (line = r.readLine()) != null; ) {
                 total.append(line).append('\n');
             }
-            //content contains the text in output.txt.
             text = total.toString();
         } catch (Exception e) {
             e.printStackTrace();
@@ -180,9 +185,14 @@ public abstract class BaseActivity extends AppCompatActivity {
         return text;
     }
 
+    /**
+     * Loads a media list from the query cache, if it exists.
+     * @param cacheFileLocation the parent folder of the query cache
+     * @return an arraylist of media with id and filename set
+     */
     public ArrayList<Media> loadMediaFromCache(String cacheFileLocation) {
         ArrayList<Media> mediaList = new ArrayList<>();
-        File queryCache = new File(cacheFileLocation + "/" + Constants.QUERY_CACHE_FILENAME);
+        File queryCache = new File(cacheFileLocation, Constants.QUERY_CACHE_FILENAME);
         String content = readStringFromUri(Uri.fromFile(queryCache));
 
         if (!content.equals("")) {

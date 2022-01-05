@@ -36,7 +36,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -75,7 +74,7 @@ public class SearchResultsActivity extends BaseActivity {
                     Intent data = result.getData();
                     if (data != null) {
                         Bundle dataPassed = data.getExtras();
-                        rv.scrollToPosition(dataPassed.getInt("lastPosition"));
+                        rv.scrollToPosition(dataPassed.getInt(Constants.MEDIA_LAST_POSITION));
                     }
                 }
             });
@@ -101,8 +100,8 @@ public class SearchResultsActivity extends BaseActivity {
         //Local variables
         boolean showHiddenFiles = prefs.getBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, false);
         boolean showInvalidFiles = prefs.getBoolean(Constants.PREFS_SHOW_INVALID_FILES, true);
-        String query = data.getString("mediaQuery");
-        String[] selectionArgs = data.getStringArray("selectionArgs");
+        String query = data.getString(Constants.MEDIA_QUERY);
+        String[] selectionArgs = data.getStringArray(Constants.QUERY_ARGS);
 
         //Recyclerview configuration
         rv = findViewById(R.id.activity_search_results_recyclerview_media);
@@ -131,19 +130,17 @@ public class SearchResultsActivity extends BaseActivity {
             }
             if (cachedQuery != null && cachedQuery.equals(currentQuery.toString())) {
                 mediaList.addAll(loadMediaFromCache(queryCacheLocation));
-                Toast.makeText(this, "Loaded " + mediaList.size() + " media from cache", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, String.format(getString(R.string.loaded_x_media_cache), mediaList.size()), Toast.LENGTH_LONG).show();
                 rvAdapter.notifyItemRangeInserted(0, mediaList.size());
+            //Execute input query if query cache is invalid or nonexistent
             } else {
                 MyOpenHelper myOpenHelper = getMyOpenHelper();
                 SQLiteDatabase db = myOpenHelper.getReadableDatabase();
-                Date start = new Date();
                 Cursor c = db.rawQuery(query, selectionArgs);
                 mediaList.addAll(myOpenHelper.parseMediaListFromCursor(c));
                 c.close();
                 db.close();
-                Date end = new Date();
                 rvAdapter.notifyItemRangeInserted(0, mediaList.size());
-                Toast.makeText(getApplicationContext(), mediaList.size() + " results in " + (end.getTime() - start.getTime()), Toast.LENGTH_SHORT).show();
 
                 //Remove invalid files
                 //TODO: Replace this with a check in DatabaseConfigActivity, this takes too long
@@ -216,6 +213,9 @@ public class SearchResultsActivity extends BaseActivity {
     @Override
     protected int getLayoutResourceId() { return R.layout.activity_search_results; }
 
+    /**
+     * Recyclerview adapter for showing media.
+     */
     class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder> {
 
         @NonNull
@@ -243,7 +243,7 @@ public class SearchResultsActivity extends BaseActivity {
                 cancelDataLoading = true;
                 FragmentManager fm = getSupportFragmentManager();
                 MediaDetailsFragment mediaDetailsFragment = new MediaDetailsFragment(position, media);
-                mediaDetailsFragment.show(fm, "mediaDetailsFragment");
+                mediaDetailsFragment.show(fm, Constants.FRAGMENT_MEDIA_DETAILS);
 
                 return true;
             });
@@ -357,6 +357,11 @@ public class SearchResultsActivity extends BaseActivity {
         }
     }
 
+    /**
+     * Gets the cached query stored in the query cache if it exists, and null if it doesn't.
+     * @param cacheFileLocation the parent folder of the query cache
+     * @return the cached query and its selection args as a string
+     */
     public static String getCachedQuery(String cacheFileLocation) {
         File queryCache = new File(cacheFileLocation + "/" + Constants.QUERY_CACHE_FILENAME);
         if (!queryCache.exists()) {
@@ -378,6 +383,7 @@ public class SearchResultsActivity extends BaseActivity {
         super.onResume();
         cancelDataLoading = false;
 
+        //Recreating the executor
         if (executorService.isShutdown() || executorService.isTerminated()) {
             executorService = Executors.newFixedThreadPool(MAX_IMAGES_LOADING);
         }
@@ -414,15 +420,23 @@ public class SearchResultsActivity extends BaseActivity {
         super.onPause();
         cancelDataLoading = true;
         executorService.shutdownNow();
-        //finish(); //for testing the query cache
     }
 
+    /**
+     * Called from MediaDetailsFragment to update the SearchResultsActivity dataset
+     * @param i the location of the media to update in mediaList
+     * @param media the updated media
+     */
     public void mediaChanged(int i, Media media) {
         mediaList.set(i, media);
         rvAdapter.notifyItemChanged(i);
         cancelDataLoading = false;
     }
 
+    /**
+     * Method to calculate the size of all the bitmaps from imageCache.
+     * @return the total size of cached bitmaps in megabytes
+     */
     private int sizeOfCachedBitmaps() {
         int size = 0;
         for (Bitmap bm : imageCache.values()) {

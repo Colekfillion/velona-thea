@@ -27,6 +27,10 @@ public class MediaDetailsFragment extends DialogFragment {
     private Media media;
     private final int position;
 
+    /**
+     * @param position the position of the media in the parent activity's mediaList
+     * @param media the media shown
+     */
     public MediaDetailsFragment(int position, Media media) {
         this.position = position;
         this.media = media;
@@ -65,6 +69,7 @@ public class MediaDetailsFragment extends DialogFragment {
         etLink.setText(media.getLink());
         etTags.setText(media.getTagsAsString());
 
+        //Update button, update media in database and send updated media to SearchResultsActivity
         btnUpdate.setOnClickListener(v -> {
 
             boolean changed = false;

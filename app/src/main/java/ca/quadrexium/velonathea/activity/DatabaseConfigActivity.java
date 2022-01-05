@@ -56,7 +56,6 @@ public class DatabaseConfigActivity extends BaseActivity {
                         busy = true;
                         Uri uri = data.getData();
 
-                        String title = "Loading media";
                         ProgressBar pb = findViewById(R.id.activity_database_config_pb_loading);
                         TextView tvLoading = findViewById(R.id.activity_database_config_tv_loading);
 
@@ -70,8 +69,8 @@ public class DatabaseConfigActivity extends BaseActivity {
                                 tvLoading.setVisibility(View.VISIBLE);
                                 notification = new Notification.Builder(this, NOTIFICATION_CHANNEL_1,
                                         LOAD_FILE_NOTIFICATION_ID)
-                                        .title(title)
-                                        .content("Preparing...")
+                                        .title(getString(R.string.loading_media))
+                                        .content(getString(R.string.preparing))
                                         .smallIcon(R.drawable.null_image).build();
                             });
 
@@ -80,13 +79,16 @@ public class DatabaseConfigActivity extends BaseActivity {
                                 //Prepare for inserting rows into db
                                 MyOpenHelper myOpenHelper = getMyOpenHelper();
                                 SQLiteDatabase db = myOpenHelper.getWritableDatabase();
+
                                 db.beginTransaction();
                                 //Dropping indexes for performance
                                 for (String query : MyOpenHelper.DROP_INDEX_QUERIES) {
                                     db.execSQL(query);
                                 }
 
+                                //TODO: Check filenames in database
                                 String[] rows = text.split("\n");
+
                                 int numRows = rows.length;
                                 for (int i = 0; i < rows.length; i++) {
                                     String[] rowValues = rows[i].split("\t");
@@ -120,7 +122,7 @@ public class DatabaseConfigActivity extends BaseActivity {
                                             notification.show();
                                         } else {
                                             pb.setProgress(percentProgress*10);
-                                            tvLoading.setText(String.format("%s, %s", title, content));
+                                            tvLoading.setText(String.format("%s, %s", getString(R.string.loading_media), content));
                                         }
                                     });
                                 }
@@ -131,18 +133,18 @@ public class DatabaseConfigActivity extends BaseActivity {
                                 db.setTransactionSuccessful();
                                 db.endTransaction();
                                 busy = false;
-                                String finalTitle = "Loading complete";
                                 handler.post(() -> {
-                                    String content = "Loaded " + numRows + " media";
                                     if (!isVisible) {
-                                        notification.setTitle(finalTitle);
-                                        notification.setContent(content);
-                                        notification.setProgress(1000);
+                                        notification.setTitle(getString(R.string.loading_complete));
+                                        notification.setContent(numRows + "/" + numRows);
+                                        notification.setProgress(0);
                                         notification.show();
                                     }
-                                    pb.setProgress(1000);
+                                    pb.setProgress(0);
                                     pb.setVisibility(View.GONE);
-                                    tvLoading.setText(String.format("%s, %s", finalTitle, content));
+                                    tvLoading.setText(String.format("%s, %s",
+                                            getString(R.string.loading_complete),
+                                            numRows + "/" + numRows));
                                 });
                             }
                         });
@@ -180,15 +182,13 @@ public class DatabaseConfigActivity extends BaseActivity {
                 tvLoading.setVisibility(View.VISIBLE);
                 pb.setVisibility(View.VISIBLE);
 
-                String title = "Loading media";
-                String content = "Preparing...";
                 notification = new Notification.Builder(this, NOTIFICATION_CHANNEL_1,
                         LOAD_MEDIA_ROOT_NOTIFICATION_ID)
-                        .title(title)
-                        .content("Preparing...")
+                        .title(getString(R.string.loading_media))
+                        .content(getString(R.string.preparing))
                         .smallIcon(R.drawable.null_image).build();
 
-                tvLoading.setText(String.format("%s, %s", title, content));
+                tvLoading.setText(String.format("%s, %s", getString(R.string.loading_media), getString(R.string.preparing)));
                 ExecutorService executor = Executors.newSingleThreadExecutor();
                 Handler handler = new Handler(Looper.getMainLooper());
 
@@ -216,17 +216,20 @@ public class DatabaseConfigActivity extends BaseActivity {
                             MyOpenHelper.COL_MEDIA_FILENAME + " FROM " + MyOpenHelper.MEDIA_TABLE, null);
                     c.moveToFirst();
                     int fileNameIndex = c.getColumnIndex(MyOpenHelper.COL_MEDIA_FILENAME);
-                    int count = 0;
+
                     while (!c.isAfterLast()) {
-                        fileNames.remove(c.getString(fileNameIndex));
+                        boolean wasRemoved = fileNames.remove(c.getString(fileNameIndex));
+                        if (wasRemoved) {
+                            fileNamesLength--;
+                        }
                         c.moveToNext();
                     }
                     c.close();
 
+                    int count = 0;
                     //Insert media
                     db.beginTransaction();
                     for (String fileName : fileNames) {
-                        count++;
                         String name = fileName.substring(0, fileName.lastIndexOf("."));
                         Media media = new Media.Builder()
                                 .id(-1)
@@ -237,22 +240,29 @@ public class DatabaseConfigActivity extends BaseActivity {
                         //To diagnose a one-time unreproducible bug where the name was not the
                         // filename without the extension
                         if (!fileName.contains(media.getName())) {
-                            handler.post(() -> Toast.makeText(this, "Assertion error: " +
-                                            fileName.substring(0, fileName.lastIndexOf("."))
-                                            + " != " + name, Toast.LENGTH_LONG).show());
+                            handler.post(() -> {
+                                Toast.makeText(this, "Assertion error: " +
+                                        fileName.substring(0, fileName.lastIndexOf("."))
+                                        + " != " + name, Toast.LENGTH_LONG).show();
+                                finish();
+                            });
                             return;
                         }
                         int mediaId = myOpenHelper.insertMedia(db, media);
                         if (mediaId == -1) { //insertion error
-                            handler.post(() -> Toast.makeText(this, "Error inserting " +
-                                            "media into database",
-                                    Toast.LENGTH_LONG).show());
+                            handler.post(() -> {
+                                Toast.makeText(this, "Error inserting " +
+                                                "media into database",
+                                        Toast.LENGTH_LONG).show();
+                                finish();
+                            });
                             return;
                         }
+                        count++;
                         int finalCount = count;
                         double percent = ((double) finalCount / (double) fileNamesLength) * 1000;
                         String notificationContent = count + "/" + fileNamesLength;
-                        String tvLoadingText = title + ", " + notificationContent;
+                        String tvLoadingText = getString(R.string.loading_media) + ", " + count + "/" + fileNamesLength;
                         if (count % 4 == 0) { //give the ui thread some time to process
                             handler.post(() -> {
                                 tvLoading.setText(tvLoadingText);
@@ -269,22 +279,36 @@ public class DatabaseConfigActivity extends BaseActivity {
                     db.endTransaction();
                     db.close();
                     busy = false;
-                    String tvLoadingText = "Loaded " + fileNamesLength + " media";
+                    String content = count + "/" + count;
+                    String tvLoadingText = getString(R.string.loading_complete) + ", " + content;
                     handler.post(() -> {
                         tvLoading.setText(tvLoadingText);
                         pb.setVisibility(View.GONE);
                         pb.setProgress(0);
                         if (!isVisible) {
                             notification.setTitle(tvLoadingText);
-                            notification.setContent("");
-                            notification.setProgress(1000);
+                            notification.setContent(content);
+                            notification.setProgress(0);
                             notification.show();
                         }
                     });
                 });
             }
-            if (busy) {
-                finish(); //close activity on failure
+        });
+
+        Button btnDbExport = findViewById(R.id.activity_database_config_btn_export_media);
+        btnDbExport.setOnClickListener(v -> {
+            if (!busy) {
+                busy = true;
+                MyOpenHelper myOpenHelper = getMyOpenHelper();
+                SQLiteDatabase db = myOpenHelper.getReadableDatabase();
+                boolean success = myOpenHelper.writeMediaToFile(db, this.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) + "/mediaList.txt");
+                if (success) {
+                    Toast.makeText(this, R.string.success, Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(this, R.string.fail, Toast.LENGTH_LONG).show();
+                }
+                busy = false;
             }
         });
 
@@ -319,7 +343,7 @@ public class DatabaseConfigActivity extends BaseActivity {
                                     handler.post(() -> pb.setProgress(1000));
                                     busy = false;
                                     pb.setVisibility(View.GONE);
-                                    Toast.makeText(this, "Cleared database", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(this, R.string.success, Toast.LENGTH_SHORT).show();
                                 });
                                 busy = false;
                             });

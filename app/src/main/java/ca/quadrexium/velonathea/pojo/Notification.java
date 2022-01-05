@@ -29,9 +29,12 @@ public class Notification {
         this.content = builder.content;
         this.smallIcon = builder.smallIcon;
         this.priority = builder.priority;
-        create();
+        create(); //prepare for user display
     }
 
+    /**
+     * Prepares notification for user display.
+     */
     public void create() {
         notificationManager = NotificationManagerCompat.from(context);
         notificationBuilder = new NotificationCompat.Builder(context, notificationChannel);
@@ -39,12 +42,12 @@ public class Notification {
         if (priority != -1) {
             notificationBuilder.setPriority(priority);
         }
-        if (smallIcon != -1) {
-            notificationBuilder.setSmallIcon(smallIcon);
-        }
         notificationBuilder.setChannelId(notificationChannel);
     }
 
+    /**
+     * Pushes the notification.
+     */
     public void show() {
         if (notificationManager == null) {
             create();
@@ -52,6 +55,9 @@ public class Notification {
         notificationManager.notify(id, notificationBuilder.build());
     }
 
+    /**
+     * Dismisses the notification.
+     */
     public void dismiss() {
         if (notificationManager != null) {
             notificationManager.cancel(id);
@@ -78,6 +84,9 @@ public class Notification {
         throw new IllegalArgumentException("Progress must be between 0 and 1000. ");
     }
 
+    /**
+     * Builder to set and validate initial values for a Notification.
+     */
     public static class Builder {
         private final String notificationChannel;
         private final Context context;

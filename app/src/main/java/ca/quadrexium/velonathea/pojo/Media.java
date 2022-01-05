@@ -42,9 +42,7 @@ public class Media {
     public void setFileName(String fileName) { this.fileName = fileName; }
     public void setAuthor(String author) { this.author = author; }
     public void setLink(String link) { this.link = link; }
-    public void setTags(@NonNull Set<String> tags) {
-        this.tags = tags;
-    }
+    public void setTags(@NonNull Set<String> tags) { this.tags = tags; }
 
     public void addTag(String tag) { tags.add(tag); }
 
@@ -104,6 +102,7 @@ public class Media {
         }
     }
 
+    @NonNull
     @Override
     public String toString() {
         return "Media{" +

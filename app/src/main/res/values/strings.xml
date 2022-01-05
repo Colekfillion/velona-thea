@@ -23,4 +23,12 @@
     <string name="are_you_sure">Are you sure?</string>
     <string name="no">No</string>
     <string name="permission_denied">Permission Denied</string>
+    <string name="permission_message">This app requires you to authenticate.</string>
+    <string name="loading_media">Loading media</string>
+    <string name="preparing">Preparing...</string>
+    <string name="loading_complete">Loading complete</string>
+    <string name="success">Success</string>
+    <string name="fail">Failed</string>
+    <string name="fail_delete_cache">Failed to delete query cache</string>
+    <string name="loaded_x_media_cache">Loaded %d media from cache</string>
 </resources>

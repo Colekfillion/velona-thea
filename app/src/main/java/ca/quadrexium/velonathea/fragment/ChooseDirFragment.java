@@ -71,6 +71,7 @@ public class ChooseDirFragment extends DialogFragment {
             listDirs(view);
         });
 
+        //TODO: Decouple this from ConfigActivity so it can be reused
         Button confirmDirButton = view.findViewById(R.id.fragment_choose_dir_btn_confirm);
         confirmDirButton.setOnClickListener(v -> {
             ConfigActivity parentActivity = ((ConfigActivity)getContext());

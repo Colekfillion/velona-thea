@@ -97,8 +97,8 @@ public class MainActivity extends BaseActivity {
             Pair<String, String[]> query = myOpenHelper.mediaQueryBuilder(selectedColumns,
                     whereFilters, orderBy.toArray(new String[0]), 0);
 
-            dataToPass.putString("mediaQuery", query.first);
-            dataToPass.putStringArray("selectionArgs", query.second);
+            dataToPass.putString(Constants.MEDIA_QUERY, query.first);
+            dataToPass.putStringArray(Constants.QUERY_ARGS, query.second);
 
             Intent intent = new Intent(this, SearchResultsActivity.class);
             intent.putExtras(dataToPass);
@@ -134,7 +134,7 @@ public class MainActivity extends BaseActivity {
         if (queryCache.exists()) {
             boolean cacheDeleted = queryCache.delete();
             if (!cacheDeleted) {
-                Toast.makeText(this, "Cache could not be deleted", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, R.string.fail_delete_cache, Toast.LENGTH_LONG).show();
             }
         }
     }

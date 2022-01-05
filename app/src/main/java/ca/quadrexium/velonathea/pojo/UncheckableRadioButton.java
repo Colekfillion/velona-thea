@@ -6,6 +6,9 @@ import android.widget.RadioGroup;
 
 import androidx.appcompat.widget.AppCompatRadioButton;
 
+/**
+ * An extension of AppCompatRadioButton that allows for radio buttons to be unchecked.
+ */
 public class UncheckableRadioButton extends AppCompatRadioButton {
 
     public UncheckableRadioButton(Context context) {
@@ -22,7 +25,7 @@ public class UncheckableRadioButton extends AppCompatRadioButton {
 
     @Override
     public void toggle() {
-
+        //If the button is already checked and in a radiogroup, clear the checked buttons
         if (isChecked()) {
             if (getParent() != null && getParent() instanceof RadioGroup) {
                 ((RadioGroup) getParent()).clearCheck();
