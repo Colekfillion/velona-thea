@@ -196,7 +196,7 @@ public abstract class BaseActivity extends AppCompatActivity {
         String content = readStringFromUri(Uri.fromFile(queryCache));
 
         if (!content.equals("")) {
-            content = content.substring(content.indexOf("\n")+2); //remove query
+            content = content.substring(content.indexOf("\n")+1); //remove query
 
             String[] rows = content.split("\n");
             for (String row : rows) {
