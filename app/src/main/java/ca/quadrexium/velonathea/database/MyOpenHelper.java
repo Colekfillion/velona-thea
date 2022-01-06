@@ -469,7 +469,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
                                                     Map<String, String[]> whereFilters,
                                                     String[] orderBy, long limit) {
 
-        Set<String> selectionArgs = new HashSet<>();
+        Set<String> selectionArgs = new LinkedHashSet<>();
 
         //Always select the id and filename
         selectedColumns.add(COL_MEDIA_ID_ALIAS);
