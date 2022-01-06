@@ -2,9 +2,13 @@ package ca.quadrexium.velonathea.fragment;
 
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -13,15 +17,20 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import ca.quadrexium.velonathea.R;
 import ca.quadrexium.velonathea.activity.SearchResultsActivity;
 import ca.quadrexium.velonathea.database.MyOpenHelper;
 import ca.quadrexium.velonathea.pojo.Media;
 
+//TODO: Reuse this fragment so the author list doesn't have to be queried every time
 public class MediaDetailsFragment extends DialogFragment {
 
     private Media media;
@@ -47,7 +56,7 @@ public class MediaDetailsFragment extends DialogFragment {
         super.onViewCreated(view, savedInstanceState);
         EditText etFileName = view.findViewById(R.id.fragment_media_details_et_filename);
         EditText etName = view.findViewById(R.id.fragment_media_details_et_name);
-        EditText etAuthor = view.findViewById(R.id.fragment_media_details_et_author);
+        AutoCompleteTextView autocTvAuthor = view.findViewById(R.id.fragment_media_details_autoctv_author);
         EditText etLink = view.findViewById(R.id.fragment_media_details_et_link);
         EditText etTags = view.findViewById(R.id.fragment_media_details_et_tags);
         Button btnUpdate = view.findViewById(R.id.fragment_media_details_btn_update);
@@ -65,30 +74,56 @@ public class MediaDetailsFragment extends DialogFragment {
 
         etFileName.setText(media.getFileName());
         etName.setText(media.getName());
-        etAuthor.setText(media.getAuthor());
+        autocTvAuthor.setText(media.getAuthor());
         etLink.setText(media.getLink());
         etTags.setText(media.getTagsAsString());
+
+        Set<String> authors = new HashSet<>();
+        AtomicBoolean gotAuthors = new AtomicBoolean(false);
+        AtomicBoolean gettingAuthors = new AtomicBoolean(false);
+        autocTvAuthor.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                ExecutorService executor = Executors.newSingleThreadExecutor();
+                Handler handler = new Handler(Looper.getMainLooper());
+
+                executor.execute(() -> {
+                    if (!gotAuthors.get() && !gettingAuthors.get()) {
+                        gettingAuthors.set(true);
+                        MyOpenHelper myOpenHelper = new MyOpenHelper(getContext(), MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
+                        SQLiteDatabase db = myOpenHelper.getReadableDatabase();
+                        authors.addAll(myOpenHelper.getAuthorSet(db)); //to avoid lambda final
+                        handler.post(() -> {
+                            autocTvAuthor.setAdapter(new ArrayAdapter<>(getContext(),
+                                    R.layout.textview_autocomplete,
+                                    new ArrayList<>(authors)));
+                        });
+                    }
+                    gotAuthors.set(true);
+                    gettingAuthors.set(false);
+                });
+            }
+        });
 
         //Update button, update media in database and send updated media to SearchResultsActivity
         btnUpdate.setOnClickListener(v -> {
 
             boolean changed = false;
-            String newMediaName = etName.getText().toString();
+            String newMediaName = etName.getText().toString().trim();
             if (!newMediaName.equals("") && !media.getName().equals(newMediaName)) {
                 changed = true;
                 media.setName(newMediaName);
             }
-            String newMediaFileName = etFileName.getText().toString();
+            String newMediaFileName = etFileName.getText().toString().trim();
             if (!newMediaFileName.equals("") && !media.getFileName().equals(newMediaFileName)) {
                 changed = true;
                 media.setFileName(newMediaFileName);
             }
-            String newMediaAuthor = etAuthor.getText().toString();
+            String newMediaAuthor = autocTvAuthor.getText().toString().trim();
             if (!newMediaAuthor.equals("") && !media.getAuthor().equals(newMediaAuthor)) {
                 changed = true;
                 media.setAuthor(newMediaAuthor);
             }
-            String newMediaLink = etLink.getText().toString();
+            String newMediaLink = etLink.getText().toString().trim();
             if (!newMediaLink.equals("") && !media.getLink().equals(newMediaLink)) {
                 changed = true;
                 media.setLink(newMediaLink);

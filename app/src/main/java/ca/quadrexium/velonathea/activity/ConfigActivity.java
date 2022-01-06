@@ -80,6 +80,10 @@ public class ConfigActivity extends BaseActivity {
                 KeyguardManager km = (KeyguardManager) this.getSystemService(Context.KEYGUARD_SERVICE);
                 Intent intent = km.createConfirmDeviceCredentialIntent(getString(R.string.app_name), getString(R.string.permission_message));
                 verifyActivity.launch(intent);
+            } else if (!isChecked) {
+                SharedPreferences.Editor edit = prefs.edit();
+                edit.putBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, false);
+                edit.apply();
             }
         });
     }
@@ -93,11 +97,9 @@ public class ConfigActivity extends BaseActivity {
         EditText etCacheSize = findViewById(R.id.activity_config_et_cachesize);
         edit.putInt(Constants.PREFS_CACHE_SIZE, Integer.parseInt(etCacheSize.getText().toString()));
 
-        SwitchCompat swtchShowHiddenFiles = findViewById(R.id.activity_config_swtch_showhiddenfiles);
-        edit.putBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, swtchShowHiddenFiles.isChecked());
-
         SwitchCompat swtchShowInvalidFiles = findViewById(R.id.activity_config_swtch_showinvalidfiles);
         edit.putBoolean(Constants.PREFS_SHOW_INVALID_FILES, swtchShowInvalidFiles.isChecked());
+
         edit.apply();
     }
 
@@ -107,7 +109,7 @@ public class ConfigActivity extends BaseActivity {
         SharedPreferences.Editor edit = prefs.edit();
 
         SwitchCompat swtchShowHiddenFiles = findViewById(R.id.activity_config_swtch_showhiddenfiles);
-        edit.putBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, swtchShowHiddenFiles.isChecked());
+        edit.putBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, true);
         edit.apply();
         swtchShowHiddenFiles.setChecked(true);
     }

@@ -22,13 +22,11 @@
             android:hint="Name"
             android:importantForAutofill="no" />
 
-        <EditText
-            android:id="@+id/activity_main_et_author"
-            android:inputType="text"
+        <AutoCompleteTextView
+            android:id="@+id/activity_main_autoctv_author"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/author_name"
-            android:importantForAutofill="no" />
+            android:hint="@string/author_name"/>
 
         <EditText
             android:id="@+id/activity_main_et_tag"

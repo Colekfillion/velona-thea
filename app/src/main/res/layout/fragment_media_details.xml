@@ -22,12 +22,11 @@
         android:importantForAutofill="no"
         android:inputType="text"/>
 
-    <EditText
-        android:id="@+id/fragment_media_details_et_author"
+    <AutoCompleteTextView
+        android:id="@+id/fragment_media_details_autoctv_author"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Author"
-        android:importantForAutofill="no"
+        android:hint="@string/author_name"
         android:inputType="text"/>
 
     <EditText
@@ -45,10 +44,6 @@
         android:hint="Tags"
         android:importantForAutofill="no"
         android:inputType="text"/>
-
-    <Space
-        android:layout_width="match_parent"
-        android:layout_height="20dp"/>
 
     <Button
         android:id="@+id/fragment_media_details_btn_update"

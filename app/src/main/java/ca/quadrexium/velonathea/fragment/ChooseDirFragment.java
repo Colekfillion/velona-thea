@@ -22,6 +22,7 @@ import androidx.fragment.app.FragmentActivity;
 
 import java.io.File;
 import java.util.LinkedHashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -37,6 +38,7 @@ public class ChooseDirFragment extends DialogFragment {
     private ListAdapter dnAdapter;
     private File currentDir;
     boolean showHiddenFiles;
+    ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Nullable
     @Override
@@ -86,11 +88,15 @@ public class ChooseDirFragment extends DialogFragment {
      * Lists all directories within currentDir, and a '...' one for backing out.
      */
     private void listDirs(View view) {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
         Handler handler = new Handler(Looper.getMainLooper());
+
+        if (executor.isTerminated() || executor.isShutdown()) {
+            executor = Executors.newSingleThreadExecutor();
+        }
 
         executor.execute(() -> {
             dirNames.clear();
+            handler.post(() -> dnAdapter.notifyDataSetChanged());
             ProgressBar pb = view.findViewById(R.id.fragment_choose_dir_pb);
             if (currentDir.getParent() != null) {
                 //If the dir has a parent, add a '...' entry that represents it
@@ -122,12 +128,15 @@ public class ChooseDirFragment extends DialogFragment {
             //Add all the dir names to dirNames
             if (dirs != null && dirs.length != 0) {
                 for (File f : dirs) {
-                    dirNames.add(f.getName());
+                    //Make sure the dir is the child of the current directory (can change)
+                    if (Objects.equals(f.getParentFile(), currentDir)) {
+                        dirNames.add(f.getName());
+                        handler.post(() -> dnAdapter.notifyDataSetChanged());
+                    }
                 }
             }
 
             handler.post(() -> {
-                dnAdapter.notifyDataSetChanged();
                 pb.setVisibility(View.INVISIBLE);
             });
         });
@@ -176,5 +185,19 @@ public class ChooseDirFragment extends DialogFragment {
 
             return newView;
         }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        if (executor.isTerminated() || executor.isShutdown()) {
+            executor = Executors.newSingleThreadExecutor();
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        executor.shutdownNow();
     }
 }

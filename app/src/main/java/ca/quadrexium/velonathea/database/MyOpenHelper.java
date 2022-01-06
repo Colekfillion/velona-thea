@@ -565,4 +565,19 @@ public class MyOpenHelper extends SQLiteOpenHelper {
 
         return new Pair<>(query.toString(), selectionArgs.toArray(new String[0]));
     }
+
+    public synchronized Set<String> getAuthorSet(SQLiteDatabase db) {
+        Set<String> authorList = new HashSet<>();
+        Cursor c = db.rawQuery("SELECT " +
+                MyOpenHelper.AUTHOR_TABLE + "." + MyOpenHelper.COL_AUTHOR_NAME + " " +
+                "FROM " + MyOpenHelper.AUTHOR_TABLE, null);
+        if (c.moveToFirst()) {
+            while (!c.isAfterLast()) {
+                authorList.add(c.getString(0));
+                c.moveToNext();
+            }
+        }
+        c.close();
+        return authorList;
+    }
 }

@@ -7,7 +7,7 @@ android {
     buildToolsVersion "30.0.3"
 
     defaultConfig {
-        applicationId "com.example.velonathea"
+        applicationId "ca.quadrexium.velonathea"
         minSdkVersion 23
         targetSdkVersion 30
         versionCode 1
