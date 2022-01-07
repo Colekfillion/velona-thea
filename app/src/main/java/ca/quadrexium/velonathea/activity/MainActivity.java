@@ -19,10 +19,8 @@ import androidx.appcompat.widget.SwitchCompat;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,6 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import ca.quadrexium.velonathea.R;
 import ca.quadrexium.velonathea.database.MyOpenHelper;
 import ca.quadrexium.velonathea.pojo.Constants;
+import ca.quadrexium.velonathea.pojo.WhereFilterHashMap;
 
 public class MainActivity extends BaseActivity {
 
@@ -98,26 +97,27 @@ public class MainActivity extends BaseActivity {
                 orderBy.add("RANDOM()");
             }
 
-            Map<String, String[]> whereFilters = new HashMap<>();
+            WhereFilterHashMap whereFilters = new WhereFilterHashMap();
             if (!fileName.equals("")) {
-                whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME, new String[] { fileName.trim() });
+                whereFilters.addMandatory(MyOpenHelper.COL_MEDIA_FILENAME_ALIAS, fileName.trim());
             }
             if (!name.equals("")) {
-                whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_NAME, new String[] { name.trim() });
+                whereFilters.addMandatory(MyOpenHelper.COL_MEDIA_NAME_ALIAS, name.trim());
             }
             if (!author.equals("")) {
-                whereFilters.put(MyOpenHelper.AUTHOR_TABLE + "." + MyOpenHelper.COL_AUTHOR_NAME, new String[] { author.trim() });
+                whereFilters.addMandatory(MyOpenHelper.COL_AUTHOR_NAME_ALIAS, author.trim());
             }
             if (!tag.equals("")) {
-                whereFilters.put(MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_TAG_NAME, new String[] { tag.trim() });
+                whereFilters.addOptional(MyOpenHelper.COL_MEDIA_TAGS_GROUPED_ALIAS, tag.trim());
             }
             if (!mediaType.equals("")) {
                 if (mediaType.equals(Constants.IMAGE)) {
-                    whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME, Constants.IMAGE_EXTENSIONS.toArray(new String[0]));
+                    //If there is already a filename filter, just add to that map's values
+                    whereFilters.addOptional(MyOpenHelper.COL_MEDIA_FILENAME_ALIAS, Constants.IMAGE_EXTENSIONS);
                 } else if (mediaType.equals(Constants.VIDEO)) {
                     Set<String> videoExtensions = new HashSet<>(Constants.VIDEO_EXTENSIONS);
                     videoExtensions.add(".gif"); //gifs are considered videos except for viewing
-                    whereFilters.put(MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME, videoExtensions.toArray(new String[0]));
+                    whereFilters.addOptional(MyOpenHelper.COL_MEDIA_FILENAME_ALIAS, videoExtensions);
                 }
             }
             if (!name.equals("") || !fileName.equals("")) {

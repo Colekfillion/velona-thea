@@ -3,6 +3,7 @@ package ca.quadrexium.velonathea.pojo;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class Constants {
@@ -39,6 +40,11 @@ public class Constants {
 
     public static boolean isStringEmpty(String string) {
         return string == null || string.equals("") || string.length() == 0;
+    }
+
+    public static <T, V> void mapReplace(Map<T, V> map, T key, V newValue) {
+        map.remove(key);
+        map.put(key, newValue);
     }
 
 }

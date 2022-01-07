@@ -20,6 +20,7 @@ import java.util.Set;
 
 import ca.quadrexium.velonathea.pojo.Constants;
 import ca.quadrexium.velonathea.pojo.Media;
+import ca.quadrexium.velonathea.pojo.WhereFilterHashMap;
 
 public class MyOpenHelper extends SQLiteOpenHelper {
 
@@ -77,6 +78,13 @@ public class MyOpenHelper extends SQLiteOpenHelper {
 
         put(COL_MEDIA_TAGS_GROUPED_ALIAS,
                 "group_concat(" + TAG_TABLE + "." + COL_TAG_NAME + ", \" \")");
+    }});
+
+    //Stores the alias of an aggregate column and the individual column that it is an aggregate from.
+    // Used to avoid a HAVING clause. WHERE tags LIKE ? wont work, but WHERE tag.name LIKE ? will.
+    private final static Map<String, String> aggregateColumn = Collections.unmodifiableMap(new HashMap<String, String>() {{
+        put(COL_MEDIA_TAGS_GROUPED_ALIAS,
+                TAG_TABLE + "." + COL_TAG_NAME);
     }});
 
     private final String AUTHOR_JOIN = "JOIN " + AUTHOR_TABLE + " ON " +
@@ -352,8 +360,9 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         }
 
         //Select the exact same media
-        Map<String, String[]> whereFilters = new HashMap<>();
-        whereFilters.put(MEDIA_TABLE + "." + COL_MEDIA_ID, new String[]{String.valueOf(media.getId())});
+        WhereFilterHashMap whereFilters = new WhereFilterHashMap();
+        Pair<String[], String[]> pair = new Pair<>(new String[]{String.valueOf(media.getId())}, null);
+        whereFilters.put(MEDIA_TABLE + "." + COL_MEDIA_ID, pair);
 
         Media newMedia = mediaQuery(db, selectedColumns, whereFilters, null, 1).get(0);
         if (newMedia.equals(media)) {
@@ -406,7 +415,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         selectedColumns.add(COL_AUTHOR_NAME_ALIAS);
         selectedColumns.add(COL_MEDIA_LINK_ALIAS);
         selectedColumns.add(COL_MEDIA_TAGS_GROUPED_ALIAS);
-        ArrayList<Media> mediaList = mediaQuery(db, selectedColumns, new HashMap<>(),
+        ArrayList<Media> mediaList = mediaQuery(db, selectedColumns, new WhereFilterHashMap(),
                 new String[] { MEDIA_TABLE + "." + COL_MEDIA_FILENAME + " ASC"}, 0);
 
         StringBuilder mediaListAsString = new StringBuilder();
@@ -444,7 +453,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
      * @return a mediaList
      */
     public ArrayList<Media> mediaQuery(SQLiteDatabase db, Set<String> selectedColumns,
-                                        Map<String, String[]> whereFilters,
+                                       WhereFilterHashMap whereFilters,
                                         String[] orderBy, long limit) {
 
         Pair<String, String[]> pair = mediaQueryBuilder(selectedColumns, whereFilters, orderBy, limit);
@@ -465,8 +474,13 @@ public class MyOpenHelper extends SQLiteOpenHelper {
      * @param limit how many media to return
      * @return a pair containing the query string and a string array of the selection args
      */
+    //TODO: This is now overengineered for this project.
+    // There are only two types of queries: One that gets an entire list of media, and one that gets
+    // the remaining data for one media. The latter query does not change for each media, since
+    // columns in the WHERE clause are no longer selected - the data that is initially selected for
+    // a media is always the same.
     public Pair<String, String[]> mediaQueryBuilder(Set<String> selectedColumns,
-                                                    Map<String, String[]> whereFilters,
+                                                    WhereFilterHashMap whereFilters,
                                                     String[] orderBy, long limit) {
 
         Set<String> selectionArgs = new LinkedHashSet<>();
@@ -481,10 +495,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         query.append("SELECT ");
         Set<String> selection = new HashSet<>();
         Set<String> joins = new HashSet<>();
-        Set<String> columnAliases = new HashSet<>();
-        columnAliases.addAll(whereFilters.keySet());
-        columnAliases.addAll(selectedColumns);
-        for (String columnAlias : columnAliases) {
+        for (String columnAlias : selectedColumns) {
             String columnToSelect = columns.get(columnAlias);
             //If the column is not an alias, then it is a columnToSelect. Try to find the
             // column alias using this columnToSelect as a value in the columns set
@@ -502,17 +513,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
             if (columnToSelect == null) {
                 throw new IllegalArgumentException("Must use a defined alias");
             }
-            //Remove the column name and any functions from columnToSelect
-            int startOfTableName = columnToSelect.contains("(") ? columnToSelect.indexOf("(")+1 : 0;
-            String tableName = columnToSelect.substring(startOfTableName, columnToSelect.indexOf("."));
-            switch (tableName) {
-                case Constants.PREFS_MEDIA_AUTHOR:
-                    joins.add(AUTHOR_JOIN);
-                    break;
-                case Constants.PREFS_MEDIA_TAG:
-                    joins.add(TAG_JOIN);
-                    break;
-            }
+
             selection.add(columnToSelect + " AS " + columnAlias + ", ");
         }
         for (String selectColumn : selection) {
@@ -524,6 +525,30 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         query.append("FROM " + MEDIA_TABLE + " ");
 
         //JOIN
+        HashSet<String> allColumns = new HashSet<>();
+        allColumns.addAll(whereFilters.keySet());
+        allColumns.addAll(selectedColumns);
+        for (String columnAlias : allColumns) {
+            String columnSelection = columns.get(columnAlias);
+            if (columnSelection == null) {
+                for (Map.Entry<String, String> ent : columns.entrySet()) {
+                    if (ent.getValue().equals(columnAlias)) {
+                        columnSelection = ent.getValue();
+                    }
+                }
+            }
+            if (columnSelection == null) { return null; }
+            int startOfTableName = columnSelection.contains("(") ? columnSelection.indexOf("(") + 1 : 0;
+            String tableName = columnSelection.substring(startOfTableName, columnSelection.indexOf("."));
+            switch (tableName) {
+                case Constants.PREFS_MEDIA_AUTHOR:
+                    joins.add(AUTHOR_JOIN);
+                    break;
+                case Constants.PREFS_MEDIA_TAG:
+                    joins.add(TAG_JOIN);
+                    break;
+            }
+        }
         for (String join : joins) {
             query.append(join);
         }
@@ -531,19 +556,57 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         //WHERE
         if (whereFilters.size() != 0) {
             query.append("WHERE ");
-            for (Map.Entry<String, String[]> entry : whereFilters.entrySet()) {
+            for (Map.Entry<String, Pair<String[], String[]>> entry : whereFilters.entrySet()) {
                 //For filtering when the column value may match multiple values (OR clause)
-                query.append("(");
-                for (String value : entry.getValue()) {
-                    query.append(entry.getKey()).append(" LIKE ?");
-                    selectionArgs.add("%" + value + "%");
-                    query.append(" OR ");
+                if (entry.getValue().first != null && entry.getValue().first.length != 0) {
+                    query.append("(");
+                    for (String value : entry.getValue().first) {
+                        String key;
+                        if (columns.containsKey(entry.getKey())) {
+                            key = columns.get(entry.getKey());
+                        } else {
+                            if (!aggregateColumn.containsKey(entry.getKey())) {
+                                key = entry.getKey();
+                            } else {
+                                key = aggregateColumn.get(entry.getKey());
+                            }
+                        }
+                        if (!key.equals(MEDIA_TABLE + "." + COL_MEDIA_ID)) {
+                            query.append(key).append(" LIKE ?");
+                            selectionArgs.add("%" + value + "%");
+                        } else {
+                            query.append(key).append(" = ?");
+                            selectionArgs.add(value);
+                        }
+                        query.append(" AND ");
+                    }
+                    if (entry.getValue().first.length > 0) {
+                        query.setLength(query.length() - (" AND ").length());
+                    }
+                    query.append(") AND ");
                 }
-                query.setLength(query.length()-(" OR ").length()+1);
-                //For filtering other columns, append AND (AND clause)
-                query.append(") AND ");
+                if (entry.getValue().second != null && entry.getValue().second.length != 0) {
+                    query.append("(");
+                    for (String value : entry.getValue().second) {
+                        String key;
+                        if (!aggregateColumn.containsKey(entry.getKey())) {
+                            key = entry.getKey();
+                        } else {
+                            key = aggregateColumn.get(entry.getKey());
+                        }
+                        query.append(key).append(" LIKE ?");
+                        selectionArgs.add("%" + value + "%");
+                        query.append(" OR ");
+                    }
+                    if (entry.getValue().second.length > 0) {
+                        query.setLength(query.length() - (" OR ").length());
+                        query.append(")");
+                    }
+                    //For filtering other columns, append AND (AND clause)
+                    query.append(" AND ");
+                }
             }
-            query.setLength(query.length()-(") AND ").length()+1); //remove trailing AND
+            query.setLength(query.length()-(") AND ").length()+2); //remove trailing AND
         }
 
         //GROUP BY
@@ -562,6 +625,8 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         if (limit != 0) {
             query.append("LIMIT ").append(limit);
         }
+
+        System.out.println(query.toString());
 
         return new Pair<>(query.toString(), selectionArgs.toArray(new String[0]));
     }
