@@ -400,7 +400,10 @@ public class SearchResultsActivity extends BaseActivity {
                 db.beginTransaction();
                 for (int i = lastUpdatedPosition; i < mediaList.size(); i++) {
                     Media oldMedia = mediaList.get(i);
-                    Media newMedia = myOpenHelper.getRemainingData(db, oldMedia);
+                    Media newMedia = myOpenHelper.depthMediaQuery(db, oldMedia.getId());
+                    if (newMedia == null) { //if database has been cleared
+                        handler.post(this::finish);
+                    }
                     mediaList.set(i, newMedia);
                     int finalI = i;
                     handler.post(() -> rvAdapter.notifyItemChanged(finalI));

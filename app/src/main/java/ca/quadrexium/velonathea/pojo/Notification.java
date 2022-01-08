@@ -38,7 +38,7 @@ public class Notification {
     public void create() {
         notificationManager = NotificationManagerCompat.from(context);
         notificationBuilder = new NotificationCompat.Builder(context, notificationChannel);
-        notificationBuilder.setContentTitle(title).setContentText(content);
+        notificationBuilder.setContentTitle(title).setContentText(content).setSmallIcon(smallIcon);
         if (priority != -1) {
             notificationBuilder.setPriority(priority);
         }

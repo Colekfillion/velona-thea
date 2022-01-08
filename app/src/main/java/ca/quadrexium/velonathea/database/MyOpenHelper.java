@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -80,17 +81,10 @@ public class MyOpenHelper extends SQLiteOpenHelper {
                 "group_concat(" + TAG_TABLE + "." + COL_TAG_NAME + ", \" \")");
     }});
 
-    //Stores the alias of an aggregate column and the individual column that it is an aggregate from.
-    // Used to avoid a HAVING clause. WHERE tags LIKE ? wont work, but WHERE tag.name LIKE ? will.
-    private final static Map<String, String> aggregateColumn = Collections.unmodifiableMap(new HashMap<String, String>() {{
-        put(COL_MEDIA_TAGS_GROUPED_ALIAS,
-                TAG_TABLE + "." + COL_TAG_NAME);
-    }});
-
-    private final String AUTHOR_JOIN = "JOIN " + AUTHOR_TABLE + " ON " +
+    private final static String AUTHOR_JOIN = "JOIN " + AUTHOR_TABLE + " ON " +
             AUTHOR_TABLE + "." + COL_AUTHOR_ID + " = " + MEDIA_TABLE + "." + COL_MEDIA_AUTHOR_ID + " ";
 
-    private final String TAG_JOIN = "LEFT OUTER JOIN " + MEDIA_TAG_TABLE + " ON " +
+    private final static String TAG_JOIN = "LEFT OUTER JOIN " + MEDIA_TAG_TABLE + " ON " +
             MEDIA_TABLE + "." + COL_MEDIA_ID + " = " + MEDIA_TAG_TABLE + "." + COL_MEDIA_TAG_MEDIA_ID + " " +
             "LEFT OUTER JOIN " + TAG_TABLE + " ON " +
             MEDIA_TAG_TABLE + "." + COL_MEDIA_TAG_TAG_ID + " = " + TAG_TABLE + "." + COL_TAG_ID + " ";
@@ -158,6 +152,26 @@ public class MyOpenHelper extends SQLiteOpenHelper {
 
     @Override
     public void onOpen(SQLiteDatabase db) { }
+
+    /**
+     * Gets all authors in the database.
+     * @param db a readable SQLite database
+     * @return a hashset of authors
+     */
+    public synchronized Set<String> getAuthorSet(SQLiteDatabase db) {
+        Set<String> authorList = new HashSet<>();
+        Cursor c = db.rawQuery("SELECT " +
+                MyOpenHelper.AUTHOR_TABLE + "." + MyOpenHelper.COL_AUTHOR_NAME + " " +
+                "FROM " + MyOpenHelper.AUTHOR_TABLE, null);
+        if (c.moveToFirst()) {
+            while (!c.isAfterLast()) {
+                authorList.add(c.getString(0));
+                c.moveToNext();
+            }
+        }
+        c.close();
+        return authorList;
+    }
 
     /**
      * Gets the provided author's id from the database or inserts if the author does not exist.
@@ -272,16 +286,18 @@ public class MyOpenHelper extends SQLiteOpenHelper {
     }
 
     /**
+     * Wrapper for parseMediaFromCursor for a list of media.
      * @param c a cursor for the media table
      * @return a arraylist of media created from all rows in the cursor
+     * @see #parseMediaFromCursor(Cursor) 
      */
     public synchronized ArrayList<Media> parseMediaListFromCursor(Cursor c) {
         ArrayList<Media> mediaList = new ArrayList<>();
-        Media media;
+        Media.Builder media;
         while (!c.isAfterLast()) {
             media = parseMediaFromCursor(c);
             if (media != null) { //making sure the cursor is not after last
-                mediaList.add(media);
+                mediaList.add(media.build());
             }
         }
         return mediaList;
@@ -291,9 +307,9 @@ public class MyOpenHelper extends SQLiteOpenHelper {
      * Parses a media object from the next row in the provided cursor. Dynamically sets the
      *  media object's values based on the columns selected in the cursor.
      * @param c a cursor for the media table
-     * @return a media object, or null if the cursor is after last row
+     * @return a media builder, or null if the cursor is after last row
      */
-    public Media parseMediaFromCursor(Cursor c) {
+    public Media.Builder parseMediaFromCursor(Cursor c) {
         String[] columns = c.getColumnNames();
         if (c.moveToNext() && !c.isAfterLast()) {
             Media.Builder mediaBuilder = new Media.Builder();
@@ -324,82 +340,10 @@ public class MyOpenHelper extends SQLiteOpenHelper {
                         break;
                 }
             }
-            Media media = mediaBuilder.build();
             //System.out.println(media.toString());
-            return media;
+            return mediaBuilder;
         }
         return null; //if cursor is after last
-    }
-
-    /**
-     * Method that takes a media object with unset values and returns the same media with
-     *  those values set
-     * @param db a readable SQLite database
-     * @param media the media to get values for
-     * @return the media with set values
-     */
-    public synchronized Media getRemainingData(SQLiteDatabase db, Media media) {
-        //Find out what data needs to be selected
-        Set<String> selectedColumns = new LinkedHashSet<>();
-        if (Constants.isStringEmpty(media.getName())) {
-            selectedColumns.add(COL_MEDIA_NAME_ALIAS);
-        }
-        if (Constants.isStringEmpty(media.getLink())) {
-            selectedColumns.add(COL_MEDIA_LINK_ALIAS);
-        }
-        if (Constants.isStringEmpty(media.getAuthor())) {
-            selectedColumns.add(COL_AUTHOR_NAME_ALIAS);
-        }
-        if (media.getTags() == null || media.getTags().size() == 0) {
-            selectedColumns.add(COL_MEDIA_TAGS_GROUPED_ALIAS);
-        }
-
-        //Make sure there is data to query
-        if (selectedColumns.size() == 0) {
-            return media;
-        }
-
-        //Select the exact same media
-        WhereFilterHashMap whereFilters = new WhereFilterHashMap();
-        Pair<String[], String[]> pair = new Pair<>(new String[]{String.valueOf(media.getId())}, null);
-        whereFilters.put(MEDIA_TABLE + "." + COL_MEDIA_ID, pair);
-
-        Media newMedia = mediaQuery(db, selectedColumns, whereFilters, null, 1).get(0);
-        if (newMedia.equals(media)) {
-            return newMedia;
-        }
-        return mergeMedia(media, newMedia);
-    }
-
-    /**
-     * Merges two media together so that any unset values in oldMedia are set to their
-     *  equivalent set values in newMedia.
-     * @param oldMedia a media with unset values
-     * @param newMedia a media with the unset values from oldMedia set
-     * @return oldMedia with the unset values set to the ones from newMedia
-     */
-    public Media mergeMedia(Media oldMedia, Media newMedia) {
-        if (Constants.isStringEmpty(oldMedia.getName())/* || !newMedia.getName().equals(oldMedia.getName())*/) {
-            if (!Constants.isStringEmpty(newMedia.getName())) {
-                oldMedia.setName(newMedia.getName());
-            }
-        }
-        if (Constants.isStringEmpty(oldMedia.getAuthor())) {
-            if (!Constants.isStringEmpty(newMedia.getAuthor())) {
-                oldMedia.setAuthor(newMedia.getAuthor());
-            }
-        }
-        if (Constants.isStringEmpty(oldMedia.getLink())) {
-            if (!Constants.isStringEmpty(newMedia.getLink())) {
-                oldMedia.setLink(newMedia.getLink());
-            }
-        }
-        if (oldMedia.getTags() == null || oldMedia.getTags().size() == 0) {
-            if (newMedia.getTags() != null && newMedia.getTags().size() > 0) {
-                oldMedia.setTags(newMedia.getTags());
-            }
-        }
-        return oldMedia;
     }
 
     /**
@@ -409,17 +353,14 @@ public class MyOpenHelper extends SQLiteOpenHelper {
      * @return true if written, else false
      */
     public boolean writeMediaToFile(SQLiteDatabase db, String filePath) {
-        Set<String> selectedColumns = new HashSet<>();
-        selectedColumns.add(COL_MEDIA_FILENAME_ALIAS);
-        selectedColumns.add(COL_MEDIA_NAME_ALIAS);
-        selectedColumns.add(COL_AUTHOR_NAME_ALIAS);
-        selectedColumns.add(COL_MEDIA_LINK_ALIAS);
-        selectedColumns.add(COL_MEDIA_TAGS_GROUPED_ALIAS);
-        ArrayList<Media> mediaList = mediaQuery(db, selectedColumns, new WhereFilterHashMap(),
-                new String[] { MEDIA_TABLE + "." + COL_MEDIA_FILENAME + " ASC"}, 0);
+        Date start = new Date();
+        ArrayList<Media> mediaList = initialMediaQuery(db, new WhereFilterHashMap(),
+                new String[] { MEDIA_TABLE + "." + COL_MEDIA_FILENAME + " ASC"});
 
         StringBuilder mediaListAsString = new StringBuilder();
-        for (Media media : mediaList) {
+        for (Media current : mediaList) {
+            Media media = depthMediaQuery(db, current.getId());
+
             String name = media.getName() != null ? media.getName() : "";
             String author = media.getAuthor() != null ? media.getAuthor() : "";
             String link = media.getLink() != null ? media.getLink() : "";
@@ -436,6 +377,8 @@ public class MyOpenHelper extends SQLiteOpenHelper {
             FileWriter myWriter = new FileWriter(filePath);
             myWriter.write(mediaListAsString.toString());
             myWriter.close();
+            Date end = new Date();
+            System.out.println(end.getTime() - start.getTime() + "ms");
             return true;
         } catch (IOException e) {
             e.printStackTrace();
@@ -444,102 +387,50 @@ public class MyOpenHelper extends SQLiteOpenHelper {
     }
 
     /**
-     * Wrapper method to execute a query from mediaQueryBuilder and parse an arraylist from it.
-     * @param db an SQLite readable database
-     * @param selectedColumns the columns to return. must be a defined alias
-     * @param whereFilters conditions for the media to be returned
-     * @param orderBy the order of the rows
-     * @param limit how many media to return
-     * @return a mediaList
+     * Wrapper for the initialMediaQueryBuilder when returning the query is not necessary.
+     * @param db a readable SQLite database
+     * @param whereFilters columns to filter by, either match-all or match-one+
+     * @param orderBy columns to order results by
+     * @return an arraylist of media
+     * @see #initialMediaQueryBuilder(WhereFilterHashMap, String[])
      */
-    public ArrayList<Media> mediaQuery(SQLiteDatabase db, Set<String> selectedColumns,
-                                       WhereFilterHashMap whereFilters,
-                                        String[] orderBy, long limit) {
-
-        Pair<String, String[]> pair = mediaQueryBuilder(selectedColumns, whereFilters, orderBy, limit);
-        String query = pair.first;
-        String[] selectionArgs = pair.second;
-
-        Cursor c = db.rawQuery(query, selectionArgs);
+    public synchronized ArrayList<Media> initialMediaQuery(SQLiteDatabase db, WhereFilterHashMap whereFilters,
+                                                           String[] orderBy) {
+        Pair<String, String[]> pair = initialMediaQueryBuilder(whereFilters, orderBy);
+        Cursor c = db.rawQuery(pair.first, pair.second);
         ArrayList<Media> mediaList = parseMediaListFromCursor(c);
         c.close();
         return mediaList;
     }
 
     /**
-     * Method that can build queries at runtime to select media from the database
-     * @param selectedColumns the columns to return. must be a defined alias
-     * @param whereFilters conditions for the media to be returned
-     * @param orderBy the order of the rows
-     * @param limit how many media to return
-     * @return a pair containing the query string and a string array of the selection args
+     * Query builder for the Media table for selecting a large number of results. This only selects
+     *  a media's id and filename, for additional values use depthMediaQuery with each media's id
+     * @param whereFilters the custom hashmap whose key is the column alias to filter by, and whose
+     *                     value is a pair of string arrays: the first for match-all values, the
+     *                     second for match-one+ values.
+     * @param orderBy any columns to order the results by
+     * @return a pair: the query string, and its selection arguments
      */
-    //TODO: This is now overengineered for this project.
-    // There are only two types of queries: One that gets an entire list of media, and one that gets
-    // the remaining data for one media. The latter query does not change for each media, since
-    // columns in the WHERE clause are no longer selected - the data that is initially selected for
-    // a media is always the same.
-    public Pair<String, String[]> mediaQueryBuilder(Set<String> selectedColumns,
-                                                    WhereFilterHashMap whereFilters,
-                                                    String[] orderBy, long limit) {
+    public synchronized Pair<String, String[]> initialMediaQueryBuilder(WhereFilterHashMap whereFilters,
+                                                           String[] orderBy) {
 
         Set<String> selectionArgs = new LinkedHashSet<>();
-
-        //Always select the id and filename
-        selectedColumns.add(COL_MEDIA_ID_ALIAS);
-        selectedColumns.add(COL_MEDIA_FILENAME_ALIAS);
+        Set<String> joins = new HashSet<>();
 
         StringBuilder query = new StringBuilder();
 
         //SELECT
-        query.append("SELECT ");
-        Set<String> selection = new HashSet<>();
-        Set<String> joins = new HashSet<>();
-        for (String columnAlias : selectedColumns) {
-            String columnToSelect = columns.get(columnAlias);
-            //If the column is not an alias, then it is a columnToSelect. Try to find the
-            // column alias using this columnToSelect as a value in the columns set
-            if (columnToSelect == null && columns.containsValue(columnAlias)) {
-                String trueColumnToSelect = columnAlias;
-                columnAlias = null;
-                for (Map.Entry<String, String> entry : columns.entrySet()) {
-                    if (entry.getValue().equals(trueColumnToSelect)) {
-                        columnAlias = entry.getKey();
-                        break;
-                    }
-                }
-                columnToSelect = trueColumnToSelect;
-            }
-            if (columnToSelect == null) {
-                throw new IllegalArgumentException("Must use a defined alias");
-            }
-
-            selection.add(columnToSelect + " AS " + columnAlias + ", ");
-        }
-        for (String selectColumn : selection) {
-            query.append(selectColumn);
-        }
-        query.replace(query.lastIndexOf(","), query.length(), " "); //removing comma
+        query.append("SELECT " + MEDIA_TABLE + "." + COL_MEDIA_FILENAME + " AS " + COL_MEDIA_FILENAME_ALIAS + ", ");
+        query.append(MEDIA_TABLE + "." + COL_MEDIA_ID + " AS " + COL_MEDIA_ID_ALIAS + " ");
 
         //FROM
         query.append("FROM " + MEDIA_TABLE + " ");
 
         //JOIN
-        HashSet<String> allColumns = new HashSet<>();
-        allColumns.addAll(whereFilters.keySet());
-        allColumns.addAll(selectedColumns);
-        for (String columnAlias : allColumns) {
-            String columnSelection = columns.get(columnAlias);
-            if (columnSelection == null) {
-                for (Map.Entry<String, String> ent : columns.entrySet()) {
-                    if (ent.getValue().equals(columnAlias)) {
-                        columnSelection = ent.getValue();
-                    }
-                }
-            }
-            if (columnSelection == null) { return null; }
-            int startOfTableName = columnSelection.contains("(") ? columnSelection.indexOf("(") + 1 : 0;
-            String tableName = columnSelection.substring(startOfTableName, columnSelection.indexOf("."));
+        for (String column : whereFilters.keySet()) {
+            int endOfTableName = column.contains("_") ? column.indexOf("_") : column.indexOf(".");
+            String tableName = column.substring(0, endOfTableName);
             switch (tableName) {
                 case Constants.PREFS_MEDIA_AUTHOR:
                     joins.add(AUTHOR_JOIN);
@@ -561,23 +452,9 @@ public class MyOpenHelper extends SQLiteOpenHelper {
                 if (entry.getValue().first != null && entry.getValue().first.length != 0) {
                     query.append("(");
                     for (String value : entry.getValue().first) {
-                        String key;
-                        if (columns.containsKey(entry.getKey())) {
-                            key = columns.get(entry.getKey());
-                        } else {
-                            if (!aggregateColumn.containsKey(entry.getKey())) {
-                                key = entry.getKey();
-                            } else {
-                                key = aggregateColumn.get(entry.getKey());
-                            }
-                        }
-                        if (!key.equals(MEDIA_TABLE + "." + COL_MEDIA_ID)) {
-                            query.append(key).append(" LIKE ?");
-                            selectionArgs.add("%" + value + "%");
-                        } else {
-                            query.append(key).append(" = ?");
-                            selectionArgs.add(value);
-                        }
+                        String key = columns.get(entry.getKey());
+                        query.append(key).append(" LIKE ?");
+                        selectionArgs.add("%" + value + "%");
                         query.append(" AND ");
                     }
                     if (entry.getValue().first.length > 0) {
@@ -588,12 +465,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
                 if (entry.getValue().second != null && entry.getValue().second.length != 0) {
                     query.append("(");
                     for (String value : entry.getValue().second) {
-                        String key;
-                        if (!aggregateColumn.containsKey(entry.getKey())) {
-                            key = entry.getKey();
-                        } else {
-                            key = aggregateColumn.get(entry.getKey());
-                        }
+                        String key = entry.getKey();
                         query.append(key).append(" LIKE ?");
                         selectionArgs.add("%" + value + "%");
                         query.append(" OR ");
@@ -621,28 +493,44 @@ public class MyOpenHelper extends SQLiteOpenHelper {
             query.replace(query.lastIndexOf(","), query.length(), ""); //removing comma
         }
 
-        //LIMIT
-        if (limit != 0) {
-            query.append("LIMIT ").append(limit);
-        }
-
         System.out.println(query.toString());
 
         return new Pair<>(query.toString(), selectionArgs.toArray(new String[0]));
     }
 
-    public synchronized Set<String> getAuthorSet(SQLiteDatabase db) {
-        Set<String> authorList = new HashSet<>();
-        Cursor c = db.rawQuery("SELECT " +
-                MyOpenHelper.AUTHOR_TABLE + "." + MyOpenHelper.COL_AUTHOR_NAME + " " +
-                "FROM " + MyOpenHelper.AUTHOR_TABLE, null);
-        if (c.moveToFirst()) {
-            while (!c.isAfterLast()) {
-                authorList.add(c.getString(0));
-                c.moveToNext();
-            }
-        }
+    /**
+     * To get additional data for one media. Takes the media id, returns a completed Media object.
+     * @param db a readable SQLite database
+     * @param id the id of the media
+     * @return the media with all values from the database
+     */
+    public synchronized Media depthMediaQuery(SQLiteDatabase db, long id) {
+
+        String query = "SELECT " +
+                MEDIA_TABLE + "." + COL_MEDIA_FILENAME + " AS " + COL_MEDIA_FILENAME_ALIAS + ", " +
+                MEDIA_TABLE + "." + COL_MEDIA_NAME + " AS " + COL_MEDIA_NAME_ALIAS + ", " +
+                AUTHOR_TABLE + "." + COL_AUTHOR_NAME + " AS " + COL_AUTHOR_NAME_ALIAS + ", " +
+                MEDIA_TABLE + "." + COL_MEDIA_LINK + " AS " + COL_MEDIA_LINK_ALIAS + ", " +
+                columns.get(COL_MEDIA_TAGS_GROUPED_ALIAS) + " AS " + COL_MEDIA_TAGS_GROUPED_ALIAS + " ";
+
+        query += "FROM " + MEDIA_TABLE + " ";
+
+        query += AUTHOR_JOIN;
+        query += TAG_JOIN;
+
+        query += "WHERE " + MEDIA_TABLE + "." + COL_MEDIA_ID + " = ? ";
+
+        query += "GROUP BY (" + columns.get(COL_MEDIA_FILENAME_ALIAS) + ") ";
+
+        query += "LIMIT 1";
+
+        System.out.println(query);
+
+        Cursor c = db.rawQuery(query, new String[] { String.valueOf(id) });
+        Media.Builder media = parseMediaFromCursor(c);
         c.close();
-        return authorList;
+        if (media == null) { return null; }
+        media.id((int)id);
+        return media.build();
     }
 }

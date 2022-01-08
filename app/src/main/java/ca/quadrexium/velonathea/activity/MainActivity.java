@@ -108,7 +108,7 @@ public class MainActivity extends BaseActivity {
                 whereFilters.addMandatory(MyOpenHelper.COL_AUTHOR_NAME_ALIAS, author.trim());
             }
             if (!tag.equals("")) {
-                whereFilters.addOptional(MyOpenHelper.COL_MEDIA_TAGS_GROUPED_ALIAS, tag.trim());
+                whereFilters.addMandatory(MyOpenHelper.COL_TAG_NAME_ALIAS, tag.trim());
             }
             if (!mediaType.equals("")) {
                 if (mediaType.equals(Constants.IMAGE)) {
@@ -127,8 +127,8 @@ public class MainActivity extends BaseActivity {
             }
 
             MyOpenHelper myOpenHelper = getMyOpenHelper();
-            Pair<String, String[]> query = myOpenHelper.mediaQueryBuilder(selectedColumns,
-                    whereFilters, orderBy.toArray(new String[0]), 0);
+            Pair<String, String[]> query = myOpenHelper.initialMediaQueryBuilder(whereFilters,
+                    orderBy.toArray(new String[0]));
 
             Bundle dataToPass = new Bundle();
 

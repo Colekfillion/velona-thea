@@ -65,7 +65,7 @@ public class MediaDetailsFragment extends DialogFragment {
             MyOpenHelper myOpenHelper = new MyOpenHelper(getContext(), MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
             SQLiteDatabase db = myOpenHelper.getReadableDatabase();
             try {
-                media = myOpenHelper.getRemainingData(db, media);
+                media = myOpenHelper.depthMediaQuery(db, media.getId());
                 db.close();
             } catch (Exception e) {
                 e.printStackTrace();
