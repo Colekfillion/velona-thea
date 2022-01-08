@@ -133,13 +133,11 @@ public class FullMediaActivity extends BaseActivity {
                 }
             //If the media file could not be found
             } else {
-                //TODO: Test if setting the view to invisible would work here
                 switch (holder.getItemViewType()) {
                     case Constants.MEDIA_TYPE_IMAGE:
                         ViewHolderImage holderImage = (ViewHolderImage) holder;
 
-                        holderImage.ivImage.setImage(ImageSource.resource(R.drawable.null_image));
-                        holderImage.ivImage.setZoomEnabled(false);
+                        holderImage.ivImage.setVisibility(View.GONE);
                         break;
                     case Constants.MEDIA_TYPE_VIDEO:
                         assert holder instanceof ViewHolderVideo;

@@ -30,6 +30,9 @@ import ca.quadrexium.velonathea.database.MyOpenHelper;
 import ca.quadrexium.velonathea.pojo.Constants;
 import ca.quadrexium.velonathea.pojo.WhereFilterHashMap;
 
+//TODO: Multiple tag filtering. Press enter after a tag is written and it is put into a list of
+// textviews, tap to remove.
+//TODO: Edittexts should have a button that clears the text.
 public class MainActivity extends BaseActivity {
 
     @Override

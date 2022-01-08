@@ -39,6 +39,8 @@ import ca.quadrexium.velonathea.pojo.Constants;
 import ca.quadrexium.velonathea.pojo.Media;
 import ca.quadrexium.velonathea.pojo.Notification;
 
+//TODO: Better notifications. Shouldn't show up after dismissal
+//TODO: Create app logo for notifications.
 public class DatabaseConfigActivity extends BaseActivity {
 
     private static boolean busy = false;
@@ -300,6 +302,7 @@ public class DatabaseConfigActivity extends BaseActivity {
         Button btnDbExport = findViewById(R.id.activity_database_config_btn_export_media);
         btnDbExport.setOnClickListener(v -> {
             if (!busy) {
+                //TODO: Allow to choose the filename
                 busy = true;
                 MyOpenHelper myOpenHelper = getMyOpenHelper();
                 SQLiteDatabase db = myOpenHelper.getReadableDatabase();

@@ -31,6 +31,8 @@ import ca.quadrexium.velonathea.database.MyOpenHelper;
 import ca.quadrexium.velonathea.pojo.Media;
 
 //TODO: Reuse this fragment so the author list doesn't have to be queried every time
+//TODO: Show tags as a list of textviews, each tag can be tapped to remove. The edittext can be used
+// to add individual tags, and can be autocompleted. Do above t0d0 first! (more tags than authors)
 public class MediaDetailsFragment extends DialogFragment {
 
     private Media media;
