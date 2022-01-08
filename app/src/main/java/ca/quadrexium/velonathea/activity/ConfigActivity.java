@@ -11,7 +11,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.fragment.app.FragmentManager;
 
@@ -53,24 +52,6 @@ public class ConfigActivity extends BaseActivity {
         EditText etCacheSize = findViewById(R.id.activity_config_et_cachesize);
         etCacheSize.setText(String.valueOf(prefs.getInt(Constants.PREFS_CACHE_SIZE, 150)));
 
-        SwitchCompat swtchShowInvalidFiles = findViewById(R.id.activity_config_swtch_showinvalidfiles);
-        swtchShowInvalidFiles.setChecked(prefs.getBoolean(Constants.PREFS_SHOW_INVALID_FILES, true));
-        swtchShowInvalidFiles.setOnLongClickListener(v -> {
-            AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
-
-            alertDialogBuilder.setTitle(R.string.show_invalid_files)
-
-                    .setMessage("An extra check is performed at the end of each search, which " +
-                            "checks that the file exists and is not empty (0 bytes) \n" +
-                            "Not recommended for large datasets, as it significantly slows down " +
-                            "searches. ")
-
-                    .setNeutralButton(android.R.string.ok, (click, arg) -> { })
-
-                    .create().show();
-            return true;
-        });
-
         SwitchCompat showHiddenFiles = findViewById(R.id.activity_config_swtch_showhiddenfiles);
         showHiddenFiles.setChecked(prefs.getBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, false));
         showHiddenFiles.setOnCheckedChangeListener((buttonView, isChecked) -> {
@@ -96,9 +77,6 @@ public class ConfigActivity extends BaseActivity {
 
         EditText etCacheSize = findViewById(R.id.activity_config_et_cachesize);
         edit.putInt(Constants.PREFS_CACHE_SIZE, Integer.parseInt(etCacheSize.getText().toString()));
-
-        SwitchCompat swtchShowInvalidFiles = findViewById(R.id.activity_config_swtch_showinvalidfiles);
-        edit.putBoolean(Constants.PREFS_SHOW_INVALID_FILES, swtchShowInvalidFiles.isChecked());
 
         edit.apply();
     }

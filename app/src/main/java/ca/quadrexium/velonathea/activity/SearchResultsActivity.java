@@ -35,11 +35,8 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -99,7 +96,6 @@ public class SearchResultsActivity extends BaseActivity {
 
         //Local variables
         boolean showHiddenFiles = prefs.getBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, false);
-        boolean showInvalidFiles = prefs.getBoolean(Constants.PREFS_SHOW_INVALID_FILES, true);
         String query = data.getString(Constants.MEDIA_QUERY);
         String[] selectionArgs = data.getStringArray(Constants.QUERY_ARGS);
 
@@ -121,8 +117,10 @@ public class SearchResultsActivity extends BaseActivity {
             String cachedQuery = getCachedQuery(queryCacheLocation);
             StringBuilder currentQuery = new StringBuilder();
             currentQuery.append(query);
-            for (String arg : selectionArgs) {
-                currentQuery.append(arg).append("\t");
+            if (selectionArgs != null) {
+                for (String arg : selectionArgs) {
+                    currentQuery.append(arg).append("\t");
+                }
             }
             if (cachedQuery == null || !cachedQuery.equals(currentQuery.toString())) {
                 File queryCache = new File(queryCacheLocation + "/" + Constants.QUERY_CACHE_FILENAME);
@@ -142,56 +140,13 @@ public class SearchResultsActivity extends BaseActivity {
                 db.close();
                 rvAdapter.notifyItemRangeInserted(0, mediaList.size());
 
-                //Remove invalid files
-                //TODO: Replace this with a check in DatabaseConfigActivity, this takes too long
-                if (!showInvalidFiles) {
-                    int resultsRemoved = 0;
-                    File root = new File(path);
-                    if (root.exists()) {
-                        String[] fileNamesArray = root.list((dir, name) -> {
-                            int extensionIndex = name.lastIndexOf(".");
-                            if (extensionIndex == -1) { return false; }
-                            String extension = name.substring(extensionIndex);
-                            return Constants.VIDEO_EXTENSIONS.contains(extension) ||
-                                    Constants.IMAGE_EXTENSIONS.contains(extension) ||
-                                    extension.equals(".gif");
-                        });
-                        if (fileNamesArray != null && fileNamesArray.length != 0) {
-
-                            Set<String> fileNames = new HashSet<>(Arrays.asList(fileNamesArray));
-
-                            ArrayList<Media> mediaListCopy = new ArrayList<>(mediaList);
-                            for (Media media : mediaListCopy) {
-                                if (fileNames.contains(media.getFileName())) {
-                                    File f = new File(root, media.getFileName());
-                                    if (!f.exists() || (f.exists() && f.length() == 0)) {
-                                        int removedMediaIndex = mediaList.indexOf(media);
-                                        mediaList.remove(media);
-                                        resultsRemoved++;
-                                        rvAdapter.notifyItemRemoved(removedMediaIndex);
-                                    }
-                                }
-                            }
-                        } else {
-                            resultsRemoved = mediaList.size();
-                            mediaList.clear();
-                            rvAdapter.notifyItemRangeRemoved(0, resultsRemoved);
-                        }
-                    } else {
-                        resultsRemoved = mediaList.size();
-                        mediaList.clear();
-                        rvAdapter.notifyItemRangeRemoved(0, resultsRemoved);
-                    }
-                    if (resultsRemoved > 0) {
-                        Toast.makeText(getApplicationContext(), "Removed " + resultsRemoved + " invalid results", Toast.LENGTH_SHORT).show();
-                    }
-                }
-
                 //Saving the mediaList as a tab-delimited text file
                 StringBuilder mediaListAsString = new StringBuilder();
                 mediaListAsString.append(query);
-                for (String arg : selectionArgs) {
-                    mediaListAsString.append(arg).append("\t");
+                if (selectionArgs != null) {
+                    for (String arg : selectionArgs) {
+                        mediaListAsString.append(arg).append("\t");
+                    }
                 }
                 mediaListAsString.append("\n");
                 for (Media media : mediaList) {

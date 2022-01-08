@@ -42,10 +42,4 @@
         android:layout_height="wrap_content"
         android:text="@string/show_hidden_files"/>
 
-    <androidx.appcompat.widget.SwitchCompat
-        android:id="@+id/activity_config_swtch_showinvalidfiles"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/show_invalid_files"/>
-
 </LinearLayout>

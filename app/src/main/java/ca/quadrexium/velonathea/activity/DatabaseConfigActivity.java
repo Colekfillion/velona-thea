@@ -1,6 +1,7 @@
 package ca.quadrexium.velonathea.activity;
 
 import android.app.Activity;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -353,6 +354,68 @@ public class DatabaseConfigActivity extends BaseActivity {
 
                         .create().show();
             }
+        });
+
+        Button showInvalidFiles = findViewById(R.id.activity_database_config_btn_invalidfiles);
+        showInvalidFiles.setOnClickListener(v -> {
+            if (!busy) {
+                busy = true;
+                SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
+                String path = prefs.getString(Constants.PATH, Environment.DIRECTORY_PICTURES);
+
+                MyOpenHelper myOpenHelper = getMyOpenHelper();
+                SQLiteDatabase db = myOpenHelper.getWritableDatabase();
+                db.execSQL("DROP TABLE IF EXISTS temp_media_invalid;");
+                db.execSQL("CREATE TABLE temp_media_invalid (" +
+                        "media_id INTEGER NOT NULL, " +
+                        "FOREIGN KEY(media_id) REFERENCES " + MyOpenHelper.MEDIA_TABLE + "(" + MyOpenHelper.COL_MEDIA_ID + "))");
+
+                Cursor c = db.rawQuery("SELECT " + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_ID + ", " +
+                        MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME + " " +
+                        "FROM " + MyOpenHelper.MEDIA_TABLE, null);
+                db.beginTransaction();
+                int idIndex = c.getColumnIndex(MyOpenHelper.COL_MEDIA_ID);
+                int fileNameIndex = c.getColumnIndex(MyOpenHelper.COL_MEDIA_FILENAME);
+                if (c.moveToFirst()) {
+                    ContentValues cv = new ContentValues();
+                    int count = 0;
+                    while (!c.isAfterLast()) {
+                        String fileName = c.getString(fileNameIndex);
+                        File f = new File(path, fileName);
+                        if (!f.exists() || (f.exists() && f.length() == 0)) {
+                            cv.put("media_id", c.getInt(idIndex));
+                            db.insert("temp_media_invalid", null, cv);
+                            cv.clear();
+                        }
+                        count++;
+                        System.out.println(count);
+                        c.moveToNext();
+                    }
+                }
+                c.close();
+                db.setTransactionSuccessful();
+                db.endTransaction();
+                db.close();
+
+                String sql = "SELECT " +
+                        MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME + " AS " +
+                            MyOpenHelper.COL_MEDIA_FILENAME_ALIAS + ", " +
+                        MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_ID + " AS " +
+                            MyOpenHelper.COL_MEDIA_ID_ALIAS + " " +
+                        "FROM " + MyOpenHelper.MEDIA_TABLE + " " +
+                        "JOIN temp_media_invalid ON temp_media_invalid.media_id = " + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_ID + " " +
+                        "ORDER BY " + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME + " ASC";
+
+                Bundle dataToPass = new Bundle();
+
+                dataToPass.putString(Constants.MEDIA_QUERY, sql);
+                dataToPass.putStringArray(Constants.QUERY_ARGS, null);
+
+                Intent intent = new Intent(this, SearchResultsActivity.class);
+                intent.putExtras(dataToPass);
+                startActivity(intent);
+            }
+            busy = false;
         });
 
         //Show various database statistics
