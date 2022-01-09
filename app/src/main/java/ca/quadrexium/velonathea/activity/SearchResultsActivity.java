@@ -136,6 +136,7 @@ public class SearchResultsActivity extends BaseActivity {
                 SQLiteDatabase db = myOpenHelper.getReadableDatabase();
                 Cursor c = db.rawQuery(query, selectionArgs);
                 mediaList.addAll(myOpenHelper.parseMediaListFromCursor(c));
+                Toast.makeText(this, mediaList.size() + " results", Toast.LENGTH_LONG).show();
                 c.close();
                 db.close();
                 rvAdapter.notifyItemRangeInserted(0, mediaList.size());
@@ -181,6 +182,7 @@ public class SearchResultsActivity extends BaseActivity {
             //Show image in fullscreen on click
             view.setOnClickListener(v -> {
                 int position = rv.getChildLayoutPosition(view);
+                cancelDataLoading = true;
 
                 Bundle dataToPass = new Bundle();
                 dataToPass.putInt(Constants.POSITION, position);
@@ -231,59 +233,56 @@ public class SearchResultsActivity extends BaseActivity {
 
                 Handler handler = new Handler(Looper.getMainLooper());
 
-                //False when the executor is shut down (when leaving activity)
-                if (!executorService.isShutdown() && !executorService.isTerminated()) {
-                    executorService.execute(() -> {
-                        Bitmap bm = null;
-                        //True if this task was queued for execution but user has left activity
-                        if (!cancelDataLoading) {
-                            while (true) {
-                                File f = new File(path + "/" + fileName);
-                                if (f.exists()) {
-                                    String extension = fileName.substring(fileName.lastIndexOf("."));
-                                    //Image and gif (gifs can be loaded like a bitmap)
-                                    if (Constants.IMAGE_EXTENSIONS.contains(extension) ||
-                                            extension.equals(".gif")) {
+                executorService.execute(() -> {
+                    Bitmap bm = null;
+                    //True if this task was queued for execution but user has left activity
+                    if (!cancelDataLoading) {
+                        while (true) {
+                            File f = new File(path + "/" + fileName);
+                            if (f.exists()) {
+                                String extension = fileName.substring(fileName.lastIndexOf("."));
+                                //Image and gif (gifs can be loaded like a bitmap)
+                                if (Constants.IMAGE_EXTENSIONS.contains(extension) ||
+                                        extension.equals(".gif")) {
 
-                                        //Just decoding the dimensions of the target image
-                                        BitmapFactory.Options options = new BitmapFactory.Options();
-                                        options.inJustDecodeBounds = true;
-                                        BitmapFactory.decodeFile(f.getAbsolutePath(), options);
-                                        if (!fileName.equals(holder.fileName.getText().toString())) {
-                                            break;
-                                        }
-                                        int height = Math.round(options.outHeight / screenDensity); //height as dp
-
-                                        int sampleSize = 1; //how much smaller the image should be loaded
-                                        if (height != 80) {
-                                            //if the height is 160dp, image will be loaded half as big
-                                            sampleSize = Math.round(height / 80f);
-                                        }
-
-                                        //Loading the image with subsampling to save memory (smaller version of image)
-                                        options.inJustDecodeBounds = false;
-                                        options.inSampleSize = sampleSize;
-                                        options.inPreferredConfig = Bitmap.Config.RGB_565; //less colours
-                                        bm = BitmapFactory.decodeFile(f.getAbsolutePath(), options);
-                                        imageCache.put(fileName, bm);
-                                        //Video
-                                    } else if (Constants.VIDEO_EXTENSIONS.contains(extension)) {
-                                        //thumbnails can be created easier for videos
-                                        bm = ThumbnailUtils.createVideoThumbnail(path + "/" + fileName, MediaStore.Video.Thumbnails.MINI_KIND);
-                                        imageCache.put(fileName, bm);
+                                    //Just decoding the dimensions of the target image
+                                    BitmapFactory.Options options = new BitmapFactory.Options();
+                                    options.inJustDecodeBounds = true;
+                                    BitmapFactory.decodeFile(f.getAbsolutePath(), options);
+                                    if (!fileName.equals(holder.fileName.getText().toString())) {
+                                        break;
                                     }
+                                    int height = Math.round(options.outHeight / screenDensity); //height as dp
+
+                                    int sampleSize = 1; //how much smaller the image should be loaded
+                                    if (height != 80) {
+                                        //if the height is 160dp, image will be loaded half as big
+                                        sampleSize = Math.round(height / 80f);
+                                    }
+
+                                    //Loading the image with subsampling to save memory (smaller version of image)
+                                    options.inJustDecodeBounds = false;
+                                    options.inSampleSize = sampleSize;
+                                    options.inPreferredConfig = Bitmap.Config.RGB_565; //less colours
+                                    bm = BitmapFactory.decodeFile(f.getAbsolutePath(), options);
+                                    imageCache.put(fileName, bm);
+                                    //Video
+                                } else if (Constants.VIDEO_EXTENSIONS.contains(extension)) {
+                                    //thumbnails can be created easier for videos
+                                    bm = ThumbnailUtils.createVideoThumbnail(path + "/" + fileName, MediaStore.Video.Thumbnails.MINI_KIND);
+                                    imageCache.put(fileName, bm);
                                 }
-                                break;
                             }
+                            break;
                         }
-                        Bitmap finalBm = bm;
-                        handler.post(() -> {
-                            if (holder.fileName.getText().toString().equals(fileName)) {
-                                holder.image.setImageBitmap(finalBm);
-                            }
-                        });
+                    }
+                    Bitmap finalBm = bm;
+                    handler.post(() -> {
+                        if (holder.fileName.getText().toString().equals(fileName)) {
+                            holder.image.setImageBitmap(finalBm);
+                        }
                     });
-                }
+                });
             }
         }
 
@@ -377,6 +376,11 @@ public class SearchResultsActivity extends BaseActivity {
     protected void onPause() {
         super.onPause();
         cancelDataLoading = true;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
         executorService.shutdownNow();
     }
 
@@ -401,5 +405,9 @@ public class SearchResultsActivity extends BaseActivity {
             size += bm.getAllocationByteCount();
         }
         return size/1000000;
+    }
+
+    public void cancelDataLoading(boolean cancel) {
+        cancelDataLoading = cancel;
     }
 }

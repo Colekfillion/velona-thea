@@ -11,6 +11,7 @@ import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -61,6 +62,18 @@ public class MediaDetailsFragment extends DialogFragment {
         AutoCompleteTextView autocTvAuthor = view.findViewById(R.id.fragment_media_details_autoctv_author);
         EditText etLink = view.findViewById(R.id.fragment_media_details_et_link);
         EditText etTags = view.findViewById(R.id.fragment_media_details_et_tags);
+
+        ImageButton iBtnFileName = view.findViewById(R.id.fragment_media_details_btn_clearfilename);
+        ImageButton iBtnName = view.findViewById(R.id.fragment_media_details_btn_clearname);
+        ImageButton iBtnAuthor = view.findViewById(R.id.fragment_media_details_btn_clearauthor);
+        ImageButton iBtnLink = view.findViewById(R.id.fragment_media_details_btn_clearlink);
+        ImageButton iBtnTags = view.findViewById(R.id.fragment_media_details_btn_cleartags);
+        iBtnFileName.setOnClickListener(v -> etFileName.setText(""));
+        iBtnName.setOnClickListener(v -> etName.setText(""));
+        iBtnAuthor.setOnClickListener(v -> autocTvAuthor.setText(""));
+        iBtnLink.setOnClickListener(v -> etLink.setText(""));
+        iBtnTags.setOnClickListener(v -> etTags.setText(""));
+
         Button btnUpdate = view.findViewById(R.id.fragment_media_details_btn_update);
 
         if (media.getLink() == null || (media.getTags() == null || media.getTags().size() == 0)) {
@@ -141,13 +154,13 @@ public class MediaDetailsFragment extends DialogFragment {
             }
 
             String toastText = "no change";
+            SearchResultsActivity parentActivity = ((SearchResultsActivity)getContext());
             if (changed) {
                 MyOpenHelper myOpenHelper = new MyOpenHelper(getContext(), MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
                 SQLiteDatabase db = myOpenHelper.getWritableDatabase();
                 boolean wasUpdated = myOpenHelper.updateMedia(db, media);
                 toastText = wasUpdated ? "updated" : "no change";
                 if (wasUpdated) {
-                    SearchResultsActivity parentActivity = ((SearchResultsActivity)getContext());
                     if (parentActivity != null) {
                         parentActivity.mediaChanged(position, media);
                     }
@@ -157,6 +170,9 @@ public class MediaDetailsFragment extends DialogFragment {
                 db.close();
             }
             Toast.makeText(getContext(), toastText, Toast.LENGTH_SHORT).show();
+            if (parentActivity != null) {
+                parentActivity.cancelDataLoading(false);
+            }
             dismiss();
         });
     }

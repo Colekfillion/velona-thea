@@ -7,12 +7,9 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Pair;
 
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -347,43 +344,28 @@ public class MyOpenHelper extends SQLiteOpenHelper {
     }
 
     /**
-     * Writes all media to a text-delimited file.
-     * @param db a readable SQLite database
-     * @param filePath the path to write the file to
-     * @return true if written, else false
+     * Returns a query used to select all media all media.
+     * @return the query
      */
-    public boolean writeMediaToFile(SQLiteDatabase db, String filePath) {
-        Date start = new Date();
-        ArrayList<Media> mediaList = initialMediaQuery(db, new WhereFilterHashMap(),
-                new String[] { MEDIA_TABLE + "." + COL_MEDIA_FILENAME + " ASC"});
+    public static String getAllMediaQuery() {
+        String query = "SELECT " +
+                MEDIA_TABLE + "." + COL_MEDIA_ID + " AS " + COL_MEDIA_ID_ALIAS + ", " +
+                MEDIA_TABLE + "." + COL_MEDIA_FILENAME + " AS " + COL_MEDIA_FILENAME_ALIAS + ", " +
+                MEDIA_TABLE + "." + COL_MEDIA_NAME + " AS " + COL_MEDIA_NAME_ALIAS + ", " +
+                AUTHOR_TABLE + "." + COL_AUTHOR_NAME + " AS " + COL_AUTHOR_NAME_ALIAS + ", " +
+                MEDIA_TABLE + "." + COL_MEDIA_LINK + " AS " + COL_MEDIA_LINK_ALIAS + ", " +
+                columns.get(COL_MEDIA_TAGS_GROUPED_ALIAS) + " AS " + COL_MEDIA_TAGS_GROUPED_ALIAS + " ";
 
-        StringBuilder mediaListAsString = new StringBuilder();
-        for (Media current : mediaList) {
-            Media media = depthMediaQuery(db, current.getId());
+        query += "FROM " + MEDIA_TABLE + " ";
 
-            String name = media.getName() != null ? media.getName() : "";
-            String author = media.getAuthor() != null ? media.getAuthor() : "";
-            String link = media.getLink() != null ? media.getLink() : "";
-            //String tags = media.getTagsAsString() != null ? media.getTagsAsString() : "";
+        query += AUTHOR_JOIN;
+        query += TAG_JOIN;
 
-            mediaListAsString.append(media.getFileName()).append("\t");
-            mediaListAsString.append(name).append("\t");
-            mediaListAsString.append(author).append("\t");
-            mediaListAsString.append(link).append("\t");
-            mediaListAsString.append(media.getTagsAsString()).append("\t");
-            mediaListAsString.append("\n");
-        }
-        try {
-            FileWriter myWriter = new FileWriter(filePath);
-            myWriter.write(mediaListAsString.toString());
-            myWriter.close();
-            Date end = new Date();
-            System.out.println(end.getTime() - start.getTime() + "ms");
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
+        query += "GROUP BY (" + columns.get(COL_MEDIA_FILENAME_ALIAS) + ") ";
+
+        query += "ORDER BY " + MEDIA_TABLE + "." + COL_MEDIA_FILENAME + " ASC";
+
+        return query;
     }
 
     /**
@@ -465,7 +447,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
                 if (entry.getValue().second != null && entry.getValue().second.length != 0) {
                     query.append("(");
                     for (String value : entry.getValue().second) {
-                        String key = entry.getKey();
+                        String key = columns.get(entry.getKey());
                         query.append(key).append(" LIKE ?");
                         selectionArgs.add("%" + value + "%");
                         query.append(" OR ");

@@ -8,17 +8,25 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Pair;
+import android.view.KeyEvent;
+import android.view.View;
+import android.view.WindowManager;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.RadioGroup;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.widget.SwitchCompat;
+import androidx.core.content.ContextCompat;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -30,9 +38,6 @@ import ca.quadrexium.velonathea.database.MyOpenHelper;
 import ca.quadrexium.velonathea.pojo.Constants;
 import ca.quadrexium.velonathea.pojo.WhereFilterHashMap;
 
-//TODO: Multiple tag filtering. Press enter after a tag is written and it is put into a list of
-// textviews, tap to remove.
-//TODO: Edittexts should have a button that clears the text.
 public class MainActivity extends BaseActivity {
 
     @Override
@@ -50,6 +55,55 @@ public class MainActivity extends BaseActivity {
         EditText etName = findViewById(R.id.activity_main_et_name);
         AutoCompleteTextView autocTvAuthor = findViewById(R.id.activity_main_autoctv_author);
         EditText etTag = findViewById(R.id.activity_main_et_tag);
+        RelativeLayout tagLayout = findViewById(R.id.activity_main_rl_tags);
+
+        Set<String> tagFilters = new HashSet<>();
+        ArrayList<TextView> tvTags = new ArrayList<>();
+        etTag.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_ENTER) {
+                String newTag = etTag.getText().toString().trim();
+                if (!tagFilters.contains(newTag)) {
+
+                    TextView tv = new TextView(this);
+                    tv.setText(newTag);
+                    tv.setTextColor(ContextCompat.getColor(this, R.color.white));
+                    tv.setId(View.generateViewId());
+                    tv.setBackgroundColor(ContextCompat.getColor(this, R.color.black));
+                    tv.setPadding(3, 0, 3, 0);
+                    tv.setOnClickListener(v1 -> {
+                        tagLayout.removeView(tv);
+                        tvTags.remove(tv);
+                        tagFilters.remove(tv.getText().toString());
+                    });
+
+                    RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
+                            WindowManager.LayoutParams.WRAP_CONTENT,
+                            WindowManager.LayoutParams.WRAP_CONTENT);
+                    params.setMargins(10, 5, 10, 0);
+                    if (tvTags.size() > 0) {
+                        params.addRule(RelativeLayout.END_OF, tvTags.get(tvTags.size() - 1).getId());
+                    }
+                    tagLayout.addView(tv, params);
+
+                    tvTags.add(tv);
+                    tagFilters.add(newTag);
+                    etTag.setText("");
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        //Buttons to clear edittexts
+        ImageButton iBtnFileName = findViewById(R.id.activity_main_btn_clearfilename);
+        ImageButton iBtnName = findViewById(R.id.activity_main_btn_clearname);
+        ImageButton iBtnAuthor = findViewById(R.id.activity_main_btn_clearauthor);
+        ImageButton iBtnTag = findViewById(R.id.activity_main_btn_cleartag);
+        iBtnFileName.setOnClickListener(v -> etFileName.setText(""));
+        iBtnName.setOnClickListener(v -> etName.setText(""));
+        iBtnAuthor.setOnClickListener(v -> autocTvAuthor.setText(""));
+        iBtnTag.setOnClickListener(v -> etTag.setText(""));
+
         RadioGroup rgMediaType = findViewById(R.id.activity_main_rg_mediatype);
 
         Set<String> authors = new HashSet<>();
@@ -84,7 +138,6 @@ public class MainActivity extends BaseActivity {
             String fileName = etFileName.getText().toString();
             String name = etName.getText().toString();
             String author = autocTvAuthor.getText().toString();
-            String tag = etTag.getText().toString();
             String mediaType = "";
             int checkedRadioButtonId = rgMediaType.getCheckedRadioButtonId();
             if (checkedRadioButtonId == R.id.activity_main_rg_mediatype_images) {
@@ -108,9 +161,7 @@ public class MainActivity extends BaseActivity {
             if (!author.equals("")) {
                 whereFilters.addMandatory(MyOpenHelper.COL_AUTHOR_NAME_ALIAS, author.trim());
             }
-            if (!tag.equals("")) {
-                whereFilters.addMandatory(MyOpenHelper.COL_TAG_NAME_ALIAS, tag.trim());
-            }
+
             if (!mediaType.equals("")) {
                 if (mediaType.equals(Constants.IMAGE)) {
                     //If there is already a filename filter, just add to that map's values
@@ -127,9 +178,29 @@ public class MainActivity extends BaseActivity {
                 orderBy.add("LENGTH(" + naturalSortColumn + ")");
             }
 
+            Pair<String, String[]> query;
             MyOpenHelper myOpenHelper = getMyOpenHelper();
-            Pair<String, String[]> query = myOpenHelper.initialMediaQueryBuilder(whereFilters,
-                    orderBy.toArray(new String[0]));
+            //This is for matching multiple tags: it creates multiple queries where tag like ?,
+            // then intersects them all to find the ones where the media has all the selected tags
+            if (tagFilters.size() > 0) {
+                StringBuilder queryBuilder = new StringBuilder();
+                ArrayList<String> selectionArgs = new ArrayList<>();
+                for (String tag : tagFilters) {
+                    WhereFilterHashMap temp = new WhereFilterHashMap(whereFilters);
+                    temp.addMandatory(MyOpenHelper.COL_TAG_NAME_ALIAS, tag);
+                    query = myOpenHelper.initialMediaQueryBuilder(temp,
+                            orderBy.toArray(new String[0]));
+                    queryBuilder.append(query.first);
+                    queryBuilder.append("INTERSECT ");
+                    selectionArgs.addAll(Arrays.asList(query.second));
+                }
+                queryBuilder.setLength(queryBuilder.length()-("INTERSECT ").length());
+                query = new Pair<>(queryBuilder.toString(), selectionArgs.toArray(new String[0]));
+            } else {
+
+                query = myOpenHelper.initialMediaQueryBuilder(whereFilters,
+                        orderBy.toArray(new String[0]));
+            }
 
             Bundle dataToPass = new Bundle();
 

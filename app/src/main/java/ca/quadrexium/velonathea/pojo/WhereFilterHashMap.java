@@ -6,8 +6,19 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 
 public class WhereFilterHashMap extends HashMap<String, Pair<String[], String[]>> {
+    public WhereFilterHashMap(WhereFilterHashMap whereFilters) {
+        for (Map.Entry<String, Pair<String[], String[]>> pair : whereFilters.entrySet()) {
+            put(pair.getKey(), pair.getValue());
+        }
+    }
+
+    public WhereFilterHashMap() {
+
+    }
+
     public void addMandatory(String key, String value) {
         if (containsKey(key)) {
             Pair<String[], String[]> pair = get(key);

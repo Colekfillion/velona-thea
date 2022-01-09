@@ -17,6 +17,7 @@ import android.text.method.ScrollingMovementMethod;
 import android.view.Menu;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -26,6 +27,9 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
@@ -89,7 +93,7 @@ public class DatabaseConfigActivity extends BaseActivity {
                                     db.execSQL(query);
                                 }
 
-                                //TODO: Check filenames in database
+                                //TODO: Check filenames in database.. probably do this after path migration
                                 String[] rows = text.split("\n");
 
                                 int numRows = rows.length;
@@ -302,17 +306,72 @@ public class DatabaseConfigActivity extends BaseActivity {
         Button btnDbExport = findViewById(R.id.activity_database_config_btn_export_media);
         btnDbExport.setOnClickListener(v -> {
             if (!busy) {
-                //TODO: Allow to choose the filename
-                busy = true;
-                MyOpenHelper myOpenHelper = getMyOpenHelper();
-                SQLiteDatabase db = myOpenHelper.getReadableDatabase();
-                boolean success = myOpenHelper.writeMediaToFile(db, this.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) + "/mediaList.txt");
-                if (success) {
-                    Toast.makeText(this, R.string.success, Toast.LENGTH_LONG).show();
-                } else {
-                    Toast.makeText(this, R.string.fail, Toast.LENGTH_LONG).show();
-                }
-                busy = false;
+                EditText edit = new EditText(this);
+                String defaultName = "mediaList";
+                edit.setHint("Filename (without extension)");
+                AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+
+                alertDialogBuilder.setTitle("Export media")
+
+                        .setView(edit)
+
+                        .setPositiveButton(android.R.string.ok, (click, arg) -> {
+
+                            ExecutorService executor = Executors.newSingleThreadExecutor();
+                            Handler handler = new Handler(Looper.getMainLooper());
+
+                            executor.execute(() -> {
+                                busy = true;
+                                String fileName = Constants.isStringEmpty(edit.getText().toString()) ? defaultName : edit.getText().toString();
+                                fileName += ".txt";
+                                MyOpenHelper myOpenHelper = getMyOpenHelper();
+                                SQLiteDatabase db = myOpenHelper.getReadableDatabase();
+                                Cursor c = db.rawQuery(MyOpenHelper.getAllMediaQuery(), null);
+                                ArrayList<Media> mediaList = myOpenHelper.parseMediaListFromCursor(c);
+                                c.close();
+
+                                int total = mediaList.size();
+                                ProgressBar pb = this.findViewById(R.id.activity_database_config_pb_loading);
+                                handler.post(() -> pb.setVisibility(View.VISIBLE));
+
+                                int count = 0;
+                                StringBuilder mediaListAsString = new StringBuilder();
+                                for (Media media : mediaList) {
+
+                                    String name = media.getName() != null ? media.getName() : "";
+                                    String author = media.getAuthor() != null ? media.getAuthor() : "";
+                                    String link = media.getLink() != null ? media.getLink() : "";
+
+                                    mediaListAsString.append(media.getFileName()).append("\t");
+                                    mediaListAsString.append(name).append("\t");
+                                    mediaListAsString.append(author).append("\t");
+                                    mediaListAsString.append(link).append("\t");
+                                    mediaListAsString.append(media.getTagsAsString()).append("\t");
+                                    mediaListAsString.append("\n");
+                                    count++;
+                                    int finalCount = count;
+                                    handler.post(() -> pb.setProgress((int) ((double) finalCount / (double) total) * 1000));
+                                }
+                                try {
+                                    FileWriter myWriter = new FileWriter(this.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) + "/" + fileName);
+                                    myWriter.write(mediaListAsString.toString());
+                                    myWriter.close();
+                                    handler.post(() -> Toast.makeText(this, R.string.success, Toast.LENGTH_LONG).show());
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                    handler.post(() -> Toast.makeText(this, R.string.fail, Toast.LENGTH_LONG).show());
+                                }
+                                handler.post(() -> {
+                                    pb.setVisibility(View.GONE);
+                                    pb.setProgress(0);
+                                });
+                                busy = false;
+                            });
+                        })
+
+                        .setNegativeButton(android.R.string.cancel, (click, arg) -> { })
+
+                        .create().show();
             }
         });
 
