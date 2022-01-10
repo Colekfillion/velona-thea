@@ -96,9 +96,6 @@
 
         </FrameLayout>
 
-<!--        relativelayout? if fit on line, add to end of last tag, else add
-            to start of screen and x dp below?-->
-
         <RelativeLayout
             android:id="@+id/activity_main_rl_tags"
             android:layout_width="match_parent"

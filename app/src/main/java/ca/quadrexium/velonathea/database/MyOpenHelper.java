@@ -12,7 +12,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -397,7 +397,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
     public synchronized Pair<String, String[]> initialMediaQueryBuilder(WhereFilterHashMap whereFilters,
                                                            String[] orderBy) {
 
-        Set<String> selectionArgs = new LinkedHashSet<>();
+        List<String> selectionArgs = new ArrayList<>();
         Set<String> joins = new HashSet<>();
 
         StringBuilder query = new StringBuilder();

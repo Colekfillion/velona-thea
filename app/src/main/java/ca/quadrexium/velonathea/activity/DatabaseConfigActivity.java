@@ -482,6 +482,7 @@ public class DatabaseConfigActivity extends BaseActivity {
 
         //Show various database statistics
         //TODO: Have additional info be shown in a popup, ex. button that says "Show duplicate files"
+        // Low priority
         Button btnDebugDb = findViewById(R.id.activity_database_config_btn_debugdb);
         btnDebugDb.setOnClickListener(v -> {
             if (!busy) {

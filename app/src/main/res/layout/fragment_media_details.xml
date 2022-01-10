@@ -102,23 +102,28 @@
         android:layout_height="wrap_content">
 
         <EditText
-            android:id="@+id/fragment_media_details_et_tags"
+            android:id="@+id/fragment_media_details_et_tag"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Tags"
+            android:hint="Add tag"
             android:importantForAutofill="no"
             android:inputType="text"/>
 
         <ImageButton
-            android:id="@+id/fragment_media_details_btn_cleartags"
+            android:id="@+id/fragment_media_details_btn_cleartag"
             android:layout_width="35dp"
             android:layout_height="35dp"
             android:layout_gravity="end"
             android:alpha="0.4"
             android:background="@drawable/x_button"
-            android:contentDescription="Clear tags" />
+            android:contentDescription="Clear tag" />
 
     </FrameLayout>
+
+    <RelativeLayout
+        android:id="@+id/fragment_media_details_rl_tags"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
 
     <Button
         android:id="@+id/fragment_media_details_btn_update"

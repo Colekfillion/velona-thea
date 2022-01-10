@@ -28,6 +28,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -39,6 +40,8 @@ import ca.quadrexium.velonathea.pojo.Constants;
 import ca.quadrexium.velonathea.pojo.WhereFilterHashMap;
 
 public class MainActivity extends BaseActivity {
+
+    Set<String> tagFilters;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,39 +58,15 @@ public class MainActivity extends BaseActivity {
         EditText etName = findViewById(R.id.activity_main_et_name);
         AutoCompleteTextView autocTvAuthor = findViewById(R.id.activity_main_autoctv_author);
         EditText etTag = findViewById(R.id.activity_main_et_tag);
-        RelativeLayout tagLayout = findViewById(R.id.activity_main_rl_tags);
 
-        Set<String> tagFilters = new HashSet<>();
-        ArrayList<TextView> tvTags = new ArrayList<>();
+        tagFilters = new LinkedHashSet<>();
         etTag.setOnKeyListener((v, keyCode, event) -> {
             if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_ENTER) {
                 String newTag = etTag.getText().toString().trim();
                 if (!tagFilters.contains(newTag)) {
-
-                    TextView tv = new TextView(this);
-                    tv.setText(newTag);
-                    tv.setTextColor(ContextCompat.getColor(this, R.color.white));
-                    tv.setId(View.generateViewId());
-                    tv.setBackgroundColor(ContextCompat.getColor(this, R.color.black));
-                    tv.setPadding(3, 0, 3, 0);
-                    tv.setOnClickListener(v1 -> {
-                        tagLayout.removeView(tv);
-                        tvTags.remove(tv);
-                        tagFilters.remove(tv.getText().toString());
-                    });
-
-                    RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
-                            WindowManager.LayoutParams.WRAP_CONTENT,
-                            WindowManager.LayoutParams.WRAP_CONTENT);
-                    params.setMargins(10, 5, 10, 0);
-                    if (tvTags.size() > 0) {
-                        params.addRule(RelativeLayout.END_OF, tvTags.get(tvTags.size() - 1).getId());
-                    }
-                    tagLayout.addView(tv, params);
-
-                    tvTags.add(tv);
                     tagFilters.add(newTag);
                     etTag.setText("");
+                    refreshTags();
                     return true;
                 }
             }
@@ -172,7 +151,7 @@ public class MainActivity extends BaseActivity {
                     whereFilters.addOptional(MyOpenHelper.COL_MEDIA_FILENAME_ALIAS, videoExtensions);
                 }
             }
-            if (!name.equals("") || !fileName.equals("")) {
+            if ((!name.equals("") || !fileName.equals("")) && tagFilters.size() <= 1) {
                 String naturalSortColumn = MyOpenHelper.MEDIA_TABLE + ".";
                 naturalSortColumn += fileName.length() >= name.length() ? MyOpenHelper.COL_MEDIA_FILENAME : MyOpenHelper.COL_MEDIA_NAME;
                 orderBy.add("LENGTH(" + naturalSortColumn + ")");
@@ -244,5 +223,69 @@ public class MainActivity extends BaseActivity {
                 Toast.makeText(this, R.string.fail_delete_cache, Toast.LENGTH_LONG).show();
             }
         }
+    }
+
+    private void refreshTags() {
+        RelativeLayout tagLayout = findViewById(R.id.activity_main_rl_tags);
+
+        tagLayout.removeAllViewsInLayout();
+
+        int maxWidth = tagLayout.getMeasuredWidth();
+        final int[] currentWidth = {0};
+
+        final TextView[] prev = {null};
+        final TextView[] above = {null};
+
+        for (String tag : tagFilters) {
+            TextView tv = new TextView(this);
+            tv.setText(tag);
+            tv.setTextColor(ContextCompat.getColor(this, R.color.white));
+            tv.setId(View.generateViewId());
+            tv.setBackgroundColor(ContextCompat.getColor(this, R.color.black));
+            tv.setPadding(3, 0, 3, 0);
+            tv.setSingleLine();
+            tv.setOnClickListener(v1 -> {
+                tagLayout.removeView(tv);
+                tagFilters.remove(tv.getText().toString());
+                refreshTags();
+            });
+
+            tagLayout.addView(tv);
+        }
+
+        tagLayout.post(() ->  {
+
+            int count = tagLayout.getChildCount();
+            for (int i = 0; i < count; i++) {
+                TextView tv = (TextView) tagLayout.getChildAt(i);
+                RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
+                        WindowManager.LayoutParams.WRAP_CONTENT,
+                        WindowManager.LayoutParams.WRAP_CONTENT);
+                params.setMargins(10, 5, 10, 0);
+                if (prev[0] != null) {
+                    params.addRule(RelativeLayout.END_OF, prev[0].getId());
+                }
+                if (above[0] != null) {
+                    params.addRule(RelativeLayout.BELOW, above[0].getId());
+                }
+
+                int tvWidth = tv.getMeasuredWidth();
+
+                if (prev[0] != null && (currentWidth[0] + tvWidth +
+                        params.leftMargin + params.rightMargin +
+                        tv.getPaddingStart() + tv.getPaddingEnd()) > maxWidth) {
+                    above[0] = prev[0];
+                    params.removeRule(RelativeLayout.END_OF);
+                    params.addRule(RelativeLayout.BELOW, above[0].getId());
+                    currentWidth[0] = tvWidth + params.leftMargin + params.rightMargin +
+                            tv.getPaddingStart() + tv.getPaddingEnd();
+                } else {
+                    currentWidth[0] += tvWidth + params.leftMargin + params.rightMargin +
+                            tv.getPaddingStart() + tv.getPaddingEnd();
+                }
+                tv.setLayoutParams(params);
+                prev[0] = tv;
+            }
+        });
     }
 }
