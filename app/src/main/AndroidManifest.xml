@@ -11,6 +11,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.VelonaThea">
         <activity
+            android:name=".activity.MediaIndexActivity"
+            android:exported="false" />
+        <activity
             android:name=".activity.DatabaseConfigActivity"
             android:exported="false" />
         <activity

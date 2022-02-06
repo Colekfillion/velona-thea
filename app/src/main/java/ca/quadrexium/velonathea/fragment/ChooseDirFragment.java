@@ -29,7 +29,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import ca.quadrexium.velonathea.R;
-import ca.quadrexium.velonathea.activity.ConfigActivity;
 import ca.quadrexium.velonathea.pojo.Constants;
 
 public class ChooseDirFragment extends DialogFragment {
@@ -76,10 +75,9 @@ public class ChooseDirFragment extends DialogFragment {
         //TODO: Decouple this from ConfigActivity so it can be reused
         Button confirmDirButton = view.findViewById(R.id.fragment_choose_dir_btn_confirm);
         confirmDirButton.setOnClickListener(v -> {
-            ConfigActivity parentActivity = ((ConfigActivity)getContext());
-            if (parentActivity != null) {
-                parentActivity.changePath(currentDir.getAbsolutePath());
-            }
+            SharedPreferences.Editor edit = prefs.edit();
+            edit.putString(Constants.PATH, currentDir.getAbsolutePath());
+            edit.apply();
             dismiss();
         });
     }

@@ -1,2 +1,7 @@
+pluginManagement {
+    repositories {
+        maven { url "https://chaquo.com/maven" }
+    }
+}
 rootProject.name = "Velona Thea"
 include ':app'

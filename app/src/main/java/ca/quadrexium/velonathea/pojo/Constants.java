@@ -36,6 +36,9 @@ public class Constants {
 
     public static final String FRAGMENT_CHOOSE_DIR = "chooseDirFragment";
     public static final String FRAGMENT_MEDIA_DETAILS = "mediaDetailsFragment";
+    public static final String API_KEY = "apiKey";
+    public static final String INPUT_PATH = "inputPath";
+    public static final String MINSIM = "minSim";
 
     public static boolean isStringEmpty(String string) {
         return string == null || string.equals("") || string.length() == 0;

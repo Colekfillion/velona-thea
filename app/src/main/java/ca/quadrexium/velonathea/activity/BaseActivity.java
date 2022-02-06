@@ -144,6 +144,10 @@ public abstract class BaseActivity extends AppCompatActivity {
             Intent intent = new Intent(this, ConfigActivity.class);
             startActivity(intent);
             return true;
+        } else if (item.getItemId() == R.id.index_menubutton) {
+            Intent intent = new Intent(this, MediaIndexActivity.class);
+            startActivity(intent);
+            return true;
         }
         return super.onOptionsItemSelected(item);
     }

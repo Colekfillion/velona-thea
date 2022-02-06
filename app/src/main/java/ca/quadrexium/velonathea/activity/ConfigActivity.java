@@ -108,17 +108,12 @@ public class ConfigActivity extends BaseActivity {
         return true;
     }
 
-    /**
-     * Called by ChooseDirFragment to change the root path.
-     * @param path the new root path
-     */
-    public void changePath(String path) {
-        SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
-        SharedPreferences.Editor edit = prefs.edit();
-        edit.putString(Constants.PATH, path);
-        edit.apply();
+    @Override
+    protected void onResume() {
+        super.onResume();
 
+        SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
         TextView tvRootDir = findViewById(R.id.activity_config_tv_rootdir);
-        tvRootDir.setText(path);
+        tvRootDir.setText(prefs.getString(Constants.PATH, Environment.getExternalStorageDirectory().getAbsolutePath()));
     }
 }

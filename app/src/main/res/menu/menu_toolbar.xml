@@ -4,4 +4,9 @@
         android:id="@+id/config_menubutton"
         android:title="@string/config_menubutton"
         android:orderInCategory="1" />
+
+    <item
+        android:id="@+id/index_menubutton"
+        android:title="Index"
+        android:orderInCategory="2" />
 </menu>
