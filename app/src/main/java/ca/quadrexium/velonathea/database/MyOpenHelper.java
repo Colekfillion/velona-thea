@@ -475,7 +475,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
             for (String orderColumn : orderBy) {
                 query.append(orderColumn).append(", ");
             }
-            query.replace(query.lastIndexOf(","), query.length(), ""); //removing comma
+            query.replace(query.lastIndexOf(","), query.length(), " "); //removing comma
         }
 
         System.out.println(query.toString());

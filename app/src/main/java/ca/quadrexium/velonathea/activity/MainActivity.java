@@ -26,7 +26,6 @@ import androidx.core.content.ContextCompat;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -64,6 +63,7 @@ public class MainActivity extends BaseActivity {
             if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_ENTER) {
                 String newTag = etTag.getText().toString().trim();
                 if (!tagFilters.contains(newTag)) {
+                    tagFilters.clear(); //added so only one tag can be in at a time
                     tagFilters.add(newTag);
                     etTag.setText("");
                     refreshTags();
@@ -162,24 +162,28 @@ public class MainActivity extends BaseActivity {
             //This is for matching multiple tags: it creates multiple queries where tag like ?,
             // then intersects them all to find the ones where the media has all the selected tags
             if (tagFilters.size() > 0) {
-                StringBuilder queryBuilder = new StringBuilder();
-                ArrayList<String> selectionArgs = new ArrayList<>();
+//                StringBuilder queryBuilder = new StringBuilder();
+//                ArrayList<String> selectionArgs = new ArrayList<>();
+//                for (String tag : tagFilters) {
+//                    WhereFilterHashMap temp = new WhereFilterHashMap(whereFilters);
+//                    temp.addMandatory(MyOpenHelper.COL_TAG_NAME_ALIAS, tag);
+//                    query = myOpenHelper.initialMediaQueryBuilder(temp,
+//                            orderBy.toArray(new String[0]));
+//                    queryBuilder.append(query.first);
+//                    queryBuilder.append("INTERSECT ");
+//                    selectionArgs.addAll(Arrays.asList(query.second));
                 for (String tag : tagFilters) {
-                    WhereFilterHashMap temp = new WhereFilterHashMap(whereFilters);
-                    temp.addMandatory(MyOpenHelper.COL_TAG_NAME_ALIAS, tag);
-                    query = myOpenHelper.initialMediaQueryBuilder(temp,
-                            orderBy.toArray(new String[0]));
-                    queryBuilder.append(query.first);
-                    queryBuilder.append("INTERSECT ");
-                    selectionArgs.addAll(Arrays.asList(query.second));
+                    whereFilters.addMandatory(MyOpenHelper.COL_TAG_NAME_ALIAS, tag);
                 }
-                queryBuilder.setLength(queryBuilder.length()-("INTERSECT ").length());
-                query = new Pair<>(queryBuilder.toString(), selectionArgs.toArray(new String[0]));
-            } else {
 
+            }
+//                queryBuilder.setLength(queryBuilder.length()-("INTERSECT ").length());
+//                query = new Pair<>(queryBuilder.toString(), selectionArgs.toArray(new String[0]));
+//            } else {
+//
                 query = myOpenHelper.initialMediaQueryBuilder(whereFilters,
                         orderBy.toArray(new String[0]));
-            }
+//            }
 
             Bundle dataToPass = new Bundle();
 
