@@ -14,7 +14,7 @@ public class Notification {
     private final String notificationChannel;
     private final Context context;
     private final int id;
-    private int priority = -1;
+    private int priority = -9;
     private int smallIcon = -1;
     private String title;
     private String content;
@@ -39,7 +39,7 @@ public class Notification {
         notificationManager = NotificationManagerCompat.from(context);
         notificationBuilder = new NotificationCompat.Builder(context, notificationChannel);
         notificationBuilder.setContentTitle(title).setContentText(content).setSmallIcon(smallIcon);
-        if (priority != -1) {
+        if (priority != -9) {
             notificationBuilder.setPriority(priority);
         }
         notificationBuilder.setChannelId(notificationChannel);

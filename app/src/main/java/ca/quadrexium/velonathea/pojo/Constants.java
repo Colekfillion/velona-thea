@@ -34,8 +34,12 @@ public class Constants {
     public static final String PREFS_SHOW_HIDDEN_FILES = "showHiddenFiles";
     public static final String PREFS_CACHE_SIZE = "cacheSize";
 
+    public static final String NOFICIATION_CHANNEL_1 = "channel1";
+
     public static final String FRAGMENT_CHOOSE_DIR = "chooseDirFragment";
     public static final String FRAGMENT_MEDIA_DETAILS = "mediaDetailsFragment";
+    public static final String FRAGMENT_MEDIA_IMPORT = "mediaImportFragment";
+
     public static final String API_KEY = "apiKey";
     public static final String INPUT_PATH = "inputPath";
     public static final String MINSIM = "minSim";

@@ -21,6 +21,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
+import androidx.fragment.app.FragmentManager;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -30,13 +31,13 @@ import java.util.ArrayList;
 
 import ca.quadrexium.velonathea.R;
 import ca.quadrexium.velonathea.database.MyOpenHelper;
+import ca.quadrexium.velonathea.fragment.MediaImportFragment;
 import ca.quadrexium.velonathea.pojo.Constants;
 import ca.quadrexium.velonathea.pojo.Media;
 
 public abstract class BaseActivity extends AppCompatActivity {
 
     protected boolean verified = false;
-    protected final static String NOTIFICATION_CHANNEL_1 = "channel1";
     protected boolean isVisible = false;
 
     //Verify user activity for things that require authorization
@@ -148,6 +149,11 @@ public abstract class BaseActivity extends AppCompatActivity {
             Intent intent = new Intent(this, MediaIndexActivity.class);
             startActivity(intent);
             return true;
+        } else if (item.getItemId() == R.id.import_menubutton) {
+            FragmentManager fm = getSupportFragmentManager();
+            MediaImportFragment mediaImportFragment = new MediaImportFragment();
+            mediaImportFragment.show(fm, Constants.FRAGMENT_MEDIA_IMPORT);
+            return true;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -159,9 +165,10 @@ public abstract class BaseActivity extends AppCompatActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             CharSequence name = getString(R.string.app_name);
             String description = "All notifications";
-            int importance = NotificationManager.IMPORTANCE_DEFAULT;
-            NotificationChannel channel = new NotificationChannel(NOTIFICATION_CHANNEL_1, name, importance);
+            int importance = NotificationManager.IMPORTANCE_LOW;
+            NotificationChannel channel = new NotificationChannel(Constants.NOFICIATION_CHANNEL_1, name, importance);
             channel.setDescription(description);
+            channel.setSound(null, null);
 
             NotificationManager notificationManager = getSystemService(NotificationManager.class);
             notificationManager.createNotificationChannel(channel);
@@ -207,7 +214,7 @@ public abstract class BaseActivity extends AppCompatActivity {
                 String[] rowValues = row.split("\t");
                 Media media = new Media.Builder()
                         .id(Integer.parseInt(rowValues[0]))
-                        .fileName(rowValues[1])
+                        .filePath(rowValues[1])
                         .build();
                 mediaList.add(media);
             }

@@ -1,5 +1,6 @@
 package ca.quadrexium.velonathea.fragment;
 
+import android.content.DialogInterface;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Handler;
@@ -62,18 +63,18 @@ public class MediaDetailsFragment extends DialogFragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         System.out.println(media.toString());
-        EditText etFileName = view.findViewById(R.id.fragment_media_details_et_filename);
+        EditText etFilePath = view.findViewById(R.id.fragment_media_details_et_filepath);
         EditText etName = view.findViewById(R.id.fragment_media_details_et_name);
         AutoCompleteTextView autocTvAuthor = view.findViewById(R.id.fragment_media_details_autoctv_author);
         EditText etLink = view.findViewById(R.id.fragment_media_details_et_link);
         EditText etTag = view.findViewById(R.id.fragment_media_details_et_tag);
 
-        ImageButton iBtnFileName = view.findViewById(R.id.fragment_media_details_btn_clearfilename);
+        ImageButton iBtnFilePath = view.findViewById(R.id.fragment_media_details_btn_clearfilepath);
         ImageButton iBtnName = view.findViewById(R.id.fragment_media_details_btn_clearname);
         ImageButton iBtnAuthor = view.findViewById(R.id.fragment_media_details_btn_clearauthor);
         ImageButton iBtnLink = view.findViewById(R.id.fragment_media_details_btn_clearlink);
         ImageButton iBtnTag = view.findViewById(R.id.fragment_media_details_btn_cleartag);
-        iBtnFileName.setOnClickListener(v -> etFileName.setText(""));
+        iBtnFilePath.setOnClickListener(v -> etFilePath.setText(""));
         iBtnName.setOnClickListener(v -> etName.setText(""));
         iBtnAuthor.setOnClickListener(v -> autocTvAuthor.setText(""));
         iBtnLink.setOnClickListener(v -> etLink.setText(""));
@@ -99,7 +100,7 @@ public class MediaDetailsFragment extends DialogFragment {
             tags = new LinkedHashSet<>();
         }
 
-        etFileName.setText(media.getFileName());
+        etFilePath.setText(media.getFilePath());
         etName.setText(media.getName());
         autocTvAuthor.setText(media.getAuthor());
         etLink.setText(media.getLink());
@@ -153,10 +154,10 @@ public class MediaDetailsFragment extends DialogFragment {
                 changed = true;
                 media.setName(newMediaName);
             }
-            String newMediaFileName = etFileName.getText().toString().trim();
-            if (!newMediaFileName.equals("") && !media.getFileName().equals(newMediaFileName)) {
+            String newMediaFilePath = etFilePath.getText().toString().trim();
+            if (!newMediaFilePath.equals("") && !media.getFilePath().equals(newMediaFilePath)) {
                 changed = true;
-                media.setFileName(newMediaFileName);
+                media.setFilePath(newMediaFilePath);
             }
             String newMediaAuthor = autocTvAuthor.getText().toString().trim();
             if (!newMediaAuthor.equals("") && !media.getAuthor().equals(newMediaAuthor)) {
@@ -275,5 +276,14 @@ public class MediaDetailsFragment extends DialogFragment {
         tagParams = tagLayout.getLayoutParams();
         tagParams.height = WindowManager.LayoutParams.WRAP_CONTENT;
         tagLayout.setLayoutParams(tagParams);
+    }
+
+    @Override
+    public void onDismiss(@NonNull DialogInterface dialog) {
+        super.onDismiss(dialog);
+        SearchResultsActivity parentActivity = ((SearchResultsActivity)getContext());
+        if (parentActivity != null) {
+            parentActivity.startLoadingMedia();
+        }
     }
 }

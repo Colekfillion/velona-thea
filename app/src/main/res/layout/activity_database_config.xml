@@ -7,22 +7,10 @@
     <include layout="@layout/toolbar"/>
 
     <Button
-        android:id="@+id/activity_database_config_btn_dbimportfile"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/import_from_file" />
-
-    <Button
         android:id="@+id/activity_database_config_btn_export_media"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Export to file" />
-
-    <Button
-        android:id="@+id/activity_database_config_btn_dbimportraw"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/import_media_in_root_directory" />
 
     <Button
         android:id="@+id/activity_database_config_btn_cleardb"

@@ -1,6 +1,5 @@
 package ca.quadrexium.velonathea.activity;
 
-import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
@@ -8,7 +7,6 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -22,18 +20,13 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -41,123 +34,12 @@ import ca.quadrexium.velonathea.R;
 import ca.quadrexium.velonathea.database.MyOpenHelper;
 import ca.quadrexium.velonathea.pojo.Constants;
 import ca.quadrexium.velonathea.pojo.Media;
-import ca.quadrexium.velonathea.pojo.Notification;
 
 //TODO: Better notifications. Shouldn't show up after dismissal
 //TODO: Create app logo for notifications.
 public class DatabaseConfigActivity extends BaseActivity {
 
     private static boolean busy = false;
-    private final int LOAD_FILE_NOTIFICATION_ID = 12;
-    private final int LOAD_MEDIA_ROOT_NOTIFICATION_ID = 64;
-
-    private Notification notification;
-
-    //Loads rows from selected text file
-    private final ActivityResultLauncher<Intent> loadRowsActivity = registerForActivityResult(
-            new ActivityResultContracts.StartActivityForResult(),
-            result -> {
-                if (result.getResultCode() == Activity.RESULT_OK) {
-                    Intent data = result.getData();
-                    if (data != null && data.getData() != null) {
-                        busy = true;
-                        Uri uri = data.getData();
-
-                        ProgressBar pb = findViewById(R.id.activity_database_config_pb_loading);
-                        TextView tvLoading = findViewById(R.id.activity_database_config_tv_loading);
-
-                        ExecutorService executor = Executors.newSingleThreadExecutor();
-                        Handler handler = new Handler(Looper.getMainLooper());
-
-                        executor.execute(() -> {
-                            //Read the file as a string
-                            handler.post(() -> {
-                                pb.setVisibility(View.VISIBLE);
-                                tvLoading.setVisibility(View.VISIBLE);
-                                notification = new Notification.Builder(this, NOTIFICATION_CHANNEL_1,
-                                        LOAD_FILE_NOTIFICATION_ID)
-                                        .title(getString(R.string.loading_media))
-                                        .content(getString(R.string.preparing))
-                                        .smallIcon(R.drawable.null_image).build();
-                            });
-
-                            String text = readStringFromUri(uri);
-                            if (!text.equals("")) {
-                                //Prepare for inserting rows into db
-                                MyOpenHelper myOpenHelper = getMyOpenHelper();
-                                SQLiteDatabase db = myOpenHelper.getWritableDatabase();
-
-                                db.beginTransaction();
-                                //Dropping indexes for performance
-                                for (String query : MyOpenHelper.DROP_INDEX_QUERIES) {
-                                    db.execSQL(query);
-                                }
-
-                                //TODO: Check filenames in database.. probably do this after path migration
-                                String[] rows = text.split("\n");
-
-                                int numRows = rows.length;
-                                for (int i = 0; i < rows.length; i++) {
-                                    String[] rowValues = rows[i].split("\t");
-                                    Media.Builder mediaBuilder = new Media.Builder()
-                                            .id(-1) //temp value
-                                            .fileName(rowValues[0])
-                                            .name(rowValues[1])
-                                            .author(Constants.isStringEmpty(rowValues[2]) ? "unknown" : rowValues[2]);
-                                    try {
-                                        mediaBuilder.link(rowValues[3]);
-                                    } catch (ArrayIndexOutOfBoundsException e) {
-                                        //no link to source, do nothing
-                                    }
-                                    try {
-                                        mediaBuilder.tags(new HashSet<>(Arrays.asList(rowValues[4].split(" "))));
-                                    } catch (ArrayIndexOutOfBoundsException e) {
-                                        //no tags, do nothing
-                                    }
-
-                                    Media media = mediaBuilder.build();
-
-                                    myOpenHelper.insertMedia(db, media);
-                                    int finalI = i;
-                                    handler.post(() -> {
-                                        int percentProgress = (int) (((double) finalI / (double) numRows) * 100);
-                                        String content = finalI + "/" + numRows +
-                                                " (" + percentProgress + "%)";
-                                        if (!isVisible) {
-                                            notification.setContent(content);
-                                            notification.setProgress(percentProgress*10);
-                                            notification.show();
-                                        } else {
-                                            pb.setProgress(percentProgress*10);
-                                            tvLoading.setText(String.format("%s, %s", getString(R.string.loading_media), content));
-                                        }
-                                    });
-                                }
-                                //Recreating the indexes
-                                for (String query : MyOpenHelper.CREATE_INDEX_QUERIES) {
-                                    db.execSQL(query);
-                                }
-                                db.setTransactionSuccessful();
-                                db.endTransaction();
-                                busy = false;
-                                handler.post(() -> {
-                                    if (!isVisible) {
-                                        notification.setTitle(getString(R.string.loading_complete));
-                                        notification.setContent(numRows + "/" + numRows);
-                                        notification.setProgress(0);
-                                        notification.show();
-                                    }
-                                    pb.setProgress(0);
-                                    pb.setVisibility(View.GONE);
-                                    tvLoading.setText(String.format("%s, %s",
-                                            getString(R.string.loading_complete),
-                                            numRows + "/" + numRows));
-                                });
-                            }
-                        });
-                    }
-                }
-            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -165,143 +47,6 @@ public class DatabaseConfigActivity extends BaseActivity {
         createToolbar(R.id.activity_tb_default_toolbar);
         Objects.requireNonNull(getSupportActionBar()).setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowHomeEnabled(true);
-
-        //Loads media from text file
-        Button btnDbImportFile = findViewById(R.id.activity_database_config_btn_dbimportfile);
-        btnDbImportFile.setOnClickListener(v -> {
-            if (!busy) {
-                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                intent.setType("text/plain");
-                loadRowsActivity.launch(intent);
-            }
-        });
-
-        //Import media from root directory
-        Button btnDbImportRaw = findViewById(R.id.activity_database_config_btn_dbimportraw);
-        btnDbImportRaw.setOnClickListener(v -> {
-            if (!busy) {
-                busy = true;
-                SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
-                String path = prefs.getString(Constants.PATH, Environment.DIRECTORY_PICTURES);
-
-                ProgressBar pb = findViewById(R.id.activity_database_config_pb_loading);
-                TextView tvLoading = findViewById(R.id.activity_database_config_tv_loading);
-                tvLoading.setVisibility(View.VISIBLE);
-                pb.setVisibility(View.VISIBLE);
-
-                notification = new Notification.Builder(this, NOTIFICATION_CHANNEL_1,
-                        LOAD_MEDIA_ROOT_NOTIFICATION_ID)
-                        .title(getString(R.string.loading_media))
-                        .content(getString(R.string.preparing))
-                        .smallIcon(R.drawable.null_image).build();
-
-                tvLoading.setText(String.format("%s, %s", getString(R.string.loading_media), getString(R.string.preparing)));
-                ExecutorService executor = Executors.newSingleThreadExecutor();
-                Handler handler = new Handler(Looper.getMainLooper());
-
-                executor.execute(() -> {
-                    //Get all valid media files in root directory
-                    File root = new File(path);
-                    String[] filesInRoot = root.list((dir, name) -> {
-                        int startingIndex = name.lastIndexOf(".");
-                        if (startingIndex == -1) { return false; }
-                        String extension = name.substring(startingIndex);
-                        return Constants.IMAGE_EXTENSIONS.contains(extension) ||
-                            Constants.VIDEO_EXTENSIONS.contains(extension) ||
-                                extension.equals(".gif");
-                    });
-                    if (filesInRoot == null) {
-                        return; //no files
-                    }
-                    Set<String> fileNames = new HashSet<>(Arrays.asList(filesInRoot));
-                    int fileNamesLength = fileNames.size();
-
-                    //Filter filenames that are already in the database
-                    MyOpenHelper myOpenHelper = getMyOpenHelper();
-                    SQLiteDatabase db = myOpenHelper.getWritableDatabase();
-                    Cursor c = db.rawQuery("SELECT " + MyOpenHelper.MEDIA_TABLE + "." +
-                            MyOpenHelper.COL_MEDIA_FILENAME + " FROM " + MyOpenHelper.MEDIA_TABLE, null);
-                    c.moveToFirst();
-                    int fileNameIndex = c.getColumnIndex(MyOpenHelper.COL_MEDIA_FILENAME);
-
-                    while (!c.isAfterLast()) {
-                        boolean wasRemoved = fileNames.remove(c.getString(fileNameIndex));
-                        if (wasRemoved) {
-                            fileNamesLength--;
-                        }
-                        c.moveToNext();
-                    }
-                    c.close();
-
-                    int count = 0;
-                    //Insert media
-                    db.beginTransaction();
-                    for (String fileName : fileNames) {
-                        String name = fileName.substring(0, fileName.lastIndexOf("."));
-                        Media media = new Media.Builder()
-                                .id(-1)
-                                .fileName(fileName)
-                                .name(name)
-                                .author("unknown")
-                                .build();
-                        //To diagnose a one-time unreproducible bug where the name was not the
-                        // filename without the extension
-                        if (!fileName.contains(media.getName())) {
-                            handler.post(() -> {
-                                Toast.makeText(this, "Assertion error: " +
-                                        fileName.substring(0, fileName.lastIndexOf("."))
-                                        + " != " + name, Toast.LENGTH_LONG).show();
-                                finish();
-                            });
-                            return;
-                        }
-                        int mediaId = myOpenHelper.insertMedia(db, media);
-                        if (mediaId == -1) { //insertion error
-                            handler.post(() -> {
-                                Toast.makeText(this, "Error inserting " +
-                                                "media into database",
-                                        Toast.LENGTH_LONG).show();
-                                finish();
-                            });
-                            return;
-                        }
-                        count++;
-                        int finalCount = count;
-                        double percent = ((double) finalCount / (double) fileNamesLength) * 1000;
-                        String notificationContent = count + "/" + fileNamesLength;
-                        String tvLoadingText = getString(R.string.loading_media) + ", " + count + "/" + fileNamesLength;
-                        if (count % 4 == 0) { //give the ui thread some time to process
-                            handler.post(() -> {
-                                tvLoading.setText(tvLoadingText);
-                                pb.setProgress((int) percent);
-                                if (!isVisible) {
-                                    notification.setContent(notificationContent);
-                                    notification.setProgress((int) percent);
-                                    notification.show();
-                                }
-                            });
-                        }
-                    }
-                    db.setTransactionSuccessful();
-                    db.endTransaction();
-                    db.close();
-                    busy = false;
-                    String content = count + "/" + count;
-                    String tvLoadingText = getString(R.string.loading_complete) + ", " + content;
-                    handler.post(() -> {
-                        tvLoading.setText(tvLoadingText);
-                        pb.setVisibility(View.GONE);
-                        pb.setProgress(0);
-                        if (!isVisible) {
-                            notification.setTitle(tvLoadingText);
-                            notification.setContent(content);
-                            notification.setProgress(0);
-                            notification.show();
-                        }
-                    });
-                });
-            }
-        });
 
         Button btnDbExport = findViewById(R.id.activity_database_config_btn_export_media);
         btnDbExport.setOnClickListener(v -> {
@@ -342,7 +87,7 @@ public class DatabaseConfigActivity extends BaseActivity {
                                     String author = media.getAuthor() != null ? media.getAuthor() : "";
                                     String link = media.getLink() != null ? media.getLink() : "";
 
-                                    mediaListAsString.append(media.getFileName()).append("\t");
+                                    mediaListAsString.append(media.getFilePath()).append("\t");
                                     mediaListAsString.append(name).append("\t");
                                     mediaListAsString.append(author).append("\t");
                                     mediaListAsString.append(link).append("\t");
@@ -423,7 +168,6 @@ public class DatabaseConfigActivity extends BaseActivity {
             if (!busy) {
                 busy = true;
                 SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
-                String path = prefs.getString(Constants.PATH, Environment.DIRECTORY_PICTURES);
 
                 MyOpenHelper myOpenHelper = getMyOpenHelper();
                 SQLiteDatabase db = myOpenHelper.getWritableDatabase();
@@ -433,17 +177,17 @@ public class DatabaseConfigActivity extends BaseActivity {
                         "FOREIGN KEY(media_id) REFERENCES " + MyOpenHelper.MEDIA_TABLE + "(" + MyOpenHelper.COL_MEDIA_ID + "))");
 
                 Cursor c = db.rawQuery("SELECT " + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_ID + ", " +
-                        MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME + " " +
+                        MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_PATH + " " +
                         "FROM " + MyOpenHelper.MEDIA_TABLE, null);
                 db.beginTransaction();
                 int idIndex = c.getColumnIndex(MyOpenHelper.COL_MEDIA_ID);
-                int fileNameIndex = c.getColumnIndex(MyOpenHelper.COL_MEDIA_FILENAME);
+                int filePathIndex = c.getColumnIndex(MyOpenHelper.COL_MEDIA_PATH);
                 if (c.moveToFirst()) {
                     ContentValues cv = new ContentValues();
                     int count = 0;
                     while (!c.isAfterLast()) {
-                        String fileName = c.getString(fileNameIndex);
-                        File f = new File(path, fileName);
+                        String filePath = c.getString(filePathIndex);
+                        File f = new File(filePath);
                         if (!f.exists() || (f.exists() && f.length() == 0)) {
                             cv.put("media_id", c.getInt(idIndex));
                             db.insert("temp_media_invalid", null, cv);
@@ -460,13 +204,13 @@ public class DatabaseConfigActivity extends BaseActivity {
                 db.close();
 
                 String sql = "SELECT " +
-                        MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME + " AS " +
-                            MyOpenHelper.COL_MEDIA_FILENAME_ALIAS + ", " +
+                        MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_PATH + " AS " +
+                            MyOpenHelper.COL_MEDIA_FILEPATH_ALIAS + ", " +
                         MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_ID + " AS " +
                             MyOpenHelper.COL_MEDIA_ID_ALIAS + " " +
                         "FROM " + MyOpenHelper.MEDIA_TABLE + " " +
                         "JOIN temp_media_invalid ON temp_media_invalid.media_id = " + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_ID + " " +
-                        "ORDER BY " + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME + " ASC";
+                        "ORDER BY " + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_PATH + " ASC";
 
                 Bundle dataToPass = new Bundle();
 
@@ -581,16 +325,16 @@ public class DatabaseConfigActivity extends BaseActivity {
                     c.close();
 
                     //Duplicate filenames
-                    sql = "SELECT " + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME + ", " +
-                            "COUNT(" + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME + ") AS count " +
+                    sql = "SELECT " + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_PATH + ", " +
+                            "COUNT(" + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_PATH + ") AS count " +
                             "FROM " + MyOpenHelper.MEDIA_TABLE + " " +
-                            "GROUP BY (" + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILENAME + ") " +
+                            "GROUP BY (" + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_PATH + ") " +
                             "HAVING count > 1";
                     c = db.rawQuery(sql, null);
                     if (c.moveToFirst()) {
                         dbStats.append("Duplicate filenames: ");
                         while (!c.isAfterLast()) {
-                            dbStats.append("\t").append(c.getString(c.getColumnIndex(MyOpenHelper.COL_MEDIA_FILENAME)))
+                            dbStats.append("\t").append(c.getString(c.getColumnIndex(MyOpenHelper.COL_MEDIA_PATH)))
                                     .append("(").append(c.getInt(c.getColumnIndex("count"))).append(")\n");
                             c.moveToNext();
                         }
@@ -622,13 +366,5 @@ public class DatabaseConfigActivity extends BaseActivity {
     public boolean onSupportNavigateUp() {
         onBackPressed();
         return true;
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (notification != null) {
-            notification.dismiss();
-        }
     }
 }

@@ -7,7 +7,7 @@ import java.util.Set;
 public class Media {
     protected int id;
     protected String name;
-    protected String fileName;
+    protected String filePath;
     protected String author;
     protected String link;
     protected Set<String> tags;
@@ -15,7 +15,7 @@ public class Media {
     public Media(Media.Builder builder) {
         this.id = builder.id;
         this.name = builder.name;
-        this.fileName = builder.fileName;
+        this.filePath = builder.filePath;
         this.author = builder.author;
         this.link = builder.link;
         this.tags = builder.tags;
@@ -23,7 +23,8 @@ public class Media {
 
     public int getId() { return id; }
     public String getName() { return name; }
-    public String getFileName() { return fileName; }
+    public String getFileName() { return filePath.substring(filePath.lastIndexOf("/")+1); }
+    public String getFilePath() { return filePath; }
     public String getAuthor() { return author; }
     public String getLink() { return link; }
     public Set<String> getTags() { return tags; }
@@ -39,7 +40,7 @@ public class Media {
 
     public void setId(int id) { this.id = id; }
     public void setName(String name) { this.name = name; }
-    public void setFileName(String fileName) { this.fileName = fileName; }
+    public void setFilePath(String filePath) { this.filePath = filePath; }
     public void setAuthor(String author) { this.author = author; }
     public void setLink(String link) { this.link = link; }
     public void setTags(@NonNull Set<String> tags) { this.tags = tags; }
@@ -51,7 +52,7 @@ public class Media {
     public static class Builder {
         private int id = 0;
         private String name;
-        private String fileName;
+        private String filePath;
         private String author;
         private String link;
         private Set<String> tags;
@@ -66,8 +67,8 @@ public class Media {
             return this;
         }
 
-        public Builder fileName(String fileName) {
-            this.fileName = fileName;
+        public Builder filePath(String filePath) {
+            this.filePath = filePath;
             return this;
         }
 
@@ -90,8 +91,8 @@ public class Media {
             if (media.id == 0) {
                 throw new IllegalStateException("Media must have an ID");
             }
-            if (media.fileName == null) {
-                throw new IllegalStateException("Media must have a file name");
+            if (media.filePath == null) {
+                throw new IllegalStateException("Media must have a file pointer");
             }
         }
 
@@ -108,7 +109,7 @@ public class Media {
         return "Media{" +
                 "id=" + id +
                 ", name='" + name + '\'' +
-                ", fileName='" + fileName + '\'' +
+                ", filePath='" + filePath + '\'' +
                 ", author='" + author + '\'' +
                 ", link='" + link + '\'' +
                 ", tags=" + tags +

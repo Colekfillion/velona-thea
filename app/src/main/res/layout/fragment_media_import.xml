@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".fragment.MediaImportFragment"
+    android:id="@+id/fragment_media_import_ll_root">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Import media:"/>
+
+    <RadioGroup
+        android:id="@+id/fragment_media_import_rg_importtype"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <RadioButton
+            android:id="@+id/fragment_media_import_rg_importtype_raw"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="From directory (raw)"/>
+
+        <RadioButton
+            android:id="@+id/fragment_media_import_rg_importtype_file"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="From text file"/>
+
+    </RadioGroup>
+
+    <RelativeLayout
+        android:id="@+id/fragment_media_import_rl_raw"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:visibility="invisible">
+
+        <TextView
+            android:id="@+id/fragment_media_import_tv_inputpath"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Directory path:"/>
+
+        <EditText
+            android:id="@+id/fragment_media_import_et_inputpath"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_toStartOf="@+id/fragment_media_import_btn_choosedir"
+            android:layout_below="@+id/fragment_media_import_tv_inputpath"/>
+
+        <Button
+            android:id="@+id/fragment_media_import_btn_choosedir"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Browse"
+            android:layout_alignParentEnd="true"
+            android:layout_alignBottom="@+id/fragment_media_import_et_inputpath"/>
+
+        <Button
+            android:id="@+id/fragment_media_import_btn_import"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Import"
+            android:layout_below="@id/fragment_media_import_et_inputpath"/>
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/fragment_media_import_rl_file"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <Button
+            android:id="@+id/fragment_media_import_btn_choosefile"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Browse"/>
+
+    </RelativeLayout>
+
+    <TextView
+        android:id="@+id/fragment_media_import_tv_loading"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone"/>
+
+    <ProgressBar
+        android:id="@+id/fragment_media_import_pb_loading"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:visibility="gone"
+        android:max="1000"/>
+
+</LinearLayout>

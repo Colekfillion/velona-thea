@@ -24,6 +24,7 @@ android {
             pip {
                 install "Pillow"
                 install "requests"
+                install "urllib3"
             }
         }
     }

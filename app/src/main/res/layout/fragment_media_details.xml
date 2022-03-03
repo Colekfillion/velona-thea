@@ -11,21 +11,21 @@
         android:layout_height="wrap_content">
 
         <EditText
-            android:id="@+id/fragment_media_details_et_filename"
+            android:id="@+id/fragment_media_details_et_filepath"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Filename"
+            android:hint="File path"
             android:importantForAutofill="no"
             android:inputType="text"/>
 
         <ImageButton
-            android:id="@+id/fragment_media_details_btn_clearfilename"
+            android:id="@+id/fragment_media_details_btn_clearfilepath"
             android:layout_width="35dp"
             android:layout_height="35dp"
             android:layout_gravity="end"
             android:alpha="0.4"
             android:background="@drawable/x_button"
-            android:contentDescription="Clear filename" />
+            android:contentDescription="Clear file path" />
 
     </FrameLayout>
 

@@ -102,7 +102,7 @@ public class FullMediaActivity extends BaseActivity {
         @Override
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
 
-            File f = new File(path + "/" + mediaList.get(position).getFileName());
+            File f = new File(mediaList.get(position).getFilePath());
             if (f.exists()) {
                 switch (holder.getItemViewType()) {
                     case Constants.MEDIA_TYPE_IMAGE:

@@ -5,19 +5,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.os.Environment;
 import android.view.Menu;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
 
 import androidx.appcompat.widget.SwitchCompat;
-import androidx.fragment.app.FragmentManager;
 
 import java.util.Objects;
 
 import ca.quadrexium.velonathea.R;
-import ca.quadrexium.velonathea.fragment.ChooseDirFragment;
 import ca.quadrexium.velonathea.pojo.Constants;
 
 public class ConfigActivity extends BaseActivity {
@@ -37,17 +33,6 @@ public class ConfigActivity extends BaseActivity {
         });
 
         SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
-
-        TextView tvRootDir = findViewById(R.id.activity_config_tv_rootdir);
-        tvRootDir.setText(prefs.getString(Constants.PATH, Environment.getExternalStorageDirectory().getAbsolutePath()));
-
-        //Launches ChooseDirActivity
-        Button btnChooseDir = findViewById(R.id.activity_config_btn_choosedir);
-        btnChooseDir.setOnClickListener(v -> {
-            FragmentManager fm = getSupportFragmentManager();
-            ChooseDirFragment chooseDirFragment = new ChooseDirFragment();
-            chooseDirFragment.show(fm, Constants.FRAGMENT_CHOOSE_DIR);
-        });
 
         EditText etCacheSize = findViewById(R.id.activity_config_et_cachesize);
         etCacheSize.setText(String.valueOf(prefs.getInt(Constants.PREFS_CACHE_SIZE, 150)));
@@ -106,14 +91,5 @@ public class ConfigActivity extends BaseActivity {
     public boolean onSupportNavigateUp() {
         onBackPressed();
         return true;
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-
-        SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
-        TextView tvRootDir = findViewById(R.id.activity_config_tv_rootdir);
-        tvRootDir.setText(prefs.getString(Constants.PATH, Environment.getExternalStorageDirectory().getAbsolutePath()));
     }
 }

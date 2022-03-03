@@ -3,6 +3,7 @@
     package="ca.quadrexium.velonathea">
 
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:icon="@mipmap/ic_launcher"
@@ -10,6 +11,9 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.VelonaThea">
+        <activity
+            android:name=".fragment.MediaImportFragment"
+            android:exported="false" />
         <activity
             android:name=".activity.MediaIndexActivity"
             android:exported="false" />

@@ -48,7 +48,6 @@ import ca.quadrexium.velonathea.pojo.Media;
 
 public class SearchResultsActivity extends BaseActivity {
 
-    private String path;
     private int cacheSize;
     private final ArrayList<Media> mediaList = new ArrayList<>();
     private final Map<String, Bitmap> imageCache = new LinkedHashMap<String, Bitmap>() {
@@ -91,7 +90,6 @@ public class SearchResultsActivity extends BaseActivity {
         Bundle data = getIntent().getExtras();
 
         //Setting global variables
-        path = prefs.getString(Constants.PATH, Environment.DIRECTORY_PICTURES);
         cacheSize = prefs.getInt(Constants.PREFS_CACHE_SIZE, 150);
 
         //Local variables
@@ -110,60 +108,68 @@ public class SearchResultsActivity extends BaseActivity {
         rv.setAdapter(rvAdapter = new MyAdapter());
 
         //Loading media into recyclerview
-        //Make sure user is authorized to view the files in the root directory
-        if (showHiddenFiles || !path.contains(".")) {
-            //Try to load from the query cache
-            String queryCacheLocation = this.getExternalFilesDir(Environment.DIRECTORY_PICTURES).getPath();
-            String cachedQuery = getCachedQuery(queryCacheLocation);
-            StringBuilder currentQuery = new StringBuilder();
-            currentQuery.append(query);
-            if (selectionArgs != null) {
-                for (String arg : selectionArgs) {
-                    currentQuery.append(arg).append("\t");
-                }
-            }
-            if (cachedQuery == null || !cachedQuery.equals(currentQuery.toString())) {
-                File queryCache = new File(queryCacheLocation + "/" + Constants.QUERY_CACHE_FILENAME);
-                boolean wasDeleted = queryCache.delete();
-            }
-            if (cachedQuery != null && cachedQuery.equals(currentQuery.toString())) {
-                mediaList.addAll(loadMediaFromCache(queryCacheLocation));
-                Toast.makeText(this, String.format(getString(R.string.loaded_x_media_cache), mediaList.size()), Toast.LENGTH_LONG).show();
-                rvAdapter.notifyItemRangeInserted(0, mediaList.size());
-            //Execute input query if query cache is invalid or nonexistent
-            } else {
-                MyOpenHelper myOpenHelper = getMyOpenHelper();
-                SQLiteDatabase db = myOpenHelper.getReadableDatabase();
-                Cursor c = db.rawQuery(query, selectionArgs);
-                mediaList.addAll(myOpenHelper.parseMediaListFromCursor(c));
-                Toast.makeText(this, mediaList.size() + " results", Toast.LENGTH_LONG).show();
-                c.close();
-                db.close();
-                rvAdapter.notifyItemRangeInserted(0, mediaList.size());
-
-                //Saving the mediaList as a tab-delimited text file
-                StringBuilder mediaListAsString = new StringBuilder();
-                mediaListAsString.append(query);
-                if (selectionArgs != null) {
-                    for (String arg : selectionArgs) {
-                        mediaListAsString.append(arg).append("\t");
-                    }
-                }
-                mediaListAsString.append("\n");
-                for (Media media : mediaList) {
-                    mediaListAsString.append(media.getId()).append("\t");
-                    mediaListAsString.append(media.getFileName()).append("\t");
-                    mediaListAsString.append("\n");
-                }
-                try {
-                    FileWriter myWriter = new FileWriter(this.getExternalFilesDir(Environment.DIRECTORY_PICTURES).getPath() + "/" + Constants.QUERY_CACHE_FILENAME);
-                    myWriter.write(mediaListAsString.toString());
-                    myWriter.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+        //Try to load from the query cache
+        String queryCacheLocation = this.getExternalFilesDir(Environment.DIRECTORY_PICTURES).getPath();
+        String cachedQuery = getCachedQuery(queryCacheLocation);
+        StringBuilder currentQuery = new StringBuilder();
+        currentQuery.append(query);
+        if (selectionArgs != null) {
+            for (String arg : selectionArgs) {
+                currentQuery.append(arg).append("\t");
             }
         }
+        if (cachedQuery == null || !cachedQuery.equals(currentQuery.toString())) {
+            File queryCache = new File(queryCacheLocation + "/" + Constants.QUERY_CACHE_FILENAME);
+            boolean wasDeleted = queryCache.delete();
+        }
+        if (cachedQuery != null && cachedQuery.equals(currentQuery.toString())) {
+            mediaList.addAll(loadMediaFromCache(queryCacheLocation));
+            Toast.makeText(this, String.format(getString(R.string.loaded_x_media_cache), mediaList.size()), Toast.LENGTH_LONG).show();
+            rvAdapter.notifyItemRangeInserted(0, mediaList.size());
+        //Execute input query if query cache is invalid or nonexistent
+        } else {
+            MyOpenHelper myOpenHelper = getMyOpenHelper();
+            SQLiteDatabase db = myOpenHelper.getReadableDatabase();
+            Cursor c = db.rawQuery(query, selectionArgs);
+            mediaList.addAll(myOpenHelper.parseMediaListFromCursor(c));
+
+            //Removes media from results if they are in a hidden directory
+            //TODO: Add where clause to query, 'if (!showHiddenFiles), file path not like "/."'
+            ArrayList<Media> mediaToRemove = new ArrayList<>();
+            for (Media media : mediaList) {
+                if (!showHiddenFiles && media.getFilePath().contains("/.")) {
+                    mediaToRemove.add(media);
+                }
+            }
+            mediaList.removeAll(mediaToRemove);
+            Toast.makeText(this, mediaList.size() + " results", Toast.LENGTH_LONG).show();
+            c.close();
+            db.close();
+            rvAdapter.notifyItemRangeInserted(0, mediaList.size());
+
+            //Saving the mediaList as a tab-delimited text file
+            StringBuilder mediaListAsString = new StringBuilder();
+            mediaListAsString.append(query);
+            if (selectionArgs != null) {
+                for (String arg : selectionArgs) {
+                    mediaListAsString.append(arg).append("\t");
+                }
+            }
+            mediaListAsString.append("\n");
+            for (Media media : mediaList) {
+                mediaListAsString.append(media.getId()).append("\t");
+                mediaListAsString.append(media.getFilePath()).append("\t");
+                mediaListAsString.append("\n");
+            }
+            try {
+                FileWriter myWriter = new FileWriter(this.getExternalFilesDir(Environment.DIRECTORY_PICTURES).getPath() + "/" + Constants.QUERY_CACHE_FILENAME);
+                myWriter.write(mediaListAsString.toString());
+                myWriter.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
     }
 
     @Override
@@ -223,10 +229,13 @@ public class SearchResultsActivity extends BaseActivity {
         @Override
         public void onViewAttachedToWindow(@NonNull ViewHolder holder) {
             super.onViewAttachedToWindow(holder);
+            Media visibleMedia = mediaList.get(holder.getAdapterPosition());
 
-            String fileName = holder.fileName.getText().toString();
-            if (imageCache.containsKey(fileName)) {
-                holder.image.setImageBitmap(imageCache.get(fileName));
+            String filePath = visibleMedia.getFilePath();
+            String fileName = visibleMedia.getFileName();
+
+            if (imageCache.containsKey(filePath)) {
+                holder.image.setImageBitmap(imageCache.get(filePath));
                 //Load image from file
             } else {
                 holder.image.setImageBitmap(null);
@@ -238,7 +247,7 @@ public class SearchResultsActivity extends BaseActivity {
                     //True if this task was queued for execution but user has left activity
                     if (!cancelDataLoading) {
                         while (true) {
-                            File f = new File(path + "/" + fileName);
+                            File f = new File(filePath);
                             if (f.exists()) {
                                 String extension = fileName.substring(fileName.lastIndexOf("."));
                                 //Image and gif (gifs can be loaded like a bitmap)
@@ -269,8 +278,8 @@ public class SearchResultsActivity extends BaseActivity {
                                     //Video
                                 } else if (Constants.VIDEO_EXTENSIONS.contains(extension)) {
                                     //thumbnails can be created easier for videos
-                                    bm = ThumbnailUtils.createVideoThumbnail(path + "/" + fileName, MediaStore.Video.Thumbnails.MINI_KIND);
-                                    imageCache.put(fileName, bm);
+                                    bm = ThumbnailUtils.createVideoThumbnail(filePath, MediaStore.Video.Thumbnails.MINI_KIND);
+                                    imageCache.put(filePath, bm);
                                 }
                             }
                             break;
@@ -335,6 +344,10 @@ public class SearchResultsActivity extends BaseActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        startLoadingMedia();
+    }
+
+    public void startLoadingMedia() {
         cancelDataLoading = false;
 
         //Recreating the executor
@@ -372,10 +385,14 @@ public class SearchResultsActivity extends BaseActivity {
         }
     }
 
+    public void stopLoadingMedia() {
+        cancelDataLoading = true;
+    }
+
     @Override
     protected void onPause() {
         super.onPause();
-        cancelDataLoading = true;
+        stopLoadingMedia();
     }
 
     @Override
@@ -392,7 +409,7 @@ public class SearchResultsActivity extends BaseActivity {
     public void mediaChanged(int i, Media media) {
         mediaList.set(i, media);
         rvAdapter.notifyItemChanged(i);
-        cancelDataLoading = false;
+        startLoadingMedia();
     }
 
     /**

@@ -132,7 +132,7 @@ public class MainActivity extends BaseActivity {
 
             WhereFilterHashMap whereFilters = new WhereFilterHashMap();
             if (!fileName.equals("")) {
-                whereFilters.addMandatory(MyOpenHelper.COL_MEDIA_FILENAME_ALIAS, fileName.trim());
+                whereFilters.addMandatory(MyOpenHelper.COL_MEDIA_FILEPATH_ALIAS, fileName.trim());
             }
             if (!name.equals("")) {
                 whereFilters.addMandatory(MyOpenHelper.COL_MEDIA_NAME_ALIAS, name.trim());
@@ -144,16 +144,16 @@ public class MainActivity extends BaseActivity {
             if (!mediaType.equals("")) {
                 if (mediaType.equals(Constants.IMAGE)) {
                     //If there is already a filename filter, just add to that map's values
-                    whereFilters.addOptional(MyOpenHelper.COL_MEDIA_FILENAME_ALIAS, Constants.IMAGE_EXTENSIONS);
+                    whereFilters.addOptional(MyOpenHelper.COL_MEDIA_FILEPATH_ALIAS, Constants.IMAGE_EXTENSIONS);
                 } else if (mediaType.equals(Constants.VIDEO)) {
                     Set<String> videoExtensions = new HashSet<>(Constants.VIDEO_EXTENSIONS);
                     videoExtensions.add(".gif"); //gifs are considered videos except for viewing
-                    whereFilters.addOptional(MyOpenHelper.COL_MEDIA_FILENAME_ALIAS, videoExtensions);
+                    whereFilters.addOptional(MyOpenHelper.COL_MEDIA_FILEPATH_ALIAS, videoExtensions);
                 }
             }
             if ((!name.equals("") || !fileName.equals("")) && tagFilters.size() <= 1) {
                 String naturalSortColumn = MyOpenHelper.MEDIA_TABLE + ".";
-                naturalSortColumn += fileName.length() >= name.length() ? MyOpenHelper.COL_MEDIA_FILENAME : MyOpenHelper.COL_MEDIA_NAME;
+                naturalSortColumn += fileName.length() >= name.length() ? MyOpenHelper.COL_MEDIA_PATH : MyOpenHelper.COL_MEDIA_NAME;
                 orderBy.add("LENGTH(" + naturalSortColumn + ")");
             }
 
