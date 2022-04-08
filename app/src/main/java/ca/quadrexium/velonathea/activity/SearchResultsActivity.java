@@ -217,6 +217,9 @@ public class SearchResultsActivity extends BaseActivity {
         @Override
         public void onBindViewHolder(MyAdapter.ViewHolder imageLayout, int i) {
             Media media = mediaList.get(i);
+            if (media == null) {
+                finish();
+            }
             String fileName = media.getFileName();
             imageLayout.image.setScaleType(ImageView.ScaleType.CENTER_CROP);
 

@@ -15,9 +15,6 @@
             android:name=".fragment.MediaImportFragment"
             android:exported="false" />
         <activity
-            android:name=".activity.MediaIndexActivity"
-            android:exported="false" />
-        <activity
             android:name=".activity.DatabaseConfigActivity"
             android:exported="false" />
         <activity

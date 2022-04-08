@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.util.Pair;
 import android.view.KeyEvent;
 import android.view.View;
@@ -26,6 +27,7 @@ import androidx.core.content.ContextCompat;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -63,7 +65,7 @@ public class MainActivity extends BaseActivity {
             if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_ENTER) {
                 String newTag = etTag.getText().toString().trim();
                 if (!tagFilters.contains(newTag)) {
-                    tagFilters.clear(); //added so only one tag can be in at a time
+                    //tagFilters.clear(); //added so only one tag can be in at a time
                     tagFilters.add(newTag);
                     etTag.setText("");
                     refreshTags();
@@ -85,6 +87,7 @@ public class MainActivity extends BaseActivity {
 
         RadioGroup rgMediaType = findViewById(R.id.activity_main_rg_mediatype);
 
+        //Author autocomplete
         Set<String> authors = new HashSet<>();
         AtomicBoolean gotAuthors = new AtomicBoolean(false);
         AtomicBoolean gettingAuthors = new AtomicBoolean(false);
@@ -172,23 +175,35 @@ public class MainActivity extends BaseActivity {
 //                    queryBuilder.append(query.first);
 //                    queryBuilder.append("INTERSECT ");
 //                    selectionArgs.addAll(Arrays.asList(query.second));
-                for (String tag : tagFilters) {
-                    whereFilters.addMandatory(MyOpenHelper.COL_TAG_NAME_ALIAS, tag);
-                }
-
-            }
+//            }
 //                queryBuilder.setLength(queryBuilder.length()-("INTERSECT ").length());
 //                query = new Pair<>(queryBuilder.toString(), selectionArgs.toArray(new String[0]));
-//            } else {
-//
+
+                Set<Set<String>> tagIds = new HashSet<>();
+                SQLiteDatabase db = myOpenHelper.getReadableDatabase();
+                for (String tag : tagFilters) {
+                    tagIds.add(new HashSet<>(myOpenHelper.getTagIds(db, tag)));
+                }
+                whereFilters.addOptional(MyOpenHelper.COL_MEDIA_TAG_ID_ALIAS, tagIds);
+                Pair<String, String[]> tempQuery = myOpenHelper.initialMediaQueryBuilder(whereFilters,
+                        orderBy.toArray(new String[0]));
+                String editableQuery = tempQuery.first;
+                int index = editableQuery.indexOf(")", editableQuery.indexOf("GROUP BY"));
+                editableQuery = editableQuery.substring(0, index+1) + " HAVING COUNT(*) >= " + tagFilters.size() + editableQuery.substring(index+1);
+                System.out.println(index);
+                query = new Pair<>(editableQuery, tempQuery.second);
+            } else {
+
                 query = myOpenHelper.initialMediaQueryBuilder(whereFilters,
                         orderBy.toArray(new String[0]));
-//            }
+            }
 
             Bundle dataToPass = new Bundle();
 
             dataToPass.putString(Constants.MEDIA_QUERY, query.first);
             dataToPass.putStringArray(Constants.QUERY_ARGS, query.second);
+            Log.d("DB", "Query: " + query.first);
+            Log.d("DB", "Args: " + Arrays.toString(query.second));
 
             Intent intent = new Intent(this, SearchResultsActivity.class);
             intent.putExtras(dataToPass);
@@ -229,6 +244,7 @@ public class MainActivity extends BaseActivity {
         }
     }
 
+    //Reformats the tag display area after a tag is added or removed
     private void refreshTags() {
         RelativeLayout tagLayout = findViewById(R.id.activity_main_rl_tags);
 

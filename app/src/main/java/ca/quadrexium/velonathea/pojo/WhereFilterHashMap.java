@@ -66,4 +66,16 @@ public class WhereFilterHashMap extends HashMap<String, Pair<String[], String[]>
             put(key, new Pair<>(null, values.toArray(new String[0])));
         }
     }
+
+    public void addOptionalSet(String key, Collection<Collection<String>> values) {
+        if (containsKey(key)) {
+            Pair<String[], String[]> pair = get(key);
+            ArrayList<String> optionalValues = new ArrayList<>(Arrays.asList(pair.second != null ? pair.second : new String[0]));
+            optionalValues.addAll(values);
+            remove(key);
+            put(key, new Pair<>(pair.first, optionalValues.toArray(new String[0])));
+        } else {
+            put(key, new Pair<>(null, values.toArray(new String[0])));
+        }
+    }
 }

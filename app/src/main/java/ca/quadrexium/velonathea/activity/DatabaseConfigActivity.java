@@ -310,7 +310,7 @@ public class DatabaseConfigActivity extends BaseActivity {
                             "ORDER BY count DESC";
 
                     c = db.rawQuery(sql, null);
-                    int numAuthorsToReturn = Math.min(5, c.getCount());
+                    int numAuthorsToReturn = Math.min(20, c.getCount());
                     if (c.moveToFirst()) {
                         int nameColIndex = c.getColumnIndex(MyOpenHelper.COL_AUTHOR_NAME);
                         int countColIndex = c.getColumnIndex("count");
