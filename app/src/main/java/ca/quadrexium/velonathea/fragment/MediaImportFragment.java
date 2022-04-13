@@ -12,6 +12,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -27,7 +28,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.FragmentManager;
 
 import java.io.BufferedReader;
@@ -46,7 +46,7 @@ import ca.quadrexium.velonathea.pojo.Constants;
 import ca.quadrexium.velonathea.pojo.Media;
 import ca.quadrexium.velonathea.pojo.Notification;
 
-public class MediaImportFragment extends DialogFragment {
+public class MediaImportFragment extends BaseDialogFragment {
     private static boolean busy = false;
     private final int LOAD_FILE_NOTIFICATION_ID = 12;
     private final int LOAD_MEDIA_ROOT_NOTIFICATION_ID = 64;
@@ -181,15 +181,20 @@ public class MediaImportFragment extends DialogFragment {
                 }
             });
 
-    public MediaImportFragment() {
-
-    }
-
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        root = inflater.inflate(R.layout.fragment_media_import, container, false);
-        return root;
+        return super.onCreateView(inflater, container, savedInstanceState);
+    }
+
+    @Override
+    protected int getLayoutResourceId() {
+        return R.layout.fragment_media_import;
+    }
+
+    @Override
+    protected String getName() {
+        return "MediaImportFragment";
     }
 
     @Override
@@ -372,12 +377,20 @@ public class MediaImportFragment extends DialogFragment {
         if (notification != null) {
             notification.dismiss();
         }
+        Log.d("LIFECYCLE", "In MediaImportFragment onResume()");
     }
 
     @Override
     public void onPause() {
         super.onPause();
         isVisible = false;
+        Log.d("LIFECYCLE", "In MediaImportFragment onPause()");
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        Log.d("LIFECYCLE", "In MediaImportFragment onStop()");
     }
 
     /**

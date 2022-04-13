@@ -17,7 +17,6 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.FragmentActivity;
 
 import java.io.File;
@@ -31,7 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import ca.quadrexium.velonathea.R;
 import ca.quadrexium.velonathea.pojo.Constants;
 
-public class ChooseDirFragment extends DialogFragment {
+public class ChooseDirFragment extends BaseDialogFragment {
 
     private final Set<String> dirNames = new LinkedHashSet<>();
     private ListAdapter dnAdapter;
@@ -42,7 +41,17 @@ public class ChooseDirFragment extends DialogFragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_choose_dir, container, false);
+        return super.onCreateView(inflater, container, savedInstanceState);
+    }
+
+    @Override
+    protected int getLayoutResourceId() {
+        return R.layout.fragment_choose_dir;
+    }
+
+    @Override
+    protected String getName() {
+        return "ChooseDirFragment";
     }
 
     @Override
@@ -197,4 +206,5 @@ public class ChooseDirFragment extends DialogFragment {
         super.onResume();
         executor.shutdownNow();
     }
+
 }

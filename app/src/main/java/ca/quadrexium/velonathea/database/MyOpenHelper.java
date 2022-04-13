@@ -5,25 +5,21 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.util.Pair;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import ca.quadrexium.velonathea.pojo.Constants;
 import ca.quadrexium.velonathea.pojo.Media;
-import ca.quadrexium.velonathea.pojo.WhereFilterHashMap;
 
 public class MyOpenHelper extends SQLiteOpenHelper {
 
     public final static String DATABASE_NAME = "image_database";
-    public final static int DATABASE_VERSION = 9;
+    public final static int DATABASE_VERSION = 10;
 
     public final static String COL_ID = "id";
     public final static String COL_NAME = "name";
@@ -237,7 +233,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
      * @param tag the tag name
      * @return a set containing the ids of the similar tags
      */
-    public synchronized Set<String> getTagIds(SQLiteDatabase db, String tag) {
+    public synchronized Set<String> getSimilarTagIds(SQLiteDatabase db, String tag) {
         Cursor tagCursor = db.rawQuery("SELECT " + COL_TAG_ID + " " +
                 "FROM " + TAG_TABLE + " " +
                 "WHERE " + COL_TAG_NAME + " LIKE ?;",
@@ -254,6 +250,29 @@ public class MyOpenHelper extends SQLiteOpenHelper {
             tagCursor.close();
             return tagIds;
         }
+    }
+
+    /**
+     * Gets the provided tag's id from the database, as well as any similar tags.
+     * @param db a readable SQLite database
+     * @param tag the tag name
+     * @return a set containing the ids of the similar tags
+     */
+    public synchronized int getTagId(SQLiteDatabase db, String tag) {
+        Cursor tagCursor = db.rawQuery("SELECT " + COL_TAG_ID + " " +
+                "FROM " + TAG_TABLE + " " +
+                "WHERE " + COL_TAG_NAME + " = ? " +
+                "LIMIT 1;", new String[]{ tag } );
+        int tagId;
+        //If tag does not exist, insert tag into database
+        if (tagCursor.getCount() == 0) {
+            tagId = -1;
+        } else {
+            tagCursor.moveToFirst();
+            tagId = (int) tagCursor.getLong(tagCursor.getColumnIndex(COL_TAG_ID));
+        }
+        tagCursor.close();
+        return tagId;
     }
 
     /**
@@ -316,6 +335,11 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         }
         return true;
     }
+
+//    public synchronized ArrayList<Media> getMediaList(SQLiteDatabase db) {
+//        ArrayList<Media> mediaList = new ArrayList<>();
+//        Cursor c = db.rawQuery("SELECT ")
+//    }
 
     /**
      * Wrapper for parseMediaFromCursor for a list of media.
@@ -401,133 +425,6 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         query += "ORDER BY " + MEDIA_TABLE + "." + COL_MEDIA_PATH + " ASC";
 
         return query;
-    }
-
-    /**
-     * Wrapper for the initialMediaQueryBuilder when returning the query is not necessary.
-     * @param db a readable SQLite database
-     * @param whereFilters columns to filter by, either match-all or match-one+
-     * @param orderBy columns to order results by
-     * @return an arraylist of media
-     * @see #initialMediaQueryBuilder(WhereFilterHashMap, String[])
-     */
-    public synchronized ArrayList<Media> initialMediaQuery(SQLiteDatabase db, WhereFilterHashMap whereFilters,
-                                                           String[] orderBy) {
-        Pair<String, String[]> pair = initialMediaQueryBuilder(whereFilters, orderBy);
-        Cursor c = db.rawQuery(pair.first, pair.second);
-        ArrayList<Media> mediaList = parseMediaListFromCursor(c);
-        c.close();
-        return mediaList;
-    }
-
-    /**
-     * Query builder for the Media table for selecting a large number of results. This only selects
-     *  a media's id and filename, for additional values use depthMediaQuery with each media's id
-     * @param whereFilters the custom hashmap whose key is the column alias to filter by, and whose
-     *                     value is a pair of string arrays: the first for match-all values, the
-     *                     second for match-one+ values.
-     * @param orderBy any columns to order the results by
-     * @return a pair: the query string, and its selection arguments
-     */
-    public synchronized Pair<String, String[]> initialMediaQueryBuilder(WhereFilterHashMap whereFilters,
-                                                           String[] orderBy) {
-
-        List<String> selectionArgs = new ArrayList<>();
-        Set<String> joins = new HashSet<>();
-
-        StringBuilder query = new StringBuilder();
-
-        //SELECT
-        query.append("SELECT " + MEDIA_TABLE + "." + COL_MEDIA_PATH + " AS " + COL_MEDIA_FILEPATH_ALIAS + ", ");
-        query.append(MEDIA_TABLE + "." + COL_MEDIA_ID + " AS " + COL_MEDIA_ID_ALIAS + " ");
-
-        //FROM
-        query.append("FROM " + MEDIA_TABLE + " ");
-
-        //JOIN
-        for (String column : whereFilters.keySet()) {
-            int endOfTableName = column.contains("_") ? column.lastIndexOf("_") : column.indexOf(".");
-            String tableName = column.substring(0, endOfTableName);
-            switch (tableName) {
-                case Constants.PREFS_MEDIA_AUTHOR:
-                    joins.add(AUTHOR_JOIN);
-                    break;
-                case Constants.PREFS_MEDIA_TAG:
-                    joins.add(TAG_JOIN_ALL);
-                    break;
-                case MyOpenHelper.MEDIA_TAG_TABLE:
-                    joins.add(TAG_JOIN);
-                    break;
-            }
-        }
-        for (String join : joins) {
-            query.append(join);
-        }
-
-        //WHERE
-        if (whereFilters.size() != 0) {
-            query.append("WHERE ");
-            for (Map.Entry<String, Pair<String[], String[]>> entry : whereFilters.entrySet()) {
-                //For filtering when the column value may match multiple values (OR clause)
-                if (entry.getValue().first != null && entry.getValue().first.length != 0) {
-                    query.append("(");
-                    for (String value : entry.getValue().first) {
-                        String key = columns.get(entry.getKey());
-                        if (key.equals(MEDIA_TAG_TABLE + "." + COL_MEDIA_TAG_TAG_ID)) {
-                            query.append(key).append(" IN (?)");
-                            selectionArgs.add(value);
-                            query.append(" AND ");
-                        } else {
-                            query.append(key).append(" LIKE ?");
-                            selectionArgs.add("%" + value + "%");
-                            query.append(" AND ");
-                        }
-                    }
-                    if (entry.getValue().first.length > 0) {
-                        query.setLength(query.length() - (" AND ").length());
-                    }
-                    query.append(") AND ");
-                }
-                if (entry.getValue().second != null && entry.getValue().second.length != 0) {
-                    query.append("(");
-                    for (String value : entry.getValue().second) {
-                        String key = columns.get(entry.getKey());
-                        if (key.equals(MEDIA_TAG_TABLE + "." + COL_MEDIA_TAG_TAG_ID)) {
-                            query.append(key).append(" IN (?)");
-                            selectionArgs.add(value);
-                            query.append(" OR ");
-                        } else {
-                            query.append(key).append(" LIKE ?");
-                            selectionArgs.add("%" + value + "%");
-                            query.append(" OR ");
-                        }
-                    }
-                    if (entry.getValue().second.length > 0) {
-                        query.setLength(query.length() - (" OR ").length());
-                        query.append(")");
-                    }
-                    //For filtering other columns, append AND (AND clause)
-                    query.append(" AND ");
-                }
-            }
-            query.setLength(query.length()-(") AND ").length()+2); //remove trailing AND
-        }
-
-        //GROUP BY
-        query.append("GROUP BY (").append(columns.get(COL_MEDIA_FILEPATH_ALIAS)).append(") ");
-
-        //ORDER BY
-        if (orderBy != null && orderBy.length != 0) {
-            query.append("ORDER BY ");
-            for (String orderColumn : orderBy) {
-                query.append(orderColumn).append(", ");
-            }
-            query.replace(query.lastIndexOf(","), query.length(), " "); //removing comma
-        }
-
-        //System.out.println(query.toString());
-
-        return new Pair<>(query.toString(), selectionArgs.toArray(new String[0]));
     }
 
     /**

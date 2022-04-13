@@ -8,7 +8,6 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
-import android.util.Pair;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
@@ -17,6 +16,7 @@ import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -37,12 +37,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import ca.quadrexium.velonathea.R;
 import ca.quadrexium.velonathea.database.MyOpenHelper;
+import ca.quadrexium.velonathea.database.Query;
 import ca.quadrexium.velonathea.pojo.Constants;
-import ca.quadrexium.velonathea.pojo.WhereFilterHashMap;
 
 public class MainActivity extends BaseActivity {
 
     Set<String> tagFilters;
+    Set<String> authorFilters;
+
+    //Set<String> tagFiltersExclude;
+    Set<String> authorFiltersExclude;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,35 +61,138 @@ public class MainActivity extends BaseActivity {
 
         EditText etFileName = findViewById(R.id.activity_main_et_filename);
         EditText etName = findViewById(R.id.activity_main_et_name);
-        AutoCompleteTextView autocTvAuthor = findViewById(R.id.activity_main_autoctv_author);
-        EditText etTag = findViewById(R.id.activity_main_et_tag);
 
-        tagFilters = new LinkedHashSet<>();
-        etTag.setOnKeyListener((v, keyCode, event) -> {
+        AutoCompleteTextView autocTvAuthor = findViewById(R.id.activity_main_autoctv_author);
+        authorFilters = new LinkedHashSet<>();
+        autocTvAuthor.setOnKeyListener((v, keyCode, event) -> {
             if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_ENTER) {
-                String newTag = etTag.getText().toString().trim();
-                if (!tagFilters.contains(newTag)) {
-                    //tagFilters.clear(); //added so only one tag can be in at a time
-                    tagFilters.add(newTag);
-                    etTag.setText("");
-                    refreshTags();
+                String newAuthor = autocTvAuthor.getText().toString().trim();
+                if (!authorFilters.contains(newAuthor)) {
+                    authorFilters.add(newAuthor);
+                    autocTvAuthor.setText("");
+                    RelativeLayout layout = findViewById(R.id.activity_main_rl_authors);
+                    refreshLayout(layout, authorFilters);
+                    return true;
+                }
+            }
+            return false;
+        });
+        autocTvAuthor.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == 1 && event != null && event.getAction() == KeyEvent.ACTION_DOWN) {
+                String newAuthor = autocTvAuthor.getText().toString().trim();
+                if (!authorFilters.contains(newAuthor)) {
+                    authorFilters.add(newAuthor);
+                    autocTvAuthor.setText("");
+                    RelativeLayout layout = findViewById(R.id.activity_main_rl_authors);
+                    refreshLayout(layout, authorFilters);
                     return true;
                 }
             }
             return false;
         });
 
+        AutoCompleteTextView autocTvAuthorExclude = findViewById(R.id.activity_main_autoctv_author_exclude);
+        authorFiltersExclude = new LinkedHashSet<>();
+        autocTvAuthorExclude.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_ENTER) {
+                String newAuthor = autocTvAuthorExclude.getText().toString().trim();
+                if (!authorFiltersExclude.contains(newAuthor)) {
+                    authorFiltersExclude.add(newAuthor);
+                    autocTvAuthorExclude.setText("");
+                    RelativeLayout layout = findViewById(R.id.activity_main_rl_authors_exclude);
+                    refreshLayout(layout, authorFiltersExclude);
+                    return true;
+                }
+            }
+            return false;
+        });
+        autocTvAuthorExclude.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == 2 && event != null && event.getAction() == KeyEvent.ACTION_DOWN) {
+                String newAuthor = autocTvAuthorExclude.getText().toString().trim();
+                if (!authorFiltersExclude.contains(newAuthor)) {
+                    authorFiltersExclude.add(newAuthor);
+                    autocTvAuthorExclude.setText("");
+                    RelativeLayout layout = findViewById(R.id.activity_main_rl_authors_exclude);
+                    refreshLayout(layout, authorFiltersExclude);
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        AutoCompleteTextView autocTvTag = findViewById(R.id.activity_main_autoctv_tag);
+        tagFilters = new LinkedHashSet<>();
+        autocTvTag.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_ENTER) {
+                String newTag = autocTvTag.getText().toString().trim();
+                if (!tagFilters.contains(newTag)) {
+                    tagFilters.add(newTag);
+                    autocTvTag.setText("");
+                    RelativeLayout layout = findViewById(R.id.activity_main_rl_tags);
+                    refreshLayout(layout, tagFilters);
+                    return true;
+                }
+            }
+            return false;
+        });
+        autocTvTag.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == 3 && event != null && event.getAction() == KeyEvent.ACTION_DOWN) {
+                String newTag = autocTvTag.getText().toString().trim();
+                if (!tagFilters.contains(newTag)) {
+                    tagFilters.add(newTag);
+                    autocTvTag.setText("");
+                    RelativeLayout layout = findViewById(R.id.activity_main_rl_tags);
+                    refreshLayout(layout, tagFilters);
+                    return true;
+                }
+            }
+            return false;
+        });
+
+//        AutoCompleteTextView autocTvTagExclude = findViewById(R.id.activity_main_autoctv_tag_exclude);
+//        tagFiltersExclude = new LinkedHashSet<>();
+//        autocTvTagExclude.setOnKeyListener((v, keyCode, event) -> {
+//            if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_ENTER) {
+//                String newTag = autocTvTagExclude.getText().toString().trim();
+//                if (!tagFiltersExclude.contains(newTag)) {
+//                    tagFiltersExclude.add(newTag);
+//                    autocTvTagExclude.setText("");
+//                    RelativeLayout layout = findViewById(R.id.activity_main_rl_tags_exclude);
+//                    refreshLayout(layout, tagFiltersExclude);
+//                    return true;
+//                }
+//            }
+//            return false;
+//        });
+//        autocTvTagExclude.setOnEditorActionListener((v, actionId, event) -> {
+//            if (actionId == 4 && event != null && event.getAction() == KeyEvent.ACTION_DOWN) {
+//                String newTag = autocTvTagExclude.getText().toString().trim();
+//                if (!tagFiltersExclude.contains(newTag)) {
+//                    tagFiltersExclude.add(newTag);
+//                    autocTvTagExclude.setText("");
+//                    RelativeLayout layout = findViewById(R.id.activity_main_rl_tags_exclude);
+//                    refreshLayout(layout, tagFiltersExclude);
+//                    return true;
+//                }
+//            }
+//            return false;
+//        });
+
         //Buttons to clear edittexts
         ImageButton iBtnFileName = findViewById(R.id.activity_main_btn_clearfilename);
         ImageButton iBtnName = findViewById(R.id.activity_main_btn_clearname);
-        ImageButton iBtnAuthor = findViewById(R.id.activity_main_btn_clearauthor);
-        ImageButton iBtnTag = findViewById(R.id.activity_main_btn_cleartag);
         iBtnFileName.setOnClickListener(v -> etFileName.setText(""));
         iBtnName.setOnClickListener(v -> etName.setText(""));
-        iBtnAuthor.setOnClickListener(v -> autocTvAuthor.setText(""));
-        iBtnTag.setOnClickListener(v -> etTag.setText(""));
 
-        RadioGroup rgMediaType = findViewById(R.id.activity_main_rg_mediatype);
+        RadioGroup rgTagType = findViewById(R.id.activity_main_rg_tagtype);
+        RadioButton checkedRadioButton;
+        String tagType = prefs.getString(Constants.PREFS_TAGTYPE, "similar");
+        if ("matchall".equals(tagType)) {
+            checkedRadioButton = findViewById(R.id.activity_main_rg_tagtype_matchall);
+        } else {
+            checkedRadioButton = findViewById(R.id.activity_main_rg_tagtype_similar);
+        }
+        checkedRadioButton.setChecked(true);
 
         //Author autocomplete
         Set<String> authors = new HashSet<>();
@@ -102,6 +209,7 @@ public class MainActivity extends BaseActivity {
                         MyOpenHelper myOpenHelper = getMyOpenHelper();
                         SQLiteDatabase db = myOpenHelper.getReadableDatabase();
                         authors.addAll(myOpenHelper.getAuthorSet(db)); //to avoid lambda final
+                        db.close();
                         handler.post(() -> {
                             autocTvAuthor.setAdapter(new ArrayAdapter<>(this,
                                     R.layout.textview_autocomplete,
@@ -114,6 +222,8 @@ public class MainActivity extends BaseActivity {
             }
         });
 
+        RadioGroup rgMediaType = findViewById(R.id.activity_main_rg_mediatype);
+
         Button btnSearch = findViewById(R.id.activity_main_btn_search);
         btnSearch.setOnClickListener(v -> {
 
@@ -121,89 +231,174 @@ public class MainActivity extends BaseActivity {
             String name = etName.getText().toString();
             String author = autocTvAuthor.getText().toString();
             String mediaType = "";
-            int checkedRadioButtonId = rgMediaType.getCheckedRadioButtonId();
-            if (checkedRadioButtonId == R.id.activity_main_rg_mediatype_images) {
+            int checkedMediaRadioButtonId = rgMediaType.getCheckedRadioButtonId();
+            if (checkedMediaRadioButtonId == R.id.activity_main_rg_mediatype_images) {
                 mediaType = Constants.IMAGE;
-            } else if (checkedRadioButtonId == R.id.activity_main_rg_mediatype_videos) {
+            } else if (checkedMediaRadioButtonId == R.id.activity_main_rg_mediatype_videos) {
                 mediaType = Constants.VIDEO;
             }
 
-            ArrayList<String> orderBy = new ArrayList<>();
-            if (swtchRandom.isChecked()) {
-                orderBy.add("RANDOM()");
+            Query.Builder builder = new Query.Builder();
+            builder.select(MyOpenHelper.COL_MEDIA_ID, MyOpenHelper.MEDIA_TABLE)
+                    .select(MyOpenHelper.COL_MEDIA_PATH, MyOpenHelper.MEDIA_TABLE)
+                    .from(MyOpenHelper.MEDIA_TABLE);
+
+            if (!Constants.isStringEmpty(fileName)) {
+                ArrayList<String> filePathList = new ArrayList<>();
+                filePathList.add("%" + fileName + "%");
+                builder.whereCondition(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_PATH, filePathList, true, true, false);
             }
 
-            WhereFilterHashMap whereFilters = new WhereFilterHashMap();
-            if (!fileName.equals("")) {
-                whereFilters.addMandatory(MyOpenHelper.COL_MEDIA_FILEPATH_ALIAS, fileName.trim());
-            }
-            if (!name.equals("")) {
-                whereFilters.addMandatory(MyOpenHelper.COL_MEDIA_NAME_ALIAS, name.trim());
-            }
-            if (!author.equals("")) {
-                whereFilters.addMandatory(MyOpenHelper.COL_AUTHOR_NAME_ALIAS, author.trim());
+            if (!Constants.isStringEmpty(name)) {
+                ArrayList<String> nameList = new ArrayList<>();
+                nameList.add("%" + name + "%");
+                builder.whereCondition(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_NAME, nameList, true, true, false);
             }
 
-            if (!mediaType.equals("")) {
-                if (mediaType.equals(Constants.IMAGE)) {
-                    //If there is already a filename filter, just add to that map's values
-                    whereFilters.addOptional(MyOpenHelper.COL_MEDIA_FILEPATH_ALIAS, Constants.IMAGE_EXTENSIONS);
-                } else if (mediaType.equals(Constants.VIDEO)) {
-                    Set<String> videoExtensions = new HashSet<>(Constants.VIDEO_EXTENSIONS);
-                    videoExtensions.add(".gif"); //gifs are considered videos except for viewing
-                    whereFilters.addOptional(MyOpenHelper.COL_MEDIA_FILEPATH_ALIAS, videoExtensions);
-                }
-            }
-            if ((!name.equals("") || !fileName.equals("")) && tagFilters.size() <= 1) {
-                String naturalSortColumn = MyOpenHelper.MEDIA_TABLE + ".";
-                naturalSortColumn += fileName.length() >= name.length() ? MyOpenHelper.COL_MEDIA_PATH : MyOpenHelper.COL_MEDIA_NAME;
-                orderBy.add("LENGTH(" + naturalSortColumn + ")");
+            if (!Constants.isStringEmpty(author)) {
+                authorFilters.add(author);
+                autocTvAuthor.setText("");
+                RelativeLayout layout = findViewById(R.id.activity_main_rl_authors);
+                refreshLayout(layout, authorFilters);
             }
 
-            Pair<String, String[]> query;
-            MyOpenHelper myOpenHelper = getMyOpenHelper();
-            //This is for matching multiple tags: it creates multiple queries where tag like ?,
-            // then intersects them all to find the ones where the media has all the selected tags
-            if (tagFilters.size() > 0) {
-//                StringBuilder queryBuilder = new StringBuilder();
-//                ArrayList<String> selectionArgs = new ArrayList<>();
-//                for (String tag : tagFilters) {
-//                    WhereFilterHashMap temp = new WhereFilterHashMap(whereFilters);
-//                    temp.addMandatory(MyOpenHelper.COL_TAG_NAME_ALIAS, tag);
-//                    query = myOpenHelper.initialMediaQueryBuilder(temp,
-//                            orderBy.toArray(new String[0]));
-//                    queryBuilder.append(query.first);
-//                    queryBuilder.append("INTERSECT ");
-//                    selectionArgs.addAll(Arrays.asList(query.second));
+            if (!Constants.isStringEmpty(autocTvAuthorExclude.getText().toString())) {
+                authorFiltersExclude.add(autocTvAuthorExclude.getText().toString());
+                autocTvAuthorExclude.setText("");
+                RelativeLayout layout = findViewById(R.id.activity_main_rl_authors_exclude);
+                refreshLayout(layout, authorFiltersExclude);
+            }
+
+            if (!Constants.isStringEmpty(autocTvTag.getText().toString())) {
+                tagFilters.add(autocTvTag.getText().toString());
+                autocTvTag.setText("");
+                RelativeLayout layout = findViewById(R.id.activity_main_rl_tags);
+                refreshLayout(layout, tagFilters);
+            }
+
+//            if (!Constants.isStringEmpty(autocTvTagExclude.getText().toString())) {
+//                tagFiltersExclude.add(autocTvTagExclude.getText().toString());
+//                autocTvTagExclude.setText("");
+//                RelativeLayout layout = findViewById(R.id.activity_main_rl_tags_exclude);
+//                refreshLayout(layout, tagFiltersExclude);
 //            }
-//                queryBuilder.setLength(queryBuilder.length()-("INTERSECT ").length());
-//                query = new Pair<>(queryBuilder.toString(), selectionArgs.toArray(new String[0]));
 
-                Set<Set<String>> tagIds = new HashSet<>();
-                SQLiteDatabase db = myOpenHelper.getReadableDatabase();
-                for (String tag : tagFilters) {
-                    tagIds.add(new HashSet<>(myOpenHelper.getTagIds(db, tag)));
-                }
-                whereFilters.addOptional(MyOpenHelper.COL_MEDIA_TAG_ID_ALIAS, tagIds);
-                Pair<String, String[]> tempQuery = myOpenHelper.initialMediaQueryBuilder(whereFilters,
-                        orderBy.toArray(new String[0]));
-                String editableQuery = tempQuery.first;
-                int index = editableQuery.indexOf(")", editableQuery.indexOf("GROUP BY"));
-                editableQuery = editableQuery.substring(0, index+1) + " HAVING COUNT(*) >= " + tagFilters.size() + editableQuery.substring(index+1);
-                System.out.println(index);
-                query = new Pair<>(editableQuery, tempQuery.second);
-            } else {
-
-                query = myOpenHelper.initialMediaQueryBuilder(whereFilters,
-                        orderBy.toArray(new String[0]));
+            if (authorFilters.size() > 0) {
+                builder.join(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_AUTHOR_ID, MyOpenHelper.AUTHOR_TABLE, MyOpenHelper.COL_AUTHOR_ID);
+                ArrayList<String> authorList = new ArrayList<>(authorFilters);
+                builder.whereCondition(MyOpenHelper.AUTHOR_TABLE, MyOpenHelper.COL_AUTHOR_NAME, authorList, true, false, false);
             }
+
+            if (authorFiltersExclude.size() > 0) {
+                builder.join(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_AUTHOR_ID, MyOpenHelper.AUTHOR_TABLE, MyOpenHelper.COL_AUTHOR_ID);
+                ArrayList<String> authorList = new ArrayList<>(authorFiltersExclude);
+                builder.whereCondition(MyOpenHelper.AUTHOR_TABLE, MyOpenHelper.COL_AUTHOR_NAME, authorList, false, true, true);
+            }
+
+            if (tagFilters.size() > 0) {
+                int checkedTagRadioButtonId = rgTagType.getCheckedRadioButtonId();
+                if (checkedTagRadioButtonId == R.id.activity_main_rg_tagtype_matchall) {
+                    builder.join(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_ID, MyOpenHelper.MEDIA_TAG_TABLE, MyOpenHelper.COL_MEDIA_TAG_MEDIA_ID);
+
+                    MyOpenHelper myOpenHelper = getMyOpenHelper();
+                    SQLiteDatabase db = myOpenHelper.getReadableDatabase();
+
+                    ArrayList<String> tagList = new ArrayList<>();
+                    int numValidTags = 0;
+                    for (String tag : tagFilters) {
+                        int tagId = myOpenHelper.getTagId(db, tag);
+                        if (tagId != -1) {
+                            numValidTags++;
+                            tagList.add(String.valueOf(tagId));
+                        }
+                    }
+                    db.close();
+                    if (numValidTags > 0) {
+                        builder.whereCondition(MyOpenHelper.MEDIA_TAG_TABLE, MyOpenHelper.COL_MEDIA_TAG_TAG_ID, tagList, false, false, false);
+                        builder.having(numValidTags);
+                    }
+
+                } else if (checkedTagRadioButtonId == R.id.activity_main_rg_tagtype_similar) {
+                    builder.join(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_ID, MyOpenHelper.MEDIA_TAG_TABLE, MyOpenHelper.COL_MEDIA_TAG_MEDIA_ID);
+                    ArrayList<String> tagIds = new ArrayList<>();
+                    MyOpenHelper myOpenHelper = getMyOpenHelper();
+                    SQLiteDatabase db = myOpenHelper.getReadableDatabase();
+                    for (String tag : tagFilters) {
+                        tagIds.addAll(myOpenHelper.getSimilarTagIds(db, tag));
+                    }
+                    db.close();
+                    if (tagIds.size() > 0) {
+                        builder.whereIn(MyOpenHelper.MEDIA_TAG_TABLE, MyOpenHelper.COL_MEDIA_TAG_TAG_ID, tagIds, false, tagFilters.size());
+                    }
+                }
+
+            }
+
+//            if (tagFiltersExclude.size() > 0) {
+//                int checkedTagRadioButtonId = rgTagType.getCheckedRadioButtonId();
+//                if (checkedTagRadioButtonId == R.id.activity_main_rg_tagtype_matchall) {
+//                    builder.join(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_ID, MyOpenHelper.MEDIA_TAG_TABLE, MyOpenHelper.COL_MEDIA_TAG_MEDIA_ID);
+//
+//                    MyOpenHelper myOpenHelper = getMyOpenHelper();
+//                    SQLiteDatabase db = myOpenHelper.getReadableDatabase();
+//
+//                    ArrayList<String> tagList = new ArrayList<>();
+//                    for (String tag : tagFiltersExclude) {
+//                        int tagId = myOpenHelper.getTagId(db, tag);
+//                        tagList.add(String.valueOf(tagId));
+//                    }
+//                    db.close();
+//                    builder.whereCondition(MyOpenHelper.MEDIA_TAG_TABLE, MyOpenHelper.COL_MEDIA_TAG_TAG_ID, tagList, false, true, true);
+//
+//                } else if (checkedTagRadioButtonId == R.id.activity_main_rg_tagtype_similar) {
+//                    builder.join(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_ID, MyOpenHelper.MEDIA_TAG_TABLE, MyOpenHelper.COL_MEDIA_TAG_MEDIA_ID);
+//                    ArrayList<String> tagIds = new ArrayList<>();
+//                    MyOpenHelper myOpenHelper = getMyOpenHelper();
+//                    SQLiteDatabase db = myOpenHelper.getReadableDatabase();
+//                    for (String tag : tagFiltersExclude) {
+//                        tagIds.addAll(myOpenHelper.getSimilarTagIds(db, tag));
+//                    }
+//                    db.close();
+//                    if (tagIds.size() == 0) {
+//                        tagIds.add("-2");
+//                    }
+//                    builder.whereIn(MyOpenHelper.MEDIA_TAG_TABLE, MyOpenHelper.COL_MEDIA_TAG_TAG_ID, tagIds, true, tagFilters.size());
+//                }
+//
+//            }
+
+            switch (mediaType) {
+                case Constants.IMAGE:
+                    ArrayList<String> imageExtensions = new ArrayList<>(Constants.IMAGE_EXTENSIONS);
+                    builder.whereCondition(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_PATH, imageExtensions, true, false, false);
+                    break;
+
+                case Constants.VIDEO:
+                    ArrayList<String> videoExtensions = new ArrayList<>(Constants.VIDEO_EXTENSIONS);
+                    videoExtensions.add(".gif");
+                    builder.whereCondition(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_PATH, videoExtensions, true, false, false);
+                    break;
+
+                default:
+
+                    break;
+            }
+
+            builder.groupBy(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_PATH);
+
+            if (swtchRandom.isChecked()) {
+                builder.orderByRandom();
+            }
+
+            String query = builder.build().getQuery();
+            String[] args = new String[0];
 
             Bundle dataToPass = new Bundle();
 
-            dataToPass.putString(Constants.MEDIA_QUERY, query.first);
-            dataToPass.putStringArray(Constants.QUERY_ARGS, query.second);
-            Log.d("DB", "Query: " + query.first);
-            Log.d("DB", "Args: " + Arrays.toString(query.second));
+            dataToPass.putString(Constants.MEDIA_QUERY, query);
+            dataToPass.putStringArray(Constants.QUERY_ARGS, args);
+            Log.d("DB", "Query: " + query);
+            Log.d("DB", "Args: " + Arrays.toString(args));
 
             Intent intent = new Intent(this, SearchResultsActivity.class);
             intent.putExtras(dataToPass);
@@ -227,13 +422,20 @@ public class MainActivity extends BaseActivity {
         SwitchCompat randomOrder = findViewById(R.id.activity_main_swtch_random);
         edit.putBoolean(Constants.PREFS_RANDOM_ORDER, randomOrder.isChecked());
 
+        RadioGroup rgTagType = findViewById(R.id.activity_main_rg_tagtype);
+        int checkedRadioButtonId = rgTagType.getCheckedRadioButtonId();
+        if (checkedRadioButtonId == R.id.activity_main_rg_tagtype_similar) {
+            edit.putString(Constants.PREFS_TAGTYPE, "similar");
+        } else if (checkedRadioButtonId == R.id.activity_main_rg_tagtype_matchall) {
+            edit.putString(Constants.PREFS_TAGTYPE, "matchall");
+        }
+
         edit.apply();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-
         //Delete the query cache if it exists
         File queryCache = new File(this.getExternalFilesDir(Environment.DIRECTORY_PICTURES).getPath() + "/" + Constants.QUERY_CACHE_FILENAME);
         if (queryCache.exists()) {
@@ -244,40 +446,43 @@ public class MainActivity extends BaseActivity {
         }
     }
 
-    //Reformats the tag display area after a tag is added or removed
-    private void refreshTags() {
-        RelativeLayout tagLayout = findViewById(R.id.activity_main_rl_tags);
+    @Override
+    protected void onStop() {
+        super.onStop();
+    }
 
-        tagLayout.removeAllViewsInLayout();
+    private void refreshLayout(RelativeLayout layout, Set<String> dataset) {
 
-        int maxWidth = tagLayout.getMeasuredWidth();
+        layout.removeAllViewsInLayout();
+
+        int maxWidth = layout.getMeasuredWidth();
         final int[] currentWidth = {0};
 
         final TextView[] prev = {null};
         final TextView[] above = {null};
 
-        for (String tag : tagFilters) {
+        for (String value : dataset) {
             TextView tv = new TextView(this);
-            tv.setText(tag);
+            tv.setText(value);
             tv.setTextColor(ContextCompat.getColor(this, R.color.white));
             tv.setId(View.generateViewId());
             tv.setBackgroundColor(ContextCompat.getColor(this, R.color.black));
             tv.setPadding(3, 0, 3, 0);
             tv.setSingleLine();
             tv.setOnClickListener(v1 -> {
-                tagLayout.removeView(tv);
-                tagFilters.remove(tv.getText().toString());
-                refreshTags();
+                layout.removeView(tv);
+                dataset.remove(tv.getText().toString());
+                refreshLayout(layout, dataset);
             });
 
-            tagLayout.addView(tv);
+            layout.addView(tv);
         }
 
-        tagLayout.post(() ->  {
+        layout.post(() ->  {
 
-            int count = tagLayout.getChildCount();
+            int count = layout.getChildCount();
             for (int i = 0; i < count; i++) {
-                TextView tv = (TextView) tagLayout.getChildAt(i);
+                TextView tv = (TextView) layout.getChildAt(i);
                 RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
                         WindowManager.LayoutParams.WRAP_CONTENT,
                         WindowManager.LayoutParams.WRAP_CONTENT);
@@ -307,5 +512,10 @@ public class MainActivity extends BaseActivity {
                 prev[0] = tv;
             }
         });
+    }
+
+    @Override
+    protected String getName() {
+        return "MainActivity";
     }
 }

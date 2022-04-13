@@ -22,7 +22,6 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
-import androidx.fragment.app.DialogFragment;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -39,7 +38,7 @@ import ca.quadrexium.velonathea.pojo.Media;
 
 //TODO: Reuse this fragment so the author list doesn't have to be queried every time
 //TODO: Fix tag layout so it doesn't refresh when tags are added or removed
-public class MediaDetailsFragment extends DialogFragment {
+public class MediaDetailsFragment extends BaseDialogFragment {
 
     private Media media;
     private final int position;
@@ -56,7 +55,17 @@ public class MediaDetailsFragment extends DialogFragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_media_details, container, false);
+        return super.onCreateView(inflater, container, savedInstanceState);
+    }
+
+    @Override
+    protected int getLayoutResourceId() {
+        return R.layout.fragment_media_details;
+    }
+
+    @Override
+    protected String getName() {
+        return "MediaDetailsFragment";
     }
 
     @Override

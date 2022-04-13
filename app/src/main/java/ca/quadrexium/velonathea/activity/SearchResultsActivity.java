@@ -430,4 +430,9 @@ public class SearchResultsActivity extends BaseActivity {
     public void cancelDataLoading(boolean cancel) {
         cancelDataLoading = cancel;
     }
+
+    @Override
+    protected String getName() {
+        return "SearchResultsActivity";
+    }
 }

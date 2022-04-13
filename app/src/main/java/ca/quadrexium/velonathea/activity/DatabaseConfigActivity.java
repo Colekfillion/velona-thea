@@ -367,4 +367,9 @@ public class DatabaseConfigActivity extends BaseActivity {
         onBackPressed();
         return true;
     }
+
+    @Override
+    protected String getName() {
+        return "DatabaseConfigActivity";
+    }
 }

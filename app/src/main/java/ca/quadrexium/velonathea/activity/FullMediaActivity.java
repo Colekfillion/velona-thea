@@ -257,4 +257,9 @@ public class FullMediaActivity extends BaseActivity {
         finish();
         super.onBackPressed();
     }
+
+    @Override
+    protected String getName() {
+        return "FullMediaActivity";
+    }
 }

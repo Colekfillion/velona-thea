@@ -78,6 +78,11 @@ public class ConfigActivity extends BaseActivity {
     }
 
     @Override
+    protected String getName() {
+        return "ConfigActivity";
+    }
+
+    @Override
     protected int getLayoutResourceId() { return R.layout.activity_config; }
 
     //No options menu

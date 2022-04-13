@@ -9,6 +9,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -39,6 +40,7 @@ public abstract class BaseActivity extends AppCompatActivity {
 
     protected boolean verified = false;
     protected boolean isVisible = false;
+    protected String activityName;
 
     //Verify user activity for things that require authorization
     protected final ActivityResultLauncher<Intent> verifyActivity = registerForActivityResult(
@@ -54,6 +56,9 @@ public abstract class BaseActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(getLayoutResourceId());
+        activityName = getName();
+
+        Log.d("LIFECYCLE", "In " + getName() + " onCreate()");
 
         //Activity turns blank when leaving
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE,
@@ -71,12 +76,14 @@ public abstract class BaseActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         isVisible = true;
+        Log.d("LIFECYCLE", "In " + getName() + " onResume()");
         super.onResume();
     }
 
     @Override
     protected void onPause() {
         isVisible = false;
+        Log.d("LIFECYCLE", "In " + getName() + " onPause()");
         super.onPause();
     }
 
@@ -99,6 +106,11 @@ public abstract class BaseActivity extends AppCompatActivity {
      * Method called after the user was successfully verified.
      */
     protected abstract void isVerified();
+
+    /**
+     * Abstract method for setting the activity layout via BaseActivity
+     */
+    protected abstract String getName();
 
     /**
      * Creates a new MyOpenHelper for the media database.
