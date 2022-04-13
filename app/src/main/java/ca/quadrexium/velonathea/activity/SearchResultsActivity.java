@@ -46,7 +46,7 @@ import ca.quadrexium.velonathea.fragment.MediaDetailsFragment;
 import ca.quadrexium.velonathea.pojo.Constants;
 import ca.quadrexium.velonathea.pojo.Media;
 
-public class SearchResultsActivity extends BaseActivity {
+public class SearchResultsActivity extends CacheDependentActivity {
 
     private int cacheSize;
     private final ArrayList<Media> mediaList = new ArrayList<>();

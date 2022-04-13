@@ -12,6 +12,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.VelonaThea">
         <activity
+            android:name=".activity.CacheDependentActivity"
+            android:exported="false" />
+        <activity
             android:name=".fragment.MediaImportFragment"
             android:exported="false" />
         <activity

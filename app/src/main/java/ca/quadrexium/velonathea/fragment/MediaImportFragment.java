@@ -30,10 +30,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.FragmentManager;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -41,6 +38,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import ca.quadrexium.velonathea.R;
+import ca.quadrexium.velonathea.activity.CacheDependentActivity;
 import ca.quadrexium.velonathea.database.MyOpenHelper;
 import ca.quadrexium.velonathea.pojo.Constants;
 import ca.quadrexium.velonathea.pojo.Media;
@@ -84,7 +82,7 @@ public class MediaImportFragment extends BaseDialogFragment {
                                         .smallIcon(R.drawable.null_image).build();
                             });
 
-                            String text = readStringFromUri(uri);
+                            String text = CacheDependentActivity.readStringFromUri(uri, getActivity());
                             if (!text.equals("")) {
                                 //Prepare for inserting rows into db
                                 MyOpenHelper myOpenHelper = new MyOpenHelper(getContext(), MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);;
@@ -391,26 +389,5 @@ public class MediaImportFragment extends BaseDialogFragment {
     public void onStop() {
         super.onStop();
         Log.d("LIFECYCLE", "In MediaImportFragment onStop()");
-    }
-
-    /**
-     * Reads the contents of a file as a String
-     * @param uri the file to read
-     * @return the file contents as a string
-     */
-    protected String readStringFromUri(Uri uri) {
-        String text = "";
-        try {
-            InputStream in = getActivity().getContentResolver().openInputStream(uri);
-            BufferedReader r = new BufferedReader(new InputStreamReader(in));
-            StringBuilder total = new StringBuilder();
-            for (String line; (line = r.readLine()) != null; ) {
-                total.append(line).append('\n');
-            }
-            text = total.toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return text;
     }
 }

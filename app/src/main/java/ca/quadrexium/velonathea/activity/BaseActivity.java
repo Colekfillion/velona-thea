@@ -6,7 +6,6 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -24,17 +23,10 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.FragmentManager;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-
 import ca.quadrexium.velonathea.R;
 import ca.quadrexium.velonathea.database.MyOpenHelper;
 import ca.quadrexium.velonathea.fragment.MediaImportFragment;
 import ca.quadrexium.velonathea.pojo.Constants;
-import ca.quadrexium.velonathea.pojo.Media;
 
 public abstract class BaseActivity extends AppCompatActivity {
 
@@ -181,52 +173,5 @@ public abstract class BaseActivity extends AppCompatActivity {
             NotificationManager notificationManager = getSystemService(NotificationManager.class);
             notificationManager.createNotificationChannel(channel);
         }
-    }
-
-    /**
-     * Reads the contents of a file as a String
-     * @param uri the file to read
-     * @return the file contents as a string
-     */
-    protected String readStringFromUri(Uri uri) {
-        String text = "";
-        try {
-            InputStream in = this.getContentResolver().openInputStream(uri);
-            BufferedReader r = new BufferedReader(new InputStreamReader(in));
-            StringBuilder total = new StringBuilder();
-            for (String line; (line = r.readLine()) != null; ) {
-                total.append(line).append('\n');
-            }
-            text = total.toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return text;
-    }
-
-    /**
-     * Loads a media list from the query cache, if it exists.
-     * @param cacheFileLocation the parent folder of the query cache
-     * @return an arraylist of media with id and filename set
-     */
-    public ArrayList<Media> loadMediaFromCache(String cacheFileLocation) {
-        ArrayList<Media> mediaList = new ArrayList<>();
-        File queryCache = new File(cacheFileLocation, Constants.QUERY_CACHE_FILENAME);
-        String content = readStringFromUri(Uri.fromFile(queryCache));
-
-        if (!content.equals("")) {
-            content = content.substring(content.indexOf("\n")+1); //remove query
-
-            String[] rows = content.split("\n");
-            for (String row : rows) {
-                String[] rowValues = row.split("\t");
-                Media media = new Media.Builder()
-                        .id(Integer.parseInt(rowValues[0]))
-                        .filePath(rowValues[1])
-                        .build();
-                mediaList.add(media);
-            }
-        }
-        return mediaList;
     }
 }

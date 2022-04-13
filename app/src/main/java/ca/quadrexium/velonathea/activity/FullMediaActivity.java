@@ -29,7 +29,7 @@ import ca.quadrexium.velonathea.pojo.Media;
 import pl.droidsonroids.gif.GifDrawable;
 import pl.droidsonroids.gif.GifImageView;
 
-public class FullMediaActivity extends BaseActivity {
+public class FullMediaActivity extends CacheDependentActivity {
 
     ViewPager2 vp;
     ViewPagerAdapter vpAdapter;
