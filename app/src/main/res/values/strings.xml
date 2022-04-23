@@ -31,6 +31,4 @@
     <string name="fail">Failed</string>
     <string name="fail_delete_cache">Failed to delete query cache</string>
     <string name="loaded_x_media_cache">Loaded %d media from cache</string>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

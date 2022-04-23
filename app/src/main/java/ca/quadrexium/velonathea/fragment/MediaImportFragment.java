@@ -224,6 +224,7 @@ public class MediaImportFragment extends BaseDialogFragment {
         Button btnChooseFile = view.findViewById(R.id.fragment_media_import_btn_choosefile);
         Button btnImport = view.findViewById(R.id.fragment_media_import_btn_import);
 
+        //TODO: Should update etInputPath with new directory when returning from ChooseDirFragment
         btnChooseDir.setOnClickListener(v -> {
             FragmentManager fm = getActivity().getSupportFragmentManager();
             ChooseDirFragment chooseDirFragment = new ChooseDirFragment();
