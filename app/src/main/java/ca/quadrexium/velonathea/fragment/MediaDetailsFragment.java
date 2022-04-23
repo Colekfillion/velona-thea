@@ -209,11 +209,12 @@ public class MediaDetailsFragment extends BaseDialogFragment {
         });
     }
 
+    //TODO: Refactor this, it's the same method used in MainActivity
     private void refreshTags(View view, Set<String> tags) {
         RelativeLayout tagLayout = view.findViewById(R.id.fragment_media_details_rl_tags);
         final int[] maxWidth = new int[1];
         final int[] layoutHeight = new int[1];
-        tagLayout.post(new Runnable() {
+        tagLayout.post(new Runnable() { //MUST NOT BE LAMBDA OR IT BREAKS
             @Override
             public void run() {
                 maxWidth[0] = tagLayout.getMeasuredWidth();

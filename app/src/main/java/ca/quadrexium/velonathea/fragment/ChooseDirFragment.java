@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import ca.quadrexium.velonathea.R;
 import ca.quadrexium.velonathea.pojo.Constants;
 
+//TODO: Fix performance for this class
 public class ChooseDirFragment extends BaseDialogFragment {
 
     private final Set<String> dirNames = new LinkedHashSet<>();
@@ -105,7 +106,7 @@ public class ChooseDirFragment extends BaseDialogFragment {
             handler.post(() -> dnAdapter.notifyDataSetChanged());
             ProgressBar pb = view.findViewById(R.id.fragment_choose_dir_pb);
             if (currentDir.getParent() != null) {
-                //If the dir has a parent, add a '...' entry that represents it
+                //to go back to the parent folder
                 dirNames.add("...");
             }
             handler.post(() -> {
@@ -122,7 +123,6 @@ public class ChooseDirFragment extends BaseDialogFragment {
             //Getting all valid dirs
             File[] dirs = currentDir.listFiles(f -> {
                 handler.post(() -> {
-                    //Setting progress
                     count.getAndIncrement();
                     pb.setProgress((int) (((double)count.get() / (double)numFilesInDir)*100));
                 });

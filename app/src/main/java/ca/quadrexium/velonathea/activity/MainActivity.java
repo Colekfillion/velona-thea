@@ -446,11 +446,11 @@ public class MainActivity extends BaseActivity {
         }
     }
 
-    @Override
-    protected void onStop() {
-        super.onStop();
-    }
-
+    /**
+     * Refreshes a relativelayout, adding new text based on a given dataset
+     * @param layout the layout to refresh
+     * @param dataset the dataset to populate the layout
+     */
     private void refreshLayout(RelativeLayout layout, Set<String> dataset) {
 
         layout.removeAllViewsInLayout();

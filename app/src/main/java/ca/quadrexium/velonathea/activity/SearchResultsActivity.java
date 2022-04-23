@@ -89,15 +89,12 @@ public class SearchResultsActivity extends CacheDependentActivity {
         SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
         Bundle data = getIntent().getExtras();
 
-        //Setting global variables
         cacheSize = prefs.getInt(Constants.PREFS_CACHE_SIZE, 150);
 
-        //Local variables
         boolean showHiddenFiles = prefs.getBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, false);
         String query = data.getString(Constants.MEDIA_QUERY);
         String[] selectionArgs = data.getStringArray(Constants.QUERY_ARGS);
 
-        //Recyclerview configuration
         rv = findViewById(R.id.activity_search_results_recyclerview_media);
         rv.setHasFixedSize(true);
         rv.setItemViewCacheSize(20);
@@ -107,7 +104,6 @@ public class SearchResultsActivity extends CacheDependentActivity {
         rv.setLayoutManager(layoutManager);
         rv.setAdapter(rvAdapter = new MyAdapter());
 
-        //Loading media into recyclerview
         //Try to load from the query cache
         String queryCacheLocation = this.getExternalFilesDir(Environment.DIRECTORY_PICTURES).getPath();
         String cachedQuery = getCachedQuery(queryCacheLocation);
@@ -213,7 +209,6 @@ public class SearchResultsActivity extends CacheDependentActivity {
             return new ViewHolder(view);
         }
 
-        //For creating each row of the recyclerview
         @Override
         public void onBindViewHolder(MyAdapter.ViewHolder imageLayout, int i) {
             Media media = mediaList.get(i);
@@ -223,7 +218,6 @@ public class SearchResultsActivity extends CacheDependentActivity {
             String fileName = media.getFileName();
             imageLayout.image.setScaleType(ImageView.ScaleType.CENTER_CROP);
 
-            //Setting layout views
             imageLayout.fileName.setText(fileName);
             imageLayout.name.setText(media.getName());
             imageLayout.author.setText(media.getAuthor());
@@ -239,7 +233,6 @@ public class SearchResultsActivity extends CacheDependentActivity {
 
             if (imageCache.containsKey(filePath)) {
                 holder.image.setImageBitmap(imageCache.get(filePath));
-                //Load image from file
             } else {
                 holder.image.setImageBitmap(null);
 
@@ -278,7 +271,7 @@ public class SearchResultsActivity extends CacheDependentActivity {
                                     options.inPreferredConfig = Bitmap.Config.RGB_565; //less colours
                                     bm = BitmapFactory.decodeFile(f.getAbsolutePath(), options);
                                     imageCache.put(fileName, bm);
-                                    //Video
+                                //Video
                                 } else if (Constants.VIDEO_EXTENSIONS.contains(extension)) {
                                     //thumbnails can be created easier for videos
                                     bm = ThumbnailUtils.createVideoThumbnail(filePath, MediaStore.Video.Thumbnails.MINI_KIND);

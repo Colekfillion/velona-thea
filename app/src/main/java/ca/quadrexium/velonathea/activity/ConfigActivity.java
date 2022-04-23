@@ -25,7 +25,6 @@ public class ConfigActivity extends BaseActivity {
         Objects.requireNonNull(getSupportActionBar()).setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowHomeEnabled(true); //set back button in toolbar
 
-        //Launches DatabaseConfigActivity
         Button btnDbConfig = findViewById(R.id.activity_config_btn_dbconfig);
         btnDbConfig.setOnClickListener(v -> {
             Intent intent = new Intent(ConfigActivity.this, DatabaseConfigActivity.class);

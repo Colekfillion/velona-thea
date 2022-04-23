@@ -34,7 +34,7 @@ public class FullMediaActivity extends CacheDependentActivity {
     ViewPager2 vp;
     ViewPagerAdapter vpAdapter;
     String path;
-    ArrayList<Media> mediaList = new ArrayList<>();
+    ArrayList<Media> mediaList = new ArrayList<>(); //for scrolling between media
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -131,7 +131,7 @@ public class FullMediaActivity extends CacheDependentActivity {
                         }
                         break;
                 }
-            //If the media file could not be found
+            //Media does not exist, blank thumbnail
             } else {
                 switch (holder.getItemViewType()) {
                     case Constants.MEDIA_TYPE_IMAGE:
@@ -243,14 +243,14 @@ public class FullMediaActivity extends CacheDependentActivity {
     public void stopVideo(VideoView vvVideo) {
         if (vvVideo != null && vvVideo.isPlaying()) {
             vvVideo.stopPlayback();
-            vvVideo.seekTo(0);
+            vvVideo.seekTo(0); //restart
         }
     }
 
 
     @Override
     public void onBackPressed() {
-        //Return to SearchResultsActivity, set the position to scroll to
+        //Should scroll the recyclerview in SearchResultsActivity to last media scrolled to
         Intent dataToReturn = new Intent();
         dataToReturn.putExtra(Constants.MEDIA_LAST_POSITION, vp.getCurrentItem());
         setResult(Activity.RESULT_OK, dataToReturn);

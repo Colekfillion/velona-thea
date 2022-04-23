@@ -13,6 +13,10 @@ import java.util.ArrayList;
 import ca.quadrexium.velonathea.pojo.Constants;
 import ca.quadrexium.velonathea.pojo.Media;
 
+/**
+ * Special implementation of BaseActivity that will create fragments that need to access
+ *  the query cache.
+ */
 public abstract class CacheDependentActivity extends BaseActivity {
 
     @Override
@@ -46,10 +50,8 @@ public abstract class CacheDependentActivity extends BaseActivity {
         return mediaList;
     }
 
-
-
     /**
-     * Reads the contents of a file as a String
+     * Reads the contents of a file as a String, for use in fragments
      * @param uri the file to read
      * @return the file contents as a string
      */

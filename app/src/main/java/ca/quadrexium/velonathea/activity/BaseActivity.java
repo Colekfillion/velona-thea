@@ -52,7 +52,7 @@ public abstract class BaseActivity extends AppCompatActivity {
 
         Log.d("LIFECYCLE", "In " + getName() + " onCreate()");
 
-        //Activity turns blank when leaving
+        //Activity turns blank when leaving for privacy
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE,
                 WindowManager.LayoutParams.FLAG_SECURE);
 
@@ -100,7 +100,7 @@ public abstract class BaseActivity extends AppCompatActivity {
     protected abstract void isVerified();
 
     /**
-     * Abstract method for setting the activity layout via BaseActivity
+     * For debugging, keeping track of what activity is doing what
      */
     protected abstract String getName();
 

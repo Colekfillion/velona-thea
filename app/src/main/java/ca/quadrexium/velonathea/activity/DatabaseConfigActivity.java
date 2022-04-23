@@ -1,9 +1,7 @@
 package ca.quadrexium.velonathea.activity;
 
 import android.content.ContentValues;
-import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
@@ -39,7 +37,7 @@ import ca.quadrexium.velonathea.pojo.Media;
 //TODO: Create app logo for notifications.
 public class DatabaseConfigActivity extends BaseActivity {
 
-    private static boolean busy = false;
+    private static boolean busy = false; //is the database being used?
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -167,8 +165,6 @@ public class DatabaseConfigActivity extends BaseActivity {
         showInvalidFiles.setOnClickListener(v -> {
             if (!busy) {
                 busy = true;
-                SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
-
                 MyOpenHelper myOpenHelper = getMyOpenHelper();
                 SQLiteDatabase db = myOpenHelper.getWritableDatabase();
                 db.execSQL("DROP TABLE IF EXISTS temp_media_invalid;");
