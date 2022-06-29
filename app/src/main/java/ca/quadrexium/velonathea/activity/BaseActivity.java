@@ -1,5 +1,7 @@
 package ca.quadrexium.velonathea.activity;
 
+import static android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION;
+
 import android.Manifest;
 import android.app.Activity;
 import android.app.NotificationChannel;
@@ -8,6 +10,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -63,6 +66,13 @@ public abstract class BaseActivity extends AppCompatActivity {
                     Manifest.permission.READ_EXTERNAL_STORAGE
             },1);
         }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (!Environment.isExternalStorageManager()) {
+                Intent intent = new Intent(ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                startActivity(intent);
+            }
+        }
     }
 
     @Override
@@ -84,8 +94,11 @@ public abstract class BaseActivity extends AppCompatActivity {
      * @param toolbarId the id of the toolbar to set
      */
     protected void createToolbar(int toolbarId) {
-        Toolbar tb = findViewById(toolbarId);
-        setSupportActionBar(tb);
+        //Toolbars are automatically make in recent Android versions
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            Toolbar tb = findViewById(toolbarId);
+            setSupportActionBar(tb);
+        }
     }
 
     /**

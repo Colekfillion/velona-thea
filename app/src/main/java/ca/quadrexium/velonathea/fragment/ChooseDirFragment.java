@@ -97,6 +97,9 @@ public class ChooseDirFragment extends BaseDialogFragment {
     private void listDirs(View view) {
         Handler handler = new Handler(Looper.getMainLooper());
 
+        TextView tvFolderName = view.findViewById(R.id.fragment_choose_dir_tv_foldername);
+        tvFolderName.setText(currentDir.getName());
+
         if (executor.isTerminated() || executor.isShutdown()) {
             executor = Executors.newSingleThreadExecutor();
         }

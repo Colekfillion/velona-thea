@@ -5,6 +5,11 @@
       <map>
         <entry key="..\:/Users/quadr/AndroidStudioProjects/velona-thea/app/src/main/res/drawable/background_toolbar_transparent.xml" value="0.14895833333333333" />
         <entry key="..\:/Users/quadr/AndroidStudioProjects/velona-thea/app/src/main/res/drawable/ic_magnifying_glass_zoom_in_svgrepo_com.xml" value="0.22777777777777777" />
+        <entry key="..\:/Users/quadr/AndroidStudioProjects/velona-thea/app/src/main/res/layout-v30/activity_config.xml" value="0.1" />
+        <entry key="..\:/Users/quadr/AndroidStudioProjects/velona-thea/app/src/main/res/layout-v30/activity_database_config.xml" value="0.2421875" />
+        <entry key="..\:/Users/quadr/AndroidStudioProjects/velona-thea/app/src/main/res/layout-v30/activity_full_media.xml" value="0.2421875" />
+        <entry key="..\:/Users/quadr/AndroidStudioProjects/velona-thea/app/src/main/res/layout-v30/activity_search_results.xml" value="0.2421875" />
+        <entry key="..\:/Users/quadr/AndroidStudioProjects/velona-thea/app/src/main/res/layout-v30/fragment_media_import.xml" value="0.2421875" />
         <entry key="..\:/Users/quadr/AndroidStudioProjects/velona-thea/app/src/main/res/layout/activity_choose_dir.xml" value="0.2421875" />
         <entry key="..\:/Users/quadr/AndroidStudioProjects/velona-thea/app/src/main/res/layout/activity_config.xml" value="0.4" />
         <entry key="..\:/Users/quadr/AndroidStudioProjects/velona-thea/app/src/main/res/layout/activity_database_config.xml" value="0.2421875" />
@@ -20,6 +25,7 @@
         <entry key="..\:/Users/quadr/AndroidStudioProjects/velona-thea/app/src/main/res/layout/activity_search_results.xml" value="0.1" />
         <entry key="..\:/Users/quadr/AndroidStudioProjects/velona-thea/app/src/main/res/layout/activity_sr_imagelayout.xml" value="0.4" />
         <entry key="..\:/Users/quadr/AndroidStudioProjects/velona-thea/app/src/main/res/layout/clearable_edittext.xml" value="0.2421875" />
+        <entry key="..\:/Users/quadr/AndroidStudioProjects/velona-thea/app/src/main/res/layout/fragment_choose_dir.xml" value="0.1171875" />
         <entry key="..\:/Users/quadr/AndroidStudioProjects/velona-thea/app/src/main/res/layout/fragment_media_details.xml" value="0.264" />
         <entry key="..\:/Users/quadr/AndroidStudioProjects/velona-thea/app/src/main/res/layout/fragment_media_import.xml" value="0.2421875" />
         <entry key="..\:/Users/quadr/AndroidStudioProjects/velona-thea/app/src/main/res/layout/full_gif.xml" value="0.2421875" />

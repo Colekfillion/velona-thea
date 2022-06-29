@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <Button
+        android:id="@+id/activity_config_btn_dbconfig"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/database_config" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/image_cache_size" />
+
+    <EditText
+        android:id="@+id/activity_config_et_cachesize"
+        android:inputType="number"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="150"
+        android:importantForAutofill="no" />
+
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/activity_config_swtch_showhiddenfiles"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/show_hidden_files"/>
+
+</LinearLayout>
