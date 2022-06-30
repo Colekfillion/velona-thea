@@ -367,6 +367,7 @@ public class MediaImportFragment extends BaseDialogFragment {
                 });
             }
         });
+        root = view;
     }
 
     @Override
