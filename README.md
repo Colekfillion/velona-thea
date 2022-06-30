@@ -16,6 +16,8 @@ Tags are seperated by spaces. The end of each line does NOT have a tab, unless y
 All versions:<br>
 After choosing a directory for raw import, the textbox will not update. To work around this, close the window (back button or tap outside of it) and reopen it.
 
+Gifs have some kind of visual artifacts when they play. It almost looks like a TV that has a damaged screen, or something. This will probably be fixed when I switch to BigImageViewer and start using those image viewing libraries such as Glide, Picasso, etc.
+
 Android 30+:<br>
 Files on the SD card cannot be accessed normally - leaving the scope of the system's storage will no longer show files, so you cannot navigate to the SD card. However, if you know the SD card's absolute path, you can type it into the textbox and it should work fine.
 
