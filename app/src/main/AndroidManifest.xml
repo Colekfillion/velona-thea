@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="ca.quadrexium.velonathea">
+    package="ca.colekfillion.velonathea">
 
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
@@ -12,26 +12,26 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.VelonaThea">
         <activity
-            android:name=".activity.CacheDependentActivity"
+            android:name="ca.colekfillion.velonathea.activity.CacheDependentActivity"
             android:exported="false" />
         <activity
-            android:name=".fragment.MediaImportFragment"
+            android:name="ca.colekfillion.velonathea.fragment.MediaImportFragment"
             android:exported="false" />
         <activity
-            android:name=".activity.DatabaseConfigActivity"
+            android:name="ca.colekfillion.velonathea.activity.DatabaseConfigActivity"
             android:exported="false" />
         <activity
-            android:name=".activity.BaseActivity"
+            android:name="ca.colekfillion.velonathea.activity.BaseActivity"
             android:exported="false" />
         <activity
-            android:name=".activity.FullMediaActivity"
+            android:name="ca.colekfillion.velonathea.activity.FullMediaActivity"
             android:exported="false" />
         <activity
-            android:name=".activity.ConfigActivity"
+            android:name="ca.colekfillion.velonathea.activity.ConfigActivity"
             android:exported="false" />
-        <activity android:name=".activity.SearchResultsActivity" />
+        <activity android:name="ca.colekfillion.velonathea.activity.SearchResultsActivity" />
         <activity
-            android:name=".activity.MainActivity"
+            android:name="ca.colekfillion.velonathea.activity.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

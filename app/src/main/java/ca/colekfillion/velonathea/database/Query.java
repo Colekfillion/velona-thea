@@ -1,4 +1,4 @@
-package ca.quadrexium.velonathea.database;
+package ca.colekfillion.velonathea.database;
 
 import android.util.Pair;
 
@@ -7,7 +7,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import ca.quadrexium.velonathea.pojo.Constants;
+import ca.colekfillion.velonathea.pojo.Constants;
 
 public class Query {
     String query;

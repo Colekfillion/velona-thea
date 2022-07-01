@@ -1,4 +1,4 @@
-package ca.quadrexium.velonathea.fragment;
+package ca.colekfillion.velonathea.fragment;
 
 import android.app.Activity;
 import android.content.ContentValues;
@@ -37,12 +37,12 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import ca.quadrexium.velonathea.R;
-import ca.quadrexium.velonathea.activity.CacheDependentActivity;
-import ca.quadrexium.velonathea.database.MyOpenHelper;
-import ca.quadrexium.velonathea.pojo.Constants;
-import ca.quadrexium.velonathea.pojo.Media;
-import ca.quadrexium.velonathea.pojo.Notification;
+import ca.colekfillion.velonathea.R;
+import ca.colekfillion.velonathea.activity.CacheDependentActivity;
+import ca.colekfillion.velonathea.database.MyOpenHelper;
+import ca.colekfillion.velonathea.pojo.Constants;
+import ca.colekfillion.velonathea.pojo.Media;
+import ca.colekfillion.velonathea.pojo.Notification;
 
 public class MediaImportFragment extends BaseDialogFragment {
     private static boolean busy = false;
@@ -215,10 +215,9 @@ public class MediaImportFragment extends BaseDialogFragment {
         });
 
         SharedPreferences prefs = getActivity().getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
-        String path = prefs.getString(Constants.PATH, Environment.DIRECTORY_PICTURES);
 
         EditText etInputPath = view.findViewById(R.id.fragment_media_import_et_inputpath);
-        etInputPath.setText(path);
+        etInputPath.setText(prefs.getString(Constants.PATH, Environment.DIRECTORY_PICTURES));
 
         Button btnChooseDir = view.findViewById(R.id.fragment_media_import_btn_choosedir);
         Button btnChooseFile = view.findViewById(R.id.fragment_media_import_btn_choosefile);
@@ -256,6 +255,13 @@ public class MediaImportFragment extends BaseDialogFragment {
                         .smallIcon(R.drawable.null_image).build();
 
                 tvLoading.setText(String.format("%s, %s", getString(R.string.loading_media), getString(R.string.preparing)));
+
+                String path = etInputPath.getText().toString();
+                SharedPreferences.Editor edit = prefs.edit();
+
+                edit.putString(Constants.PATH, path);
+                edit.apply();
+
                 ExecutorService executor = Executors.newSingleThreadExecutor();
                 Handler handler = new Handler(Looper.getMainLooper());
 

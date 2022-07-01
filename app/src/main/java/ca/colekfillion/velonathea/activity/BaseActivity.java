@@ -1,4 +1,4 @@
-package ca.quadrexium.velonathea.activity;
+package ca.colekfillion.velonathea.activity;
 
 import static android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION;
 
@@ -26,10 +26,10 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.FragmentManager;
 
-import ca.quadrexium.velonathea.R;
-import ca.quadrexium.velonathea.database.MyOpenHelper;
-import ca.quadrexium.velonathea.fragment.MediaImportFragment;
-import ca.quadrexium.velonathea.pojo.Constants;
+import ca.colekfillion.velonathea.R;
+import ca.colekfillion.velonathea.database.MyOpenHelper;
+import ca.colekfillion.velonathea.fragment.MediaImportFragment;
+import ca.colekfillion.velonathea.pojo.Constants;
 
 public abstract class BaseActivity extends AppCompatActivity {
 

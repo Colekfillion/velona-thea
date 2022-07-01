@@ -1,4 +1,4 @@
-package ca.quadrexium.velonathea.activity;
+package ca.colekfillion.velonathea.activity;
 
 import android.app.Activity;
 import android.content.Context;
@@ -40,11 +40,11 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import ca.quadrexium.velonathea.R;
-import ca.quadrexium.velonathea.database.MyOpenHelper;
-import ca.quadrexium.velonathea.fragment.MediaDetailsFragment;
-import ca.quadrexium.velonathea.pojo.Constants;
-import ca.quadrexium.velonathea.pojo.Media;
+import ca.colekfillion.velonathea.R;
+import ca.colekfillion.velonathea.database.MyOpenHelper;
+import ca.colekfillion.velonathea.fragment.MediaDetailsFragment;
+import ca.colekfillion.velonathea.pojo.Constants;
+import ca.colekfillion.velonathea.pojo.Media;
 
 public class SearchResultsActivity extends CacheDependentActivity {
 

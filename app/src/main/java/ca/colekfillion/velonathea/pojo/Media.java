@@ -1,4 +1,4 @@
-package ca.quadrexium.velonathea.pojo;
+package ca.colekfillion.velonathea.pojo;
 
 import androidx.annotation.NonNull;
 

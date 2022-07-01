@@ -1,4 +1,4 @@
-package ca.quadrexium.velonathea.fragment;
+package ca.colekfillion.velonathea.fragment;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -27,8 +27,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import ca.quadrexium.velonathea.R;
-import ca.quadrexium.velonathea.pojo.Constants;
+import ca.colekfillion.velonathea.R;
+import ca.colekfillion.velonathea.pojo.Constants;
 
 //TODO: Fix performance for this class
 public class ChooseDirFragment extends BaseDialogFragment {
