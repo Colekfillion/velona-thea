@@ -1,4 +1,4 @@
-package ca.quadrexium.velonathea.fragment;
+package ca.colekfillion.velonathea.fragment;
 
 import android.os.Bundle;
 import android.util.Log;

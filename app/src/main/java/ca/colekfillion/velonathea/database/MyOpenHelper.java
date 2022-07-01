@@ -1,4 +1,4 @@
-package ca.quadrexium.velonathea.database;
+package ca.colekfillion.velonathea.database;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -14,7 +14,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import ca.quadrexium.velonathea.pojo.Media;
+import ca.colekfillion.velonathea.pojo.Media;
 
 public class MyOpenHelper extends SQLiteOpenHelper {
 

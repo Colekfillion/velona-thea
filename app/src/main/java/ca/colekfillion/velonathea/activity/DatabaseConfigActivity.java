@@ -1,4 +1,4 @@
-package ca.quadrexium.velonathea.activity;
+package ca.colekfillion.velonathea.activity;
 
 import android.content.ContentValues;
 import android.content.Intent;
@@ -28,10 +28,10 @@ import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import ca.quadrexium.velonathea.R;
-import ca.quadrexium.velonathea.database.MyOpenHelper;
-import ca.quadrexium.velonathea.pojo.Constants;
-import ca.quadrexium.velonathea.pojo.Media;
+import ca.colekfillion.velonathea.R;
+import ca.colekfillion.velonathea.database.MyOpenHelper;
+import ca.colekfillion.velonathea.pojo.Constants;
+import ca.colekfillion.velonathea.pojo.Media;
 
 //TODO: Better notifications. Shouldn't show up after dismissal
 //TODO: Create app logo for notifications.

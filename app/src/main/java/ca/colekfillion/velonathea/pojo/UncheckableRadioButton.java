@@ -1,4 +1,4 @@
-package ca.quadrexium.velonathea.pojo;
+package ca.colekfillion.velonathea.pojo;
 
 import android.content.Context;
 import android.util.AttributeSet;

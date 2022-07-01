@@ -1,4 +1,4 @@
-package ca.quadrexium.velonathea.activity;
+package ca.colekfillion.velonathea.activity;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -35,10 +35,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import ca.quadrexium.velonathea.R;
-import ca.quadrexium.velonathea.database.MyOpenHelper;
-import ca.quadrexium.velonathea.database.Query;
-import ca.quadrexium.velonathea.pojo.Constants;
+import ca.colekfillion.velonathea.R;
+import ca.colekfillion.velonathea.database.MyOpenHelper;
+import ca.colekfillion.velonathea.database.Query;
+import ca.colekfillion.velonathea.pojo.Constants;
 
 public class MainActivity extends BaseActivity {
 

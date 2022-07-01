@@ -1,4 +1,4 @@
-package ca.quadrexium.velonathea.activity;
+package ca.colekfillion.velonathea.activity;
 
 import android.app.KeyguardManager;
 import android.content.Context;
@@ -13,8 +13,8 @@ import androidx.appcompat.widget.SwitchCompat;
 
 import java.util.Objects;
 
-import ca.quadrexium.velonathea.R;
-import ca.quadrexium.velonathea.pojo.Constants;
+import ca.colekfillion.velonathea.R;
+import ca.colekfillion.velonathea.pojo.Constants;
 
 public class ConfigActivity extends BaseActivity {
 

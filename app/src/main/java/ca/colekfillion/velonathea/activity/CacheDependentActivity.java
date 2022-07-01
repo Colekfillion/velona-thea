@@ -1,4 +1,4 @@
-package ca.quadrexium.velonathea.activity;
+package ca.colekfillion.velonathea.activity;
 
 import android.app.Activity;
 import android.net.Uri;
@@ -10,8 +10,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 
-import ca.quadrexium.velonathea.pojo.Constants;
-import ca.quadrexium.velonathea.pojo.Media;
+import ca.colekfillion.velonathea.pojo.Constants;
+import ca.colekfillion.velonathea.pojo.Media;
 
 /**
  * Special implementation of BaseActivity that will create fragments that need to access
