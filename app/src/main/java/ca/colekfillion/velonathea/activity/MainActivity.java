@@ -214,11 +214,43 @@ public class MainActivity extends BaseActivity {
                             autocTvAuthor.setAdapter(new ArrayAdapter<>(this,
                                     R.layout.textview_autocomplete,
                                     new ArrayList<>(authors)));
+                            autocTvAuthorExclude.setAdapter(new ArrayAdapter<>(this,
+                                    R.layout.textview_autocomplete,
+                                    new ArrayList<>(authors)));
                         });
                     }
                     gotAuthors.set(true);
                     gettingAuthors.set(false);
                 });
+                executor.shutdown();
+            }
+        });
+
+        autocTvAuthorExclude.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                ExecutorService executor = Executors.newSingleThreadExecutor();
+                Handler handler = new Handler(Looper.getMainLooper());
+
+                executor.execute(() -> {
+                    if (!gotAuthors.get() && !gettingAuthors.get()) {
+                        gettingAuthors.set(true);
+                        MyOpenHelper myOpenHelper = getMyOpenHelper();
+                        SQLiteDatabase db = myOpenHelper.getReadableDatabase();
+                        authors.addAll(myOpenHelper.getAuthorSet(db)); //to avoid lambda final
+                        db.close();
+                        handler.post(() -> {
+                            autocTvAuthorExclude.setAdapter(new ArrayAdapter<>(this,
+                                    R.layout.textview_autocomplete,
+                                    new ArrayList<>(authors)));
+                            autocTvAuthor.setAdapter(new ArrayAdapter<>(this,
+                                    R.layout.textview_autocomplete,
+                                    new ArrayList<>(authors)));
+                        });
+                    }
+                    gotAuthors.set(true);
+                    gettingAuthors.set(false);
+                });
+                executor.shutdown();
             }
         });
 
@@ -245,7 +277,7 @@ public class MainActivity extends BaseActivity {
 
             if (!Constants.isStringEmpty(fileName)) {
                 ArrayList<String> filePathList = new ArrayList<>();
-                filePathList.add("%" + fileName + "%");
+                filePathList.add(fileName);
                 builder.whereCondition(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_PATH, filePathList, true, true, false);
             }
 
