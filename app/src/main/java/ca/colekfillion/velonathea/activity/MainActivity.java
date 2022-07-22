@@ -272,13 +272,15 @@ public class MainActivity extends BaseActivity {
 
             Query.Builder builder = new Query.Builder();
             builder.select(MyOpenHelper.COL_MEDIA_ID, MyOpenHelper.MEDIA_TABLE)
-                    .select(MyOpenHelper.COL_MEDIA_PATH, MyOpenHelper.MEDIA_TABLE)
-                    .from(MyOpenHelper.MEDIA_TABLE);
+                    .select(MyOpenHelper.COL_MEDIA_FILENAME, MyOpenHelper.MEDIA_TABLE)
+                    .select(MyOpenHelper.COL_FILEPATH_NAME, MyOpenHelper.FILEPATH_TABLE)
+                    .from(MyOpenHelper.MEDIA_TABLE)
+                    .join(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_FILEPATH_ID, MyOpenHelper.FILEPATH_TABLE, MyOpenHelper.COL_FILEPATH_ID);
 
             if (!Constants.isStringEmpty(fileName)) {
                 ArrayList<String> filePathList = new ArrayList<>();
                 filePathList.add(fileName);
-                builder.whereCondition(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_PATH, filePathList, true, true, false);
+                builder.whereCondition(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_FILENAME, filePathList, true, true, false);
             }
 
             if (!Constants.isStringEmpty(name)) {
@@ -402,13 +404,13 @@ public class MainActivity extends BaseActivity {
             switch (mediaType) {
                 case Constants.IMAGE:
                     ArrayList<String> imageExtensions = new ArrayList<>(Constants.IMAGE_EXTENSIONS);
-                    builder.whereCondition(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_PATH, imageExtensions, true, false, false);
+                    builder.whereCondition(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_FILENAME, imageExtensions, true, false, false);
                     break;
 
                 case Constants.VIDEO:
                     ArrayList<String> videoExtensions = new ArrayList<>(Constants.VIDEO_EXTENSIONS);
                     videoExtensions.add(".gif");
-                    builder.whereCondition(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_PATH, videoExtensions, true, false, false);
+                    builder.whereCondition(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_FILENAME, videoExtensions, true, false, false);
                     break;
 
                 default:
@@ -416,7 +418,7 @@ public class MainActivity extends BaseActivity {
                     break;
             }
 
-            builder.groupBy(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_PATH);
+            builder.groupBy(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_FILENAME);
 
             if (swtchRandom.isChecked()) {
                 builder.orderByRandom();

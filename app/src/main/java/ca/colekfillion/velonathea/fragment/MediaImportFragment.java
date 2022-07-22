@@ -5,7 +5,6 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Bundle;
@@ -288,19 +287,8 @@ public class MediaImportFragment extends BaseDialogFragment {
                     //Filter filenames that are already in the database
                     MyOpenHelper myOpenHelper = new MyOpenHelper(getContext(), MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
                     SQLiteDatabase db = myOpenHelper.getWritableDatabase();
-                    Cursor c = db.rawQuery("SELECT " + MyOpenHelper.MEDIA_TABLE + "." +
-                            MyOpenHelper.COL_MEDIA_PATH + " FROM " + MyOpenHelper.MEDIA_TABLE, null);
-                    c.moveToFirst();
-
-                    while (!c.isAfterLast()) {
-                        String filePath = c.getString(0);
-                        boolean wasRemoved = filePaths.remove(filePath);
-                        if (wasRemoved) {
-                            filePathsLength--;
-                        }
-                        c.moveToNext();
-                    }
-                    c.close();
+                    Set<String> allMediaPaths = myOpenHelper.getMediaPaths(db);
+                    filePaths.removeAll(allMediaPaths);
 
                     int count = 0;
                     //Insert media

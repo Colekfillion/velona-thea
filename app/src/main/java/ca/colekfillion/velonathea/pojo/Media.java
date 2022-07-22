@@ -15,7 +15,7 @@ public class Media {
     public Media(Media.Builder builder) {
         this.id = builder.id;
         this.name = builder.name;
-        this.filePath = builder.filePath;
+        this.filePath =  builder.fileName != null ? builder.filePath + builder.fileName : builder.filePath;
         this.author = builder.author;
         this.link = builder.link;
         this.tags = builder.tags;
@@ -53,6 +53,7 @@ public class Media {
         private int id = 0;
         private String name;
         private String filePath;
+        private String fileName;
         private String author;
         private String link;
         private Set<String> tags;
@@ -69,6 +70,11 @@ public class Media {
 
         public Builder filePath(String filePath) {
             this.filePath = filePath;
+            return this;
+        }
+
+        public Builder fileName(String fileName) {
+            this.fileName = fileName;
             return this;
         }
 
