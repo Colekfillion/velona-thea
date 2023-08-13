@@ -1,7 +1,5 @@
 package ca.colekfillion.velonathea.activity;
 
-import android.content.ContentValues;
-import android.content.Intent;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
@@ -20,7 +18,6 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -162,63 +159,63 @@ public class DatabaseConfigActivity extends BaseActivity {
         });
 
         Button showInvalidFiles = findViewById(R.id.activity_database_config_btn_invalidfiles);
-        showInvalidFiles.setOnClickListener(v -> {
-            if (!busy) {
-                busy = true;
-                MyOpenHelper myOpenHelper = getMyOpenHelper();
-                SQLiteDatabase db = myOpenHelper.getWritableDatabase();
-                db.execSQL("DROP TABLE IF EXISTS temp_media_invalid;");
-                db.execSQL("CREATE TABLE temp_media_invalid (" +
-                        "media_id INTEGER NOT NULL, " +
-                        "FOREIGN KEY(media_id) REFERENCES " + MyOpenHelper.MEDIA_TABLE + "(" + MyOpenHelper.COL_MEDIA_ID + "))");
-
-                Cursor c = db.rawQuery("SELECT " + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_ID + ", " +
-                        MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_PATH + " " +
-                        "FROM " + MyOpenHelper.MEDIA_TABLE, null);
-                db.beginTransaction();
-                int idIndex = c.getColumnIndex(MyOpenHelper.COL_MEDIA_ID);
-                int filePathIndex = c.getColumnIndex(MyOpenHelper.COL_MEDIA_PATH);
-                if (c.moveToFirst()) {
-                    ContentValues cv = new ContentValues();
-                    int count = 0;
-                    while (!c.isAfterLast()) {
-                        String filePath = c.getString(filePathIndex);
-                        File f = new File(filePath);
-                        if (!f.exists() || (f.exists() && f.length() == 0)) {
-                            cv.put("media_id", c.getInt(idIndex));
-                            db.insert("temp_media_invalid", null, cv);
-                            cv.clear();
-                        }
-                        count++;
-                        System.out.println(count);
-                        c.moveToNext();
-                    }
-                }
-                c.close();
-                db.setTransactionSuccessful();
-                db.endTransaction();
-                db.close();
-
-                String sql = "SELECT " +
-                        MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_PATH + " AS " +
-                            MyOpenHelper.COL_MEDIA_FILEPATH_ALIAS + ", " +
-                        MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_ID + " AS " +
-                            MyOpenHelper.COL_MEDIA_ID_ALIAS + " " +
-                        "FROM " + MyOpenHelper.MEDIA_TABLE + " " +
-                        "JOIN temp_media_invalid ON temp_media_invalid.media_id = " + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_ID + " " +
-                        "ORDER BY " + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_PATH + " ASC";
-
-                Bundle dataToPass = new Bundle();
-
-                dataToPass.putString(Constants.MEDIA_QUERY, sql);
-                dataToPass.putStringArray(Constants.QUERY_ARGS, null);
-
-                Intent intent = new Intent(this, SearchResultsActivity.class);
-                intent.putExtras(dataToPass);
-                startActivity(intent);
-            }
-            busy = false;
-        });
+//        showInvalidFiles.setOnClickListener(v -> {
+//            if (!busy) {
+//                busy = true;
+//                MyOpenHelper myOpenHelper = getMyOpenHelper();
+//                SQLiteDatabase db = myOpenHelper.getWritableDatabase();
+//                db.execSQL("DROP TABLE IF EXISTS temp_media_invalid;");
+//                db.execSQL("CREATE TABLE temp_media_invalid (" +
+//                        "media_id INTEGER NOT NULL, " +
+//                        "FOREIGN KEY(media_id) REFERENCES " + MyOpenHelper.MEDIA_TABLE + "(" + MyOpenHelper.COL_MEDIA_ID + "))");
+//
+//                Cursor c = db.rawQuery("SELECT " + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_ID + ", " +
+//                        MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_PATH + " " +
+//                        "FROM " + MyOpenHelper.MEDIA_TABLE, null);
+//                db.beginTransaction();
+//                int idIndex = c.getColumnIndex(MyOpenHelper.COL_MEDIA_ID);
+//                int filePathIndex = c.getColumnIndex(MyOpenHelper.COL_MEDIA_PATH);
+//                if (c.moveToFirst()) {
+//                    ContentValues cv = new ContentValues();
+//                    int count = 0;
+//                    while (!c.isAfterLast()) {
+//                        String filePath = c.getString(filePathIndex);
+//                        File f = new File(filePath);
+//                        if (!f.exists() || (f.exists() && f.length() == 0)) {
+//                            cv.put("media_id", c.getInt(idIndex));
+//                            db.insert("temp_media_invalid", null, cv);
+//                            cv.clear();
+//                        }
+//                        count++;
+//                        System.out.println(count);
+//                        c.moveToNext();
+//                    }
+//                }
+//                c.close();
+//                db.setTransactionSuccessful();
+//                db.endTransaction();
+//                db.close();
+//
+//                String sql = "SELECT " +
+//                        MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_PATH + " AS " +
+//                            MyOpenHelper.COL_MEDIA_FILEPATH_ALIAS + ", " +
+//                        MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_ID + " AS " +
+//                            MyOpenHelper.COL_MEDIA_ID_ALIAS + " " +
+//                        "FROM " + MyOpenHelper.MEDIA_TABLE + " " +
+//                        "JOIN temp_media_invalid ON temp_media_invalid.media_id = " + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_ID + " " +
+//                        "ORDER BY " + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_PATH + " ASC";
+//
+//                Bundle dataToPass = new Bundle();
+//
+//                dataToPass.putString(Constants.MEDIA_QUERY, sql);
+//                dataToPass.putStringArray(Constants.QUERY_ARGS, null);
+//
+//                Intent intent = new Intent(this, SearchResultsActivity.class);
+//                intent.putExtras(dataToPass);
+//                startActivity(intent);
+//            }
+//            busy = false;
+//        });
 
         //Show various database statistics
         //TODO: Have additional info be shown in a popup, ex. button that says "Show duplicate files"
@@ -321,25 +318,25 @@ public class DatabaseConfigActivity extends BaseActivity {
                     c.close();
 
                     //Duplicate filenames
-                    sql = "SELECT " + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_PATH + ", " +
-                            "COUNT(" + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_PATH + ") AS count " +
-                            "FROM " + MyOpenHelper.MEDIA_TABLE + " " +
-                            "GROUP BY (" + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_PATH + ") " +
-                            "HAVING count > 1";
-                    c = db.rawQuery(sql, null);
-                    if (c.moveToFirst()) {
-                        dbStats.append("Duplicate filenames: ");
-                        while (!c.isAfterLast()) {
-                            dbStats.append("\t").append(c.getString(c.getColumnIndex(MyOpenHelper.COL_MEDIA_PATH)))
-                                    .append("(").append(c.getInt(c.getColumnIndex("count"))).append(")\n");
-                            c.moveToNext();
-                        }
-                        handler.post(() -> tvDbStats.setText(dbStats.toString()));
-                    }
-                    c.close();
-                    db.close();
-                    busy = false;
-                    handler.post(() -> tvDbStats.setText(dbStats.toString()));
+//                    sql = "SELECT " + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_PATH + ", " +
+//                            "COUNT(" + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_PATH + ") AS count " +
+//                            "FROM " + MyOpenHelper.MEDIA_TABLE + " " +
+//                            "GROUP BY (" + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_PATH + ") " +
+//                            "HAVING count > 1";
+//                    c = db.rawQuery(sql, null);
+//                    if (c.moveToFirst()) {
+//                        dbStats.append("Duplicate filenames: ");
+//                        while (!c.isAfterLast()) {
+//                            dbStats.append("\t").append(c.getString(c.getColumnIndex(MyOpenHelper.COL_MEDIA_PATH)))
+//                                    .append("(").append(c.getInt(c.getColumnIndex("count"))).append(")\n");
+//                            c.moveToNext();
+//                        }
+//                        handler.post(() -> tvDbStats.setText(dbStats.toString()));
+//                    }
+//                    c.close();
+//                    db.close();
+//                    busy = false;
+//                    handler.post(() -> tvDbStats.setText(dbStats.toString()));
                 });
             }
         });
