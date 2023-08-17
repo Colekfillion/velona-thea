@@ -29,11 +29,10 @@ import ca.colekfillion.velonathea.pojo.Media;
 import pl.droidsonroids.gif.GifDrawable;
 import pl.droidsonroids.gif.GifImageView;
 
+//TODO: Migrate to BigImageViewer
 public class FullMediaActivity extends CacheDependentActivity {
 
     private ViewPager2 vp;
-    private ViewPagerAdapter vpAdapter;
-    private String path;
     private ArrayList<Media> mediaList = new ArrayList<>(); //for scrolling between media
 
     @Override
@@ -50,8 +49,9 @@ public class FullMediaActivity extends CacheDependentActivity {
         mediaList = loadMediaFromCache(this.getExternalFilesDir(Environment.DIRECTORY_PICTURES).getPath());
 
         SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
-        path = prefs.getString(Constants.PATH, Environment.DIRECTORY_PICTURES);
+        String path = prefs.getString(Constants.PATH, Environment.DIRECTORY_PICTURES);
 
+        ViewPagerAdapter vpAdapter;
         vp.setAdapter(vpAdapter = new ViewPagerAdapter());
         vp.setCurrentItem(data.getInt(Constants.POSITION), false);
     }

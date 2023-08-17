@@ -43,6 +43,7 @@ import ca.colekfillion.velonathea.database.MyOpenHelper;
 import ca.colekfillion.velonathea.pojo.Constants;
 import ca.colekfillion.velonathea.pojo.Filter;
 
+//TODO: Filter presets stored in either DB or sharedprefs
 public class MainActivity extends BaseActivity {
 
     private final ArrayList<Filter> filterList = new ArrayList<>();

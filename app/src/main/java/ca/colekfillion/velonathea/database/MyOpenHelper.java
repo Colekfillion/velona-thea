@@ -16,6 +16,7 @@ import java.util.Set;
 
 import ca.colekfillion.velonathea.pojo.Media;
 
+//TODO: Media groups, so comics can be viewed in order
 public class MyOpenHelper extends SQLiteOpenHelper {
 
     public final static String DATABASE_NAME = "image_database";
