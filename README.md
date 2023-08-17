@@ -13,9 +13,6 @@ Tags are seperated by spaces. The end of each line does NOT have a tab, unless y
 [example_file.txt](https://github.com/Colekfillion/velona-thea/files/9015261/example_file.txt)
 
 <b> Known issues </b><br>
-All versions:<br>
-After choosing a directory for raw import, the textbox will not update. To work around this, close the window (back button or tap outside of it) and reopen it.
-
 Android 30+:<br>
 Files on the SD card cannot be accessed normally - leaving the scope of the system's storage will no longer show files, so you cannot navigate to the SD card. However, if you know the SD card's absolute path, you can type it into the textbox and it should work fine.
 

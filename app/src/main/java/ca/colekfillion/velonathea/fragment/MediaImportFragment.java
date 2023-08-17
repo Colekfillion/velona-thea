@@ -50,9 +50,37 @@ public class MediaImportFragment extends BaseDialogFragment {
     private boolean isVisible = true;
 
     private Notification notification;
-    private View root;
-    private String loadingCompleteText;
 
+    RelativeLayout rlImportRaw;
+    RelativeLayout rlImportFile;
+
+    RadioGroup rgImportType;
+    EditText etInputPath;
+    private final ActivityResultLauncher<Intent> chooseDirActivity = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    Intent data = result.getData();
+                    if (data != null && data.getData() != null) {
+                        Uri uri = data.getData();
+                        if (getActivity() != null) {
+                            SharedPreferences prefs = getActivity().getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
+                            SharedPreferences.Editor edit = prefs.edit();
+                            String newPath = uri.getPath();
+                            assert newPath != null; //we never display media from the web
+                            File f = new File(newPath);
+                            edit.putString(Constants.PATH, f.getAbsolutePath());
+                            edit.apply();
+                            etInputPath.setText(f.getAbsolutePath());
+                        }
+                    }
+                }
+            });
+    Button btnChooseDir;
+    Button btnChooseFile;
+    Button btnImport;
+    ProgressBar pb;
+    TextView tvLoading;
     private final ActivityResultLauncher<Intent> loadRowsActivity = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
@@ -62,9 +90,6 @@ public class MediaImportFragment extends BaseDialogFragment {
                         busy = true;
                         Uri uri = data.getData();
 
-                        ProgressBar pb = root.findViewById(R.id.fragment_media_import_pb_loading);
-                        TextView tvLoading = root.findViewById(R.id.fragment_media_import_tv_loading);
-
                         ExecutorService executor = Executors.newSingleThreadExecutor();
                         Handler handler = new Handler(Looper.getMainLooper());
 
@@ -73,18 +98,21 @@ public class MediaImportFragment extends BaseDialogFragment {
                             handler.post(() -> {
                                 pb.setVisibility(View.VISIBLE);
                                 tvLoading.setVisibility(View.VISIBLE);
-                                notification = new Notification.Builder(getContext(), Constants.NOFICIATION_CHANNEL_1,
-                                        LOAD_FILE_NOTIFICATION_ID)
-                                        .title(getString(R.string.loading_media))
-                                        .content(getString(R.string.preparing))
-                                        .priority(android.app.Notification.PRIORITY_LOW)
-                                        .smallIcon(R.drawable.null_image).build();
+                                if (getContext() != null) {
+                                    notification = new Notification.Builder(getContext(), Constants.NOFICIATION_CHANNEL_1,
+                                            LOAD_FILE_NOTIFICATION_ID)
+                                            .title(getString(R.string.loading_media))
+                                            .content(getString(R.string.preparing))
+                                            .priority(android.app.Notification.PRIORITY_LOW)
+                                            .smallIcon(R.mipmap.ic_launcher).build();
+                                }
                             });
 
                             String text = CacheDependentActivity.readStringFromUri(uri, getActivity());
                             if (!text.equals("")) {
                                 //Prepare for inserting rows into db
-                                MyOpenHelper myOpenHelper = new MyOpenHelper(getContext(), MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);;
+                                MyOpenHelper myOpenHelper = new MyOpenHelper(getContext(), MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
+                                ;
                                 SQLiteDatabase db = myOpenHelper.getWritableDatabase();
 
                                 Set<String> allMediaPaths = myOpenHelper.getMediaPaths(db);
@@ -161,14 +189,14 @@ public class MediaImportFragment extends BaseDialogFragment {
                                 busy = false;
                                 handler.post(() -> {
                                     if (!isVisible) {
-                                        notification.setTitle(loadingCompleteText);
+                                        notification.setTitle(getString(R.string.loading_complete));
                                         notification.setContent(numRows + "/" + numRows);
                                         notification.setProgress(0);
                                         notification.show();
                                     }
                                     pb.setProgress(0);
                                     pb.setVisibility(View.GONE);
-                                    String output = loadingCompleteText + ", " +
+                                    String output = getString(R.string.loading_complete) + ", " +
                                             numRows + "/" + numRows;
                                     tvLoading.setText(output);
                                 });
@@ -195,14 +223,24 @@ public class MediaImportFragment extends BaseDialogFragment {
     }
 
     @Override
+    protected void initViews(View v) {
+        rlImportRaw = v.findViewById(R.id.fragment_media_import_rl_raw);
+        rlImportFile = v.findViewById(R.id.fragment_media_import_rl_file);
+        rgImportType = v.findViewById(R.id.fragment_media_import_rg_importtype);
+        etInputPath = v.findViewById(R.id.fragment_media_import_et_inputpath);
+
+        btnChooseDir = v.findViewById(R.id.fragment_media_import_btn_choosedir);
+        btnChooseFile = v.findViewById(R.id.fragment_media_import_btn_choosefile);
+        btnImport = v.findViewById(R.id.fragment_media_import_btn_import);
+
+        pb = v.findViewById(R.id.fragment_media_import_pb_loading);
+        tvLoading = v.findViewById(R.id.fragment_media_import_tv_loading);
+    }
+
+    @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        loadingCompleteText = getString(R.string.loading_complete);
 
-        RelativeLayout rlImportRaw = view.findViewById(R.id.fragment_media_import_rl_raw);
-        RelativeLayout rlImportFile = view.findViewById(R.id.fragment_media_import_rl_file);
-
-        RadioGroup rgImportType = view.findViewById(R.id.fragment_media_import_rg_importtype);
         rgImportType.setOnCheckedChangeListener((group, checkedId) -> {
             if (checkedId == R.id.fragment_media_import_rg_importtype_raw) {
                 rlImportFile.setVisibility(View.GONE);
@@ -213,20 +251,20 @@ public class MediaImportFragment extends BaseDialogFragment {
             }
         });
 
-        SharedPreferences prefs = getActivity().getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
+        SharedPreferences prefs = requireActivity().getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
 
-        EditText etInputPath = view.findViewById(R.id.fragment_media_import_et_inputpath);
         etInputPath.setText(prefs.getString(Constants.PATH, Environment.DIRECTORY_PICTURES));
 
-        Button btnChooseDir = view.findViewById(R.id.fragment_media_import_btn_choosedir);
-        Button btnChooseFile = view.findViewById(R.id.fragment_media_import_btn_choosefile);
-        Button btnImport = view.findViewById(R.id.fragment_media_import_btn_import);
-
-        //TODO: Should update etInputPath with new directory when returning from ChooseDirFragment
+        getParentFragmentManager().setFragmentResultListener(Constants.FRAGMENT_NEW_DIR_CALLBACK, this, (requestKey, result) -> {
+            String newPath = result.getString(Constants.FRAGMENT_NEW_DIR_CALLBACK);
+            etInputPath.setText(newPath);
+        });
         btnChooseDir.setOnClickListener(v -> {
-            FragmentManager fm = getActivity().getSupportFragmentManager();
+            FragmentManager fm = requireActivity().getSupportFragmentManager();
             ChooseDirFragment chooseDirFragment = new ChooseDirFragment();
             chooseDirFragment.show(fm, Constants.FRAGMENT_CHOOSE_DIR);
+//            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+//            chooseDirActivity.launch(intent);
         });
 
         btnChooseFile.setOnClickListener(v -> {
@@ -241,17 +279,17 @@ public class MediaImportFragment extends BaseDialogFragment {
             if (!busy) {
                 busy = true;
 
-                ProgressBar pb = view.findViewById(R.id.fragment_media_import_pb_loading);
-                TextView tvLoading = view.findViewById(R.id.fragment_media_import_tv_loading);
                 tvLoading.setVisibility(View.VISIBLE);
                 pb.setVisibility(View.VISIBLE);
 
-                notification = new Notification.Builder(getContext(), Constants.NOFICIATION_CHANNEL_1,
-                        LOAD_MEDIA_ROOT_NOTIFICATION_ID)
-                        .title(getString(R.string.loading_media))
-                        .content(getString(R.string.preparing))
-                        .priority(android.app.Notification.PRIORITY_LOW)
-                        .smallIcon(R.drawable.null_image).build();
+                if (getContext() != null) {
+                    notification = new Notification.Builder(getContext(), Constants.NOFICIATION_CHANNEL_1,
+                            LOAD_MEDIA_ROOT_NOTIFICATION_ID)
+                            .title(getString(R.string.loading_media))
+                            .content(getString(R.string.preparing))
+                            .priority(android.app.Notification.PRIORITY_LOW)
+                            .smallIcon(R.mipmap.ic_launcher).build();
+                }
 
                 tvLoading.setText(String.format("%s, %s", getString(R.string.loading_media), getString(R.string.preparing)));
 
@@ -269,7 +307,9 @@ public class MediaImportFragment extends BaseDialogFragment {
                     File root = new File(path);
                     String[] filesInRoot = root.list((dir, name) -> {
                         int startingIndex = name.lastIndexOf(".");
-                        if (startingIndex == -1) { return false; }
+                        if (startingIndex == -1) {
+                            return false;
+                        }
                         String extension = name.substring(startingIndex);
                         return Constants.IMAGE_EXTENSIONS.contains(extension) ||
                                 Constants.VIDEO_EXTENSIONS.contains(extension) ||
@@ -295,7 +335,7 @@ public class MediaImportFragment extends BaseDialogFragment {
                     db.beginTransaction();
                     for (String filePath : filePaths) {
                         int extensionIndex = filePath.lastIndexOf(".");
-                        String fileName = filePath.substring(filePath.lastIndexOf("/", extensionIndex-1)+1);
+                        String fileName = filePath.substring(filePath.lastIndexOf("/", extensionIndex - 1) + 1);
                         String name = fileName.substring(0, fileName.lastIndexOf("."));
                         Media media = new Media.Builder()
                                 .id(-1)
@@ -361,7 +401,6 @@ public class MediaImportFragment extends BaseDialogFragment {
                 });
             }
         });
-        root = view;
     }
 
     @Override

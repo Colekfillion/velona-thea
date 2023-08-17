@@ -63,7 +63,7 @@ public class Query {
                 clause += like ? "%" + value + "%\" " : value + "\" ";
                 clause += joiner;
             }
-            clause = clause.substring(0, clause.lastIndexOf(joiner)-1);
+            clause = clause.substring(0, clause.lastIndexOf(joiner) - 1);
             whereClauses.add(clause);
             return this;
         }
@@ -78,7 +78,7 @@ public class Query {
             for (String value : values) {
                 clause += value + ", ";
             }
-            clause = clause.substring(0, clause.length()-2);
+            clause = clause.substring(0, clause.length() - 2);
             clause += ") ";
             whereClauses.add(clause);
             return this;
@@ -110,7 +110,7 @@ public class Query {
             for (Pair<String, String> pair : selectColumns) {
                 builtQuery += pair.second + "." + pair.first + " AS " + pair.second + "_" + pair.first + ", ";
             }
-            builtQuery = builtQuery.substring(0, builtQuery.length()-2) + " ";
+            builtQuery = builtQuery.substring(0, builtQuery.length() - 2) + " ";
 
             builtQuery += "FROM " + baseTable + " ";
 
@@ -125,7 +125,7 @@ public class Query {
                 for (String whereClause : whereClauses) {
                     builtQuery += "(" + whereClause + ") AND ";
                 }
-                builtQuery = builtQuery.substring(0, builtQuery.length()-5) + " ";
+                builtQuery = builtQuery.substring(0, builtQuery.length() - 5) + " ";
             }
 
             if (groupBy != null) {
@@ -137,14 +137,14 @@ public class Query {
 
             if (orderBy.size() > 0) {
                 builtQuery += "ORDER BY ";
-                for (Pair<String, String> orderByPair: orderBy) {
+                for (Pair<String, String> orderByPair : orderBy) {
                     builtQuery += orderByPair.first + " ";
                     if (!Constants.isStringEmpty(orderByPair.second)) {
                         builtQuery += orderByPair.second;
                     }
                     builtQuery += ", ";
                 }
-                builtQuery = builtQuery.substring(0, builtQuery.length()-2) + " ";
+                builtQuery = builtQuery.substring(0, builtQuery.length() - 2) + " ";
             }
 
             Query query = new Query(this);

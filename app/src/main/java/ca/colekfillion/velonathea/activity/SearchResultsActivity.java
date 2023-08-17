@@ -35,6 +35,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -70,13 +71,40 @@ public class SearchResultsActivity extends CacheDependentActivity {
                     Intent data = result.getData();
                     if (data != null) {
                         Bundle dataPassed = data.getExtras();
-                        rv.scrollToPosition(dataPassed.getInt(Constants.MEDIA_LAST_POSITION));
+                        int lastPosition = 0;
+                        if (dataPassed != null) {
+                            lastPosition = dataPassed.getInt(Constants.MEDIA_LAST_POSITION);
+                        }
+                        rv.scrollToPosition(lastPosition);
                     }
                 }
             });
 
+    /**
+     * Gets the cached query stored in the query cache if it exists, and null if it doesn't.
+     *
+     * @param cacheFileLocation the parent folder of the query cache
+     * @return the cached query and its selection args as a string
+     */
+    public static String getCachedQuery(String cacheFileLocation) {
+        File queryCache = new File(cacheFileLocation + "/" + Constants.QUERY_CACHE_FILENAME);
+        if (!queryCache.exists()) {
+            return null;
+        }
+        String cachedQuery = "";
+        try {
+            BufferedReader r = new BufferedReader(new FileReader(queryCache));
+            cachedQuery = r.readLine();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return cachedQuery;
+    }
+
     @Override
-    protected void isVerified() { }
+    protected void initViews() {
+        rv = findViewById(R.id.activity_search_results_recyclerview_media);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -92,10 +120,11 @@ public class SearchResultsActivity extends CacheDependentActivity {
         cacheSize = prefs.getInt(Constants.PREFS_CACHE_SIZE, 150);
 
         boolean showHiddenFiles = prefs.getBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, false);
+        assert data != null;
         String query = data.getString(Constants.MEDIA_QUERY);
         String[] selectionArgs = data.getStringArray(Constants.QUERY_ARGS);
 
-        rv = findViewById(R.id.activity_search_results_recyclerview_media);
+
         rv.setHasFixedSize(true);
         rv.setItemViewCacheSize(20);
         rv.setDrawingCacheEnabled(true);
@@ -122,23 +151,16 @@ public class SearchResultsActivity extends CacheDependentActivity {
             mediaList.addAll(loadMediaFromCache(queryCacheLocation));
             Toast.makeText(this, String.format(getString(R.string.loaded_x_media_cache), mediaList.size()), Toast.LENGTH_LONG).show();
             rvAdapter.notifyItemRangeInserted(0, mediaList.size());
-        //Execute input query if query cache is invalid or nonexistent
+            //Execute input query if query cache is invalid or nonexistent
         } else {
             MyOpenHelper myOpenHelper = getMyOpenHelper();
             SQLiteDatabase db = myOpenHelper.getReadableDatabase();
+            Date old = new Date();
             Cursor c = db.rawQuery(query, selectionArgs);
             mediaList.addAll(myOpenHelper.parseMediaListFromCursor(c));
+            Toast.makeText(this, (new Date().getTime() - old.getTime()) + "ms, " + mediaList.size() + " results", Toast.LENGTH_LONG).show();
 
-            //Removes media from results if they are in a hidden directory
-            //TODO: Add where clause to query, 'if (!showHiddenFiles), file path not like "/."'
-            ArrayList<Media> mediaToRemove = new ArrayList<>();
-            for (Media media : mediaList) {
-                if (!showHiddenFiles && media.getFilePath().contains("/.")) {
-                    mediaToRemove.add(media);
-                }
-            }
-            mediaList.removeAll(mediaToRemove);
-            Toast.makeText(this, mediaList.size() + " results", Toast.LENGTH_LONG).show();
+            //Toast.makeText(this, mediaList.size() + " results", Toast.LENGTH_LONG).show();
             c.close();
             db.close();
             rvAdapter.notifyItemRangeInserted(0, mediaList.size());
@@ -169,174 +191,28 @@ public class SearchResultsActivity extends CacheDependentActivity {
     }
 
     @Override
-    protected int getLayoutResourceId() { return R.layout.activity_search_results; }
+    protected void isVerified() {
+    }
 
-    /**
-     * Recyclerview adapter for showing media.
-     */
-    class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder> {
-
-        @NonNull
-        @Override
-        public MyAdapter.ViewHolder onCreateViewHolder(ViewGroup viewGroup, int i) {
-            View view = LayoutInflater.from(viewGroup.getContext()).inflate(
-                    R.layout.row_search_results_recyclerview_media, viewGroup, false);
-            //Show image in fullscreen on click
-            view.setOnClickListener(v -> {
-                int position = rv.getChildLayoutPosition(view);
-                cancelDataLoading = true;
-
-                Bundle dataToPass = new Bundle();
-                dataToPass.putInt(Constants.POSITION, position);
-
-                Intent intent = new Intent(SearchResultsActivity.this, FullMediaActivity.class);
-                intent.putExtras(dataToPass);
-                fullMediaActivity.launch(intent);
-            });
-
-            //Show image details on long click
-            view.setOnLongClickListener(v -> {
-                int position = rv.getChildLayoutPosition(view);
-                Media media = mediaList.get(position);
-
-                cancelDataLoading = true;
-                FragmentManager fm = getSupportFragmentManager();
-                MediaDetailsFragment mediaDetailsFragment = new MediaDetailsFragment(position, media);
-                mediaDetailsFragment.show(fm, Constants.FRAGMENT_MEDIA_DETAILS);
-
-                return true;
-            });
-            return new ViewHolder(view);
-        }
-
-        @Override
-        public void onBindViewHolder(MyAdapter.ViewHolder imageLayout, int i) {
-            Media media = mediaList.get(i);
-            if (media == null) {
-                finish();
-            }
-            String fileName = media.getFileName();
-            imageLayout.image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-
-            imageLayout.fileName.setText(fileName);
-            imageLayout.name.setText(media.getName());
-            imageLayout.author.setText(media.getAuthor());
-        }
-
-        @Override
-        public void onViewAttachedToWindow(@NonNull ViewHolder holder) {
-            super.onViewAttachedToWindow(holder);
-            Media visibleMedia = mediaList.get(holder.getAdapterPosition());
-
-            String filePath = visibleMedia.getFilePath();
-            String fileName = visibleMedia.getFileName();
-
-            if (imageCache.containsKey(filePath)) {
-                holder.image.setImageBitmap(imageCache.get(filePath));
-            } else {
-                holder.image.setImageBitmap(null);
-
-                Handler handler = new Handler(Looper.getMainLooper());
-
-                executorService.execute(() -> {
-                    Bitmap bm = null;
-                    //True if this task was queued for execution but user has left activity
-                    if (!cancelDataLoading) {
-                        while (true) {
-                            File f = new File(filePath);
-                            if (f.exists()) {
-                                String extension = fileName.substring(fileName.lastIndexOf("."));
-                                //Image and gif (gifs can be loaded like a bitmap)
-                                if (Constants.IMAGE_EXTENSIONS.contains(extension) ||
-                                        extension.equals(".gif")) {
-
-                                    //Just decoding the dimensions of the target image
-                                    BitmapFactory.Options options = new BitmapFactory.Options();
-                                    options.inJustDecodeBounds = true;
-                                    BitmapFactory.decodeFile(f.getAbsolutePath(), options);
-                                    if (!fileName.equals(holder.fileName.getText().toString())) {
-                                        break;
-                                    }
-                                    int height = Math.round(options.outHeight / screenDensity); //height as dp
-
-                                    int sampleSize = 1; //how much smaller the image should be loaded
-                                    if (height != 80) {
-                                        //if the height is 160dp, image will be loaded half as big
-                                        sampleSize = Math.round(height / 80f);
-                                    }
-
-                                    //Loading the image with subsampling to save memory (smaller version of image)
-                                    options.inJustDecodeBounds = false;
-                                    options.inSampleSize = sampleSize;
-                                    options.inPreferredConfig = Bitmap.Config.RGB_565; //less colours
-                                    bm = BitmapFactory.decodeFile(f.getAbsolutePath(), options);
-                                    imageCache.put(fileName, bm);
-                                //Video
-                                } else if (Constants.VIDEO_EXTENSIONS.contains(extension)) {
-                                    //thumbnails can be created easier for videos
-                                    bm = ThumbnailUtils.createVideoThumbnail(filePath, MediaStore.Video.Thumbnails.MINI_KIND);
-                                    imageCache.put(filePath, bm);
-                                }
-                            }
-                            break;
-                        }
-                    }
-                    Bitmap finalBm = bm;
-                    handler.post(() -> {
-                        if (holder.fileName.getText().toString().equals(fileName)) {
-                            holder.image.setImageBitmap(finalBm);
-                        }
-                    });
-                });
-            }
-        }
-
-        @Override
-        public void onViewDetachedFromWindow(@NonNull ViewHolder holder) {
-            super.onViewDetachedFromWindow(holder);
-        }
-
-        @Override
-        public int getItemCount() { return mediaList.size(); }
-
-        public class ViewHolder extends RecyclerView.ViewHolder {
-            private final ImageView image;
-            private final TextView name;
-            private final TextView fileName;
-            private final TextView author;
-
-            //View is the parent layout, activity_sr_imagelayout
-            public ViewHolder(View view) {
-                super(view);
-                image = view.findViewById(R.id.activity_search_results_imgv);
-                fileName = view.findViewById(R.id.activty_search_results_tv_filename);
-                name = view.findViewById(R.id.activty_search_results_tv_name);
-                author = view.findViewById(R.id.activty_search_results_tv_author);
-            }
-        }
+    @Override
+    protected int getLayoutResourceId() {
+        return R.layout.activity_search_results;
     }
 
     /**
-     * Gets the cached query stored in the query cache if it exists, and null if it doesn't.
-     * @param cacheFileLocation the parent folder of the query cache
-     * @return the cached query and its selection args as a string
+     * Called from MediaDetailsFragment to update the SearchResultsActivity dataset
+     *
+     * @param i     the location of the media to update in mediaList
+     * @param media the updated media
      */
-    public static String getCachedQuery(String cacheFileLocation) {
-        File queryCache = new File(cacheFileLocation + "/" + Constants.QUERY_CACHE_FILENAME);
-        if (!queryCache.exists()) {
-            return null;
-        }
-        String cachedQuery = "";
-        try {
-            BufferedReader r = new BufferedReader(new FileReader(queryCache));
-            cachedQuery = r.readLine();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return cachedQuery;
+    public void mediaChanged(int i, Media media) {
+        mediaList.set(i, media);
+        rvAdapter.notifyItemChanged(i);
+        startLoadingMedia();
     }
 
     boolean cancelDataLoading = false;
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -398,18 +274,8 @@ public class SearchResultsActivity extends CacheDependentActivity {
     }
 
     /**
-     * Called from MediaDetailsFragment to update the SearchResultsActivity dataset
-     * @param i the location of the media to update in mediaList
-     * @param media the updated media
-     */
-    public void mediaChanged(int i, Media media) {
-        mediaList.set(i, media);
-        rvAdapter.notifyItemChanged(i);
-        startLoadingMedia();
-    }
-
-    /**
      * Method to calculate the size of all the bitmaps from imageCache.
+     *
      * @return the total size of cached bitmaps in megabytes
      */
     private int sizeOfCachedBitmaps() {
@@ -417,7 +283,167 @@ public class SearchResultsActivity extends CacheDependentActivity {
         for (Bitmap bm : imageCache.values()) {
             size += bm.getAllocationByteCount();
         }
-        return size/1000000;
+        return size / 1000000;
+    }
+
+    /**
+     * Recyclerview adapter for showing media.
+     */
+    class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder> {
+
+        @NonNull
+        @Override
+        public MyAdapter.ViewHolder onCreateViewHolder(ViewGroup viewGroup, int i) {
+            View view = LayoutInflater.from(viewGroup.getContext()).inflate(
+                    R.layout.row_search_results_recyclerview_media, viewGroup, false);
+            //Show image in fullscreen on click
+            view.setOnClickListener(v -> {
+                int position = rv.getChildLayoutPosition(view);
+                cancelDataLoading = true;
+
+                Bundle dataToPass = new Bundle();
+                dataToPass.putInt(Constants.POSITION, position);
+
+                Intent intent = new Intent(SearchResultsActivity.this, FullMediaActivity.class);
+                intent.putExtras(dataToPass);
+                fullMediaActivity.launch(intent);
+            });
+
+            //Show image details on long click
+            view.setOnLongClickListener(v -> {
+                int position = rv.getChildLayoutPosition(view);
+                Media media = mediaList.get(position);
+
+                cancelDataLoading = true;
+                FragmentManager fm = getSupportFragmentManager();
+                MediaDetailsFragment mediaDetailsFragment;
+                //this becomes true after one mediaDetailsFragment is created. but the new fragment
+                // cannot be shown by .show
+//                if (fm.findFragmentByTag(Constants.FRAGMENT_MEDIA_DETAILS) != null) {
+//                    //this is never true because IT DOESNT WORK asdlkjawefjkl
+//                    mediaDetailsFragment = (MediaDetailsFragment) fm.findFragmentByTag(Constants.FRAGMENT_MEDIA_DETAILS);
+//                    assert mediaDetailsFragment != null;
+//                    mediaDetailsFragment.update(position, media);
+//                    fm.beginTransaction().show(mediaDetailsFragment).commit();
+//                } else {
+//                    mediaDetailsFragment = new MediaDetailsFragment(position, media);
+//                    mediaDetailsFragment.show(fm, Constants.FRAGMENT_MEDIA_DETAILS);
+//                }
+                mediaDetailsFragment = new MediaDetailsFragment(position, media);
+                mediaDetailsFragment.show(fm, Constants.FRAGMENT_MEDIA_DETAILS);
+                return true;
+            });
+            return new ViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull MyAdapter.ViewHolder imageLayout, int i) {
+            Media media = mediaList.get(i);
+            if (media == null) {
+                finish();
+            }
+            assert media != null;
+            String fileName = media.getFileName();
+            imageLayout.image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
+            imageLayout.fileName.setText(fileName);
+            imageLayout.name.setText(media.getName());
+            imageLayout.author.setText(media.getAuthor());
+        }
+
+        @Override
+        public void onViewAttachedToWindow(@NonNull ViewHolder holder) {
+            super.onViewAttachedToWindow(holder);
+            Media visibleMedia = mediaList.get(holder.getAdapterPosition());
+
+            String filePath = visibleMedia.getFilePath();
+            String fileName = visibleMedia.getFileName();
+
+            if (imageCache.containsKey(filePath)) {
+                holder.image.setImageBitmap(imageCache.get(filePath));
+            } else {
+                holder.image.setImageBitmap(null);
+
+                Handler handler = new Handler(Looper.getMainLooper());
+
+                executorService.execute(() -> {
+                    Bitmap bm = null;
+                    //True if this task was queued for execution but user has left activity
+                    if (!cancelDataLoading) {
+                        while (true) {
+                            File f = new File(filePath);
+                            if (f.exists()) {
+                                String extension = fileName.substring(fileName.lastIndexOf("."));
+                                //Image and gif (gifs can be loaded like a bitmap)
+                                if (Constants.IMAGE_EXTENSIONS.contains(extension) ||
+                                        extension.equals(".gif")) {
+
+                                    //Just decoding the dimensions of the target image
+                                    BitmapFactory.Options options = new BitmapFactory.Options();
+                                    options.inJustDecodeBounds = true;
+                                    BitmapFactory.decodeFile(f.getAbsolutePath(), options);
+                                    if (!fileName.equals(holder.fileName.getText().toString())) {
+                                        break;
+                                    }
+                                    int height = Math.round(options.outHeight / screenDensity); //height as dp
+
+                                    int sampleSize = 1; //how much smaller the image should be loaded
+                                    if (height != 80) {
+                                        //if the height is 160dp, image will be loaded half as big
+                                        sampleSize = Math.round(height / 80f);
+                                    }
+
+                                    //Loading the image with subsampling to save memory (smaller version of image)
+                                    options.inJustDecodeBounds = false;
+                                    options.inSampleSize = sampleSize;
+                                    options.inPreferredConfig = Bitmap.Config.RGB_565; //less colours
+                                    bm = BitmapFactory.decodeFile(f.getAbsolutePath(), options);
+                                    imageCache.put(fileName, bm);
+                                    //Video
+                                } else if (Constants.VIDEO_EXTENSIONS.contains(extension)) {
+                                    //thumbnails can be created easier for videos
+                                    bm = ThumbnailUtils.createVideoThumbnail(filePath, MediaStore.Video.Thumbnails.MINI_KIND);
+                                    imageCache.put(filePath, bm);
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    Bitmap finalBm = bm;
+                    handler.post(() -> {
+                        if (holder.fileName.getText().toString().equals(fileName)) {
+                            holder.image.setImageBitmap(finalBm);
+                        }
+                    });
+                });
+            }
+        }
+
+        @Override
+        public void onViewDetachedFromWindow(@NonNull ViewHolder holder) {
+            super.onViewDetachedFromWindow(holder);
+        }
+
+        @Override
+        public int getItemCount() {
+            return mediaList.size();
+        }
+
+        public class ViewHolder extends RecyclerView.ViewHolder {
+            private final ImageView image;
+            private final TextView name;
+            private final TextView fileName;
+            private final TextView author;
+
+            //View is the parent layout, activity_sr_imagelayout
+            public ViewHolder(View view) {
+                super(view);
+                image = view.findViewById(R.id.activity_search_results_imgv);
+                fileName = view.findViewById(R.id.activty_search_results_tv_filename);
+                name = view.findViewById(R.id.activty_search_results_tv_name);
+                author = view.findViewById(R.id.activty_search_results_tv_author);
+            }
+        }
     }
 
     public void cancelDataLoading(boolean cancel) {

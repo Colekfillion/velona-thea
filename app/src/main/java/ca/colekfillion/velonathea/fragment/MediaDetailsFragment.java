@@ -1,6 +1,7 @@
 package ca.colekfillion.velonathea.fragment;
 
 import android.content.DialogInterface;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Handler;
@@ -29,7 +30,6 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import ca.colekfillion.velonathea.R;
 import ca.colekfillion.velonathea.activity.SearchResultsActivity;
@@ -41,15 +41,47 @@ import ca.colekfillion.velonathea.pojo.Media;
 public class MediaDetailsFragment extends BaseDialogFragment {
 
     private Media media;
-    private final int position;
+    Set<String> mediaTags;
+    EditText etFilePath;
+    EditText etName;
+    AutoCompleteTextView autocTvAuthor;
+    EditText etLink;
+    AutoCompleteTextView autocTvTag;
+    RelativeLayout tagLayout;
+    ImageButton iBtnFilePath;
+    ImageButton iBtnName;
+    ImageButton iBtnAuthor;
+    ImageButton iBtnLink;
+    ImageButton iBtnTag;
+    Button btnUpdate;
+    private int position;
 
     /**
      * @param position the position of the media in the parent activity's mediaList
-     * @param media the media shown
+     * @param media    the media shown
      */
     public MediaDetailsFragment(int position, Media media) {
         this.position = position;
         this.media = media;
+    }
+
+    @Override
+    protected void initViews(View v) {
+        etFilePath = v.findViewById(R.id.fragment_media_details_et_filepath);
+        etName = v.findViewById(R.id.fragment_media_details_et_name);
+        autocTvAuthor = v.findViewById(R.id.fragment_media_details_autoctv_author);
+        etLink = v.findViewById(R.id.fragment_media_details_et_link);
+        autocTvTag = v.findViewById(R.id.fragment_media_details_autoctv_tag);
+
+        iBtnFilePath = v.findViewById(R.id.fragment_media_details_btn_clearfilepath);
+        iBtnName = v.findViewById(R.id.fragment_media_details_btn_clearname);
+        iBtnAuthor = v.findViewById(R.id.fragment_media_details_btn_clearauthor);
+        iBtnLink = v.findViewById(R.id.fragment_media_details_btn_clearlink);
+        iBtnTag = v.findViewById(R.id.fragment_media_details_btn_cleartag);
+
+        tagLayout = v.findViewById(R.id.fragment_media_details_rl_tags);
+
+        btnUpdate = v.findViewById(R.id.fragment_media_details_btn_update);
     }
 
     @Nullable
@@ -68,28 +100,33 @@ public class MediaDetailsFragment extends BaseDialogFragment {
         return "MediaDetailsFragment";
     }
 
+    public void update(int position, Media media) {
+        this.position = position;
+        this.media = media;
+
+        if (media.getTags() != null) {
+            mediaTags = new LinkedHashSet<>(media.getTags());
+        } else {
+            mediaTags = new LinkedHashSet<>();
+        }
+
+        etFilePath.setText(media.getFilePath());
+        etName.setText(media.getName());
+        autocTvAuthor.setText(media.getAuthor());
+        etLink.setText(media.getLink());
+        refreshTags(tagLayout, mediaTags);
+    }
+
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         System.out.println(media.toString());
-        EditText etFilePath = view.findViewById(R.id.fragment_media_details_et_filepath);
-        EditText etName = view.findViewById(R.id.fragment_media_details_et_name);
-        AutoCompleteTextView autocTvAuthor = view.findViewById(R.id.fragment_media_details_autoctv_author);
-        EditText etLink = view.findViewById(R.id.fragment_media_details_et_link);
-        EditText etTag = view.findViewById(R.id.fragment_media_details_et_tag);
 
-        ImageButton iBtnFilePath = view.findViewById(R.id.fragment_media_details_btn_clearfilepath);
-        ImageButton iBtnName = view.findViewById(R.id.fragment_media_details_btn_clearname);
-        ImageButton iBtnAuthor = view.findViewById(R.id.fragment_media_details_btn_clearauthor);
-        ImageButton iBtnLink = view.findViewById(R.id.fragment_media_details_btn_clearlink);
-        ImageButton iBtnTag = view.findViewById(R.id.fragment_media_details_btn_cleartag);
         iBtnFilePath.setOnClickListener(v -> etFilePath.setText(""));
         iBtnName.setOnClickListener(v -> etName.setText(""));
         iBtnAuthor.setOnClickListener(v -> autocTvAuthor.setText(""));
         iBtnLink.setOnClickListener(v -> etLink.setText(""));
-        iBtnTag.setOnClickListener(v -> etTag.setText(""));
-
-        Button btnUpdate = view.findViewById(R.id.fragment_media_details_btn_update);
+        iBtnTag.setOnClickListener(v -> autocTvTag.setText(""));
 
         if (media.getLink() == null || (media.getTags() == null || media.getTags().size() == 0)) {
             MyOpenHelper myOpenHelper = new MyOpenHelper(getContext(), MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
@@ -102,52 +139,68 @@ public class MediaDetailsFragment extends BaseDialogFragment {
             }
         }
 
-        Set<String> tags;
-        if (media.getTags() != null) {
-            tags = new LinkedHashSet<>(media.getTags());
-        } else {
-            tags = new LinkedHashSet<>();
-        }
+        update(position, media);
 
-        etFilePath.setText(media.getFilePath());
-        etName.setText(media.getName());
-        autocTvAuthor.setText(media.getAuthor());
-        etLink.setText(media.getLink());
-        refreshTags(view, tags);
-
-        Set<String> authors = new HashSet<>();
-        AtomicBoolean gotAuthors = new AtomicBoolean(false);
-        AtomicBoolean gettingAuthors = new AtomicBoolean(false);
+        Set<String> allAuthors = new HashSet<>();
         autocTvAuthor.setOnFocusChangeListener((v, hasFocus) -> {
-            if (hasFocus) {
+            if (hasFocus && allAuthors.size() == 0) {
                 ExecutorService executor = Executors.newSingleThreadExecutor();
                 Handler handler = new Handler(Looper.getMainLooper());
 
                 executor.execute(() -> {
-                    if (!gotAuthors.get() && !gettingAuthors.get()) {
-                        gettingAuthors.set(true);
-                        MyOpenHelper myOpenHelper = new MyOpenHelper(getContext(), MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
-                        SQLiteDatabase db = myOpenHelper.getReadableDatabase();
-                        authors.addAll(myOpenHelper.getAuthorSet(db)); //to avoid lambda final
-                        handler.post(() -> {
-                            autocTvAuthor.setAdapter(new ArrayAdapter<>(getContext(),
-                                    R.layout.textview_autocomplete,
-                                    new ArrayList<>(authors)));
-                        });
+
+                    MyOpenHelper myOpenHelper = new MyOpenHelper(getContext(), MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
+                    SQLiteDatabase db = myOpenHelper.getReadableDatabase();
+                    Cursor c = db.rawQuery("SELECT " + MyOpenHelper.AUTHOR_TABLE + "." + MyOpenHelper.COL_AUTHOR_NAME + " FROM " + MyOpenHelper.AUTHOR_TABLE,
+                            new String[]{}
+                    );
+                    c.moveToFirst();
+                    while (c.moveToNext()) {
+                        allAuthors.add(c.getString(c.getColumnIndex(MyOpenHelper.COL_AUTHOR_NAME)));
                     }
-                    gotAuthors.set(true);
-                    gettingAuthors.set(false);
+                    c.close();
+                    db.close();
+                    handler.post(() -> autocTvAuthor.setAdapter(new ArrayAdapter<>(requireContext(),
+                            R.layout.textview_autocomplete,
+                            new ArrayList<>(allAuthors))));
                 });
+                executor.shutdown();
             }
         });
 
-        etTag.setOnKeyListener((v, keyCode, event) -> {
+        Set<String> allTags = new HashSet<>();
+        autocTvTag.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus && allTags.size() == 0) {
+                ExecutorService executor = Executors.newSingleThreadExecutor();
+                Handler handler = new Handler(Looper.getMainLooper());
+
+                executor.execute(() -> {
+                    MyOpenHelper myOpenHelper = new MyOpenHelper(getContext(), MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
+                    SQLiteDatabase db = myOpenHelper.getReadableDatabase();
+                    Cursor c = db.rawQuery("SELECT " + MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_TAG_NAME + " FROM " + MyOpenHelper.TAG_TABLE,
+                            new String[]{}
+                    );
+                    c.moveToFirst();
+                    while (c.moveToNext()) {
+                        allTags.add(c.getString(c.getColumnIndex(MyOpenHelper.COL_TAG_NAME)));
+                    }
+                    c.close();
+                    db.close();
+                    handler.post(() -> autocTvTag.setAdapter(new ArrayAdapter<>(requireContext(),
+                            R.layout.textview_autocomplete,
+                            new ArrayList<>(allTags))));
+                });
+                executor.shutdown();
+            }
+        });
+
+        autocTvTag.setOnKeyListener((v, keyCode, event) -> {
             if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_ENTER) {
-                String newTag = etTag.getText().toString().trim();
-                if (!tags.contains(newTag)) {
-                    etTag.setText("");
-                    tags.add(newTag);
-                    refreshTags(view, tags);
+                String newTag = autocTvTag.getText().toString().trim();
+                if (!mediaTags.contains(newTag)) {
+                    autocTvTag.setText("");
+                    mediaTags.add(newTag);
+                    refreshTags(tagLayout, mediaTags);
                     return true;
                 }
             }
@@ -179,14 +232,14 @@ public class MediaDetailsFragment extends BaseDialogFragment {
                 media.setLink(newMediaLink);
             }
 
-            if (!tags.equals(media.getTags())) {
+            if (!mediaTags.equals(media.getTags())) {
                 changed = true;
-                media.setTags(new HashSet<>(tags));
+                media.setTags(new HashSet<>(mediaTags));
             }
             System.out.println(media.toString());
 
             String toastText = "no change";
-            SearchResultsActivity parentActivity = ((SearchResultsActivity)getContext());
+            SearchResultsActivity parentActivity = ((SearchResultsActivity) getContext());
             if (changed) {
                 MyOpenHelper myOpenHelper = new MyOpenHelper(getContext(), MyOpenHelper.DATABASE_NAME, null, MyOpenHelper.DATABASE_VERSION);
                 SQLiteDatabase db = myOpenHelper.getWritableDatabase();
@@ -209,9 +262,13 @@ public class MediaDetailsFragment extends BaseDialogFragment {
         });
     }
 
-    //TODO: Refactor this, it's the same method used in MainActivity
-    private void refreshTags(View view, Set<String> tags) {
-        RelativeLayout tagLayout = view.findViewById(R.id.fragment_media_details_rl_tags);
+    /**
+     * Displays tags in a left->right order
+     *
+     * @param tagLayout a RelativeLayout where the tags will be displayed
+     * @param tags      String Set of tags to display
+     */
+    private void refreshTags(RelativeLayout tagLayout, Set<String> tags) {
         final int[] maxWidth = new int[1];
         final int[] layoutHeight = new int[1];
         tagLayout.post(new Runnable() { //MUST NOT BE LAMBDA OR IT BREAKS
@@ -235,21 +292,21 @@ public class MediaDetailsFragment extends BaseDialogFragment {
         for (String tag : tags) {
             TextView tv = new TextView(getContext());
             tv.setText(tag);
-            tv.setTextColor(ContextCompat.getColor(getContext(), R.color.white));
+            tv.setTextColor(ContextCompat.getColor(requireContext(), R.color.white));
             tv.setId(View.generateViewId());
-            tv.setBackgroundColor(ContextCompat.getColor(getContext(), R.color.black));
+            tv.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.black));
             tv.setPadding(3, 0, 3, 0);
             tv.setSingleLine();
             tv.setOnClickListener(v1 -> {
                 tagLayout.removeView(tv);
                 tags.remove(tv.getText().toString());
-                refreshTags(view, tags);
+                refreshTags(tagLayout, tags);
             });
 
             tagLayout.addView(tv);
         }
 
-        tagLayout.post(() ->  {
+        tagLayout.post(() -> {
 
             int count = tagLayout.getChildCount();
             for (int i = 0; i < count; i++) {
@@ -288,12 +345,16 @@ public class MediaDetailsFragment extends BaseDialogFragment {
         tagLayout.setLayoutParams(tagParams);
     }
 
-    @Override
-    public void onDismiss(@NonNull DialogInterface dialog) {
-        super.onDismiss(dialog);
-        SearchResultsActivity parentActivity = ((SearchResultsActivity)getContext());
+    private void startLoadingMedia() {
+        SearchResultsActivity parentActivity = ((SearchResultsActivity) getContext());
         if (parentActivity != null) {
             parentActivity.startLoadingMedia();
         }
+    }
+
+    @Override
+    public void onDismiss(@NonNull DialogInterface dialog) {
+        //getParentFragmentManager().beginTransaction().addToBackStack(Constants.FRAGMENT_MEDIA_DETAILS).commit();
+        startLoadingMedia();
     }
 }

@@ -6,11 +6,15 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 
 public abstract class BaseDialogFragment extends DialogFragment {
 
     protected String fragmentName;
+
+    protected abstract void initViews(View v);
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -26,8 +30,15 @@ public abstract class BaseDialogFragment extends DialogFragment {
         return inflater.inflate(getLayoutResourceId(), container, false);
     }
 
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        initViews(view);
+    }
+
     /**
      * Abstract method for setting the fragment layout via BaseFragment
+     *
      * @return the layout to inflate for the fragment
      */
     protected abstract int getLayoutResourceId();

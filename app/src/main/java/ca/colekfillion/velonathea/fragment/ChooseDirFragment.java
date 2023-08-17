@@ -34,10 +34,20 @@ import ca.colekfillion.velonathea.pojo.Constants;
 public class ChooseDirFragment extends BaseDialogFragment {
 
     private final Set<String> dirNames = new LinkedHashSet<>();
-    private ListAdapter dnAdapter;
+    TextView tvFolderName;
     private File currentDir;
     boolean showHiddenFiles;
     ExecutorService executor = Executors.newSingleThreadExecutor();
+    ListView lvDirs;
+    Button btnConfirmDir;
+    private FolderListAdapter dnAdapter;
+
+    @Override
+    protected void initViews(View v) {
+        tvFolderName = v.findViewById(R.id.fragment_choose_dir_tv_foldername);
+        lvDirs = v.findViewById(R.id.fragment_choose_dir_lv_dirs);
+        btnConfirmDir = v.findViewById(R.id.fragment_choose_dir_btn_confirm);
+    }
 
     @Nullable
     @Override
@@ -66,8 +76,7 @@ public class ChooseDirFragment extends BaseDialogFragment {
         showHiddenFiles = prefs.getBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, false);
         currentDir = new File(prefs.getString(Constants.PATH, Environment.getExternalStorageDirectory().getAbsolutePath()));
 
-        ListView lvDirs = view.findViewById(R.id.fragment_choose_dir_lv_dirs);
-        lvDirs.setAdapter(dnAdapter = new ListAdapter());
+        lvDirs.setAdapter(dnAdapter = new FolderListAdapter());
 
         listDirs(view);
 
@@ -76,17 +85,20 @@ public class ChooseDirFragment extends BaseDialogFragment {
             String fileName = tvDir.getText().toString();
             if (!fileName.equals("...")) {
                 currentDir = new File(currentDir, fileName);
-            } else if (currentDir.getParent() != null){
+            } else if (currentDir.getParent() != null) {
                 currentDir = currentDir.getParentFile();
             }
             listDirs(view);
         });
 
-        Button confirmDirButton = view.findViewById(R.id.fragment_choose_dir_btn_confirm);
-        confirmDirButton.setOnClickListener(v -> {
+
+        btnConfirmDir.setOnClickListener(v -> {
             SharedPreferences.Editor edit = prefs.edit();
             edit.putString(Constants.PATH, currentDir.getAbsolutePath());
             edit.apply();
+            Bundle result = new Bundle();
+            result.putString(Constants.FRAGMENT_NEW_DIR_CALLBACK, currentDir.getAbsolutePath());
+            getParentFragmentManager().setFragmentResult(Constants.FRAGMENT_NEW_DIR_CALLBACK, result);
             dismiss();
         });
     }
@@ -97,7 +109,6 @@ public class ChooseDirFragment extends BaseDialogFragment {
     private void listDirs(View view) {
         Handler handler = new Handler(Looper.getMainLooper());
 
-        TextView tvFolderName = view.findViewById(R.id.fragment_choose_dir_tv_foldername);
         tvFolderName.setText(currentDir.getName());
 
         if (executor.isTerminated() || executor.isShutdown()) {
@@ -127,7 +138,7 @@ public class ChooseDirFragment extends BaseDialogFragment {
             File[] dirs = currentDir.listFiles(f -> {
                 handler.post(() -> {
                     count.getAndIncrement();
-                    pb.setProgress((int) (((double)count.get() / (double)numFilesInDir)*100));
+                    pb.setProgress((int) (((double) count.get() / (double) numFilesInDir) * 100));
                 });
                 //Add to dirs if the file is a directory and either showHiddenFiles is true or, if false,
                 // the file name does not contain a period (hidden directory)
@@ -145,52 +156,42 @@ public class ChooseDirFragment extends BaseDialogFragment {
                 }
             }
 
-            handler.post(() -> {
-                pb.setVisibility(View.INVISIBLE);
-            });
+            handler.post(() -> pb.setVisibility(View.INVISIBLE));
         });
     }
-
-//    @Override
-//    public void onBackPressed() {
-//        String rootDirParent = rootDir.getParent();
-//        if (rootDirParent != null && !rootDir.getAbsolutePath().equals(startingDir.getAbsolutePath())) {
-//            rootDir = new File(rootDirParent);
-//            listDirs();
-//        } else {
-//            super.onBackPressed();
-//        }
-//    }
 
     /**
      * ListAdapter for showing each folder in dirNames.
      */
-    private class ListAdapter extends BaseAdapter {
+    private class FolderListAdapter extends BaseAdapter {
 
         @Override
-        public int getCount() { return dirNames.size(); }
+        public int getCount() {
+            return dirNames.size();
+        }
 
         @Override
-        public Object getItem(int i) { return dirNames.toArray()[i]; }
+        public Object getItem(int i) {
+            return dirNames.toArray()[i];
+        }
 
         @Override
-        public long getItemId(int position) { return position; }
+        public long getItemId(int position) {
+            return position;
+        }
 
         @Override
         public View getView(int i, View old, ViewGroup parent) {
             View newView = old;
             LayoutInflater inflater = getLayoutInflater();
 
-            String fileName = (String) getItem(i);
-
-            //Initialize new view based on message_send layout
             if (old == null) {
                 newView = inflater.inflate(R.layout.row_choose_dir_lv_dirs, parent, false);
             }
 
             //Find message widget and set it to the corresponding message text in the arraylist
             TextView tvDir = newView.findViewById(R.id.activity_choose_dir_tv_dir);
-            tvDir.setText(fileName);
+            tvDir.setText((String) getItem(i));
 
             return newView;
         }

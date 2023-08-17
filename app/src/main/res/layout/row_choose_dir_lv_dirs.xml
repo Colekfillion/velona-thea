@@ -7,7 +7,7 @@
         android:id="@+id/activity_choose_dir_tv_dir"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="14sp"
-        android:paddingVertical="6dp"/>
+        android:paddingVertical="6dp"
+        android:textSize="14sp" />
 
 </LinearLayout>

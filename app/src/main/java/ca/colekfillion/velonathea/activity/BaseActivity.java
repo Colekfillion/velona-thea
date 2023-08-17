@@ -6,7 +6,9 @@ import android.Manifest;
 import android.app.Activity;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -22,6 +24,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.FragmentManager;
@@ -55,16 +58,24 @@ public abstract class BaseActivity extends AppCompatActivity {
 
         Log.d("LIFECYCLE", "In " + getName() + " onCreate()");
 
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
+
         //Activity turns blank when leaving for privacy
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE,
-                WindowManager.LayoutParams.FLAG_SECURE);
+        SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
+        boolean secureWindow = prefs.getBoolean(Constants.PREFS_SECURE_WINDOW, true);
+        if (secureWindow) {
+            getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE,
+                    WindowManager.LayoutParams.FLAG_SECURE);
+        } else {
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+        }
 
         //Request read permissions if not granted
         if (ActivityCompat.checkSelfPermission(getApplicationContext(),
-                Manifest.permission.READ_EXTERNAL_STORAGE)!= PackageManager.PERMISSION_GRANTED) {
+                Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{
                     Manifest.permission.READ_EXTERNAL_STORAGE
-            },1);
+            }, 1);
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -73,6 +84,8 @@ public abstract class BaseActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         }
+
+        initViews();
     }
 
     @Override
@@ -91,6 +104,7 @@ public abstract class BaseActivity extends AppCompatActivity {
 
     /**
      * Creates the toolbar given it's id.
+     *
      * @param toolbarId the id of the toolbar to set
      */
     protected void createToolbar(int toolbarId) {
@@ -103,6 +117,7 @@ public abstract class BaseActivity extends AppCompatActivity {
 
     /**
      * Abstract method for setting the activity layout via BaseActivity
+     *
      * @return the layout to inflate for the activity, used in setContentView
      */
     protected abstract int getLayoutResourceId();
@@ -119,6 +134,7 @@ public abstract class BaseActivity extends AppCompatActivity {
 
     /**
      * Creates a new MyOpenHelper for the media database.
+     *
      * @return a MyOpenHelper for the media database
      */
     public MyOpenHelper getMyOpenHelper() {
@@ -142,6 +158,7 @@ public abstract class BaseActivity extends AppCompatActivity {
 
     /**
      * Called when the options menu is opened for the default toolbar
+     *
      * @param m menu object to inflate the layout into
      * @return true if the menu should be displayed
      */
@@ -187,4 +204,6 @@ public abstract class BaseActivity extends AppCompatActivity {
             notificationManager.createNotificationChannel(channel);
         }
     }
+
+    protected abstract void initViews();
 }

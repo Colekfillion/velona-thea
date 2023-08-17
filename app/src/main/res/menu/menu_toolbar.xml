@@ -2,11 +2,11 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/import_menubutton"
-        android:title="Import"
-        android:orderInCategory="1" />
+        android:orderInCategory="1"
+        android:title="Import" />
 
     <item
         android:id="@+id/config_menubutton"
-        android:title="@string/config_menubutton"
-        android:orderInCategory="2" />
+        android:orderInCategory="2"
+        android:title="@string/config_menubutton" />
 </menu>

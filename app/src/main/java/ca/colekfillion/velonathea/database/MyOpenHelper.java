@@ -89,7 +89,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
                 MEDIA_TAG_TABLE + "." + COL_MEDIA_TAG_TAG_ID);
     }});
 
-    private final static String AUTHOR_JOIN = "JOIN " + AUTHOR_TABLE + " ON " +
+    public final static String AUTHOR_JOIN = "JOIN " + AUTHOR_TABLE + " ON " +
             AUTHOR_TABLE + "." + COL_AUTHOR_ID + " = " + MEDIA_TABLE + "." + COL_MEDIA_AUTHOR_ID + " ";
 
     private final static String FILEPATH_JOIN = "JOIN " + FILEPATH_TABLE + " ON " +
@@ -103,18 +103,23 @@ public class MyOpenHelper extends SQLiteOpenHelper {
     private final static String TAG_JOIN = "LEFT JOIN " + MEDIA_TAG_TABLE + " ON " +
             MEDIA_TABLE + "." + COL_MEDIA_ID + " = " + MEDIA_TAG_TABLE + "." + COL_MEDIA_TAG_MEDIA_ID + " ";
 
-    public final static String[] DROP_INDEX_QUERIES = new String[] {
+    public final static String[] DROP_INDEX_QUERIES = new String[]{
             "DROP INDEX IF EXISTS " + TAG_TABLE + "_" + COL_TAG_NAME + "_index;",
             "DROP INDEX IF EXISTS " + MEDIA_TABLE + "_" + COL_MEDIA_FILENAME + "_index;",
             "DROP INDEX IF EXISTS " + MEDIA_TAG_TABLE + "_" + MEDIA_TAG_TABLE + "_id_index;",
             "DROP INDEX IF EXISTS " + AUTHOR_TABLE + "_" + COL_AUTHOR_NAME + "_index;"
     };
-    public final static String[] CREATE_INDEX_QUERIES = new String[] {
+    public final static String[] CREATE_INDEX_QUERIES = new String[]{
             "CREATE UNIQUE INDEX " + TAG_TABLE + "_" + COL_TAG_NAME + "_index ON " + TAG_TABLE + "(" + COL_TAG_NAME + ");",
             "CREATE INDEX " + MEDIA_TABLE + "_" + COL_MEDIA_FILENAME + "_index ON " + MEDIA_TABLE + "(" + COL_MEDIA_FILENAME + ");",
             "CREATE UNIQUE INDEX " + MEDIA_TAG_TABLE + "_" + MEDIA_TAG_TABLE + "_id_index ON " + MEDIA_TAG_TABLE + "(" + COL_MEDIA_TAG_MEDIA_ID + ", " + COL_MEDIA_TAG_TAG_ID + ");",
             "CREATE UNIQUE INDEX " + AUTHOR_TABLE + "_" + COL_AUTHOR_NAME + "_index ON " + AUTHOR_TABLE + "(" + COL_AUTHOR_NAME + ");"
     };
+
+    public final static String BASE_QUERY = "SELECT " + MEDIA_TABLE + "." + COL_MEDIA_ID + " AS " + COL_MEDIA_ID_ALIAS + ", " +
+            MEDIA_TABLE + "." + COL_MEDIA_FILENAME + " AS " + COL_MEDIA_FILENAME_ALIAS + ", " +
+            FILEPATH_TABLE + "." + COL_FILEPATH_NAME + " AS " + COL_FILEPATH_NAME_ALIAS + " " +
+            "FROM " + MEDIA_TABLE + " ";
 
     public MyOpenHelper(Context ctx, String name, SQLiteDatabase.CursorFactory factory, int version) {
         super(ctx, name, factory, version);
@@ -172,11 +177,41 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         onCreate(db);
     }
 
+    /**
+     * Returns a query used to select all media all media.
+     *
+     * @return the query
+     */
+    public static String getAllMediaQuery() {
+        String query = "SELECT " +
+                MEDIA_TABLE + "." + COL_MEDIA_ID + " AS " + COL_MEDIA_ID_ALIAS + ", " +
+                MEDIA_TABLE + "." + COL_MEDIA_FILENAME + " AS " + COL_MEDIA_FILENAME_ALIAS + ", " +
+                FILEPATH_TABLE + "." + COL_FILEPATH_NAME + " AS " + COL_FILEPATH_NAME_ALIAS + ", " +
+                MEDIA_TABLE + "." + COL_MEDIA_NAME + " AS " + COL_MEDIA_NAME_ALIAS + ", " +
+                AUTHOR_TABLE + "." + COL_AUTHOR_NAME + " AS " + COL_AUTHOR_NAME_ALIAS + ", " +
+                MEDIA_TABLE + "." + COL_MEDIA_LINK + " AS " + COL_MEDIA_LINK_ALIAS + ", " +
+                columns.get(COL_MEDIA_TAGS_GROUPED_ALIAS) + " AS " + COL_MEDIA_TAGS_GROUPED_ALIAS + " ";
+
+        query += "FROM " + MEDIA_TABLE + " ";
+
+        query += FILEPATH_JOIN;
+        query += AUTHOR_JOIN;
+        query += TAG_JOIN_ALL;
+
+        query += "GROUP BY (" + columns.get(COL_MEDIA_FILENAME_ALIAS) + ") ";
+
+        query += "ORDER BY " + MEDIA_TABLE + "." + COL_MEDIA_FILENAME + " ASC";
+
+        return query;
+    }
+
     @Override
-    public void onOpen(SQLiteDatabase db) { }
+    public void onOpen(SQLiteDatabase db) {
+    }
 
     /**
      * Gets all authors in the database.
+     *
      * @param db a readable SQLite database
      * @return a hashset of authors
      */
@@ -197,15 +232,16 @@ public class MyOpenHelper extends SQLiteOpenHelper {
 
     /**
      * Gets the provided author's id from the database or inserts if the author does not exist.
-     * @param db a writable SQLite database
+     *
+     * @param db     a writable SQLite database
      * @param author the author's name
      * @return the id of the author
      */
     public synchronized int getAuthorIdOrInsert(SQLiteDatabase db, String author) {
         Cursor authorCursor = db.rawQuery("SELECT " + COL_AUTHOR_ID + " " +
-                "FROM " + AUTHOR_TABLE +" " +
+                "FROM " + AUTHOR_TABLE + " " +
                 "WHERE " + COL_AUTHOR_NAME + " LIKE ? " +
-                "LIMIT 1;", new String[]{ author });
+                "LIMIT 1;", new String[]{author});
         int authorId;
         //If author does not exist, insert author into database
         if (authorCursor.getCount() == 0) {
@@ -221,9 +257,26 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         return authorId;
     }
 
+    public synchronized int getAuthorId(SQLiteDatabase db, String author) {
+        Cursor authorCursor = db.rawQuery("SELECT " + COL_AUTHOR_ID + " " +
+                "FROM " + AUTHOR_TABLE + " " +
+                "WHERE " + COL_AUTHOR_NAME + " LIKE ? " +
+                "LIMIT 1;", new String[]{author});
+        int authorId;
+        if (authorCursor.getCount() == 0) {
+            authorId = -1;
+        } else {
+            authorCursor.moveToFirst();
+            authorId = (int) authorCursor.getLong(authorCursor.getColumnIndex(COL_AUTHOR_ID));
+        }
+        authorCursor.close();
+        return authorId;
+    }
+
     /**
      * Gets the provided tag's id from the database, or inserts it if it does not exist.
-     * @param db a writable SQLite database
+     *
+     * @param db  a writable SQLite database
      * @param tag the tag name
      * @return the id of the tag
      */
@@ -231,7 +284,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         Cursor tagCursor = db.rawQuery("SELECT " + COL_TAG_ID + " " +
                 "FROM " + TAG_TABLE + " " +
                 "WHERE " + COL_TAG_NAME + " = ? " +
-                "LIMIT 1;", new String[]{ tag } );
+                "LIMIT 1;", new String[]{tag});
         int tagId;
         //If tag does not exist, insert tag into database
         if (tagCursor.getCount() == 0) {
@@ -249,42 +302,40 @@ public class MyOpenHelper extends SQLiteOpenHelper {
 
     /**
      * Gets the provided tag's id from the database, as well as any similar tags.
-     * @param db a readable SQLite database
+     *
+     * @param db  a readable SQLite database
      * @param tag the tag name
      * @return a set containing the ids of the similar tags
      */
     public synchronized Set<String> getSimilarTagIds(SQLiteDatabase db, String tag) {
         Cursor tagCursor = db.rawQuery("SELECT " + COL_TAG_ID + " " +
-                "FROM " + TAG_TABLE + " " +
-                "WHERE " + COL_TAG_NAME + " LIKE ?;",
-                new String[]{ "%" + tag + "%" } );
+                        "FROM " + TAG_TABLE + " " +
+                        "WHERE " + COL_TAG_NAME + " LIKE ?;",
+                new String[]{"%" + tag + "%"});
         Set<String> tagIds = new HashSet<>();
         //If tag does not exist, insert tag into database
-        if (tagCursor.getCount() == 0) {
-            tagCursor.close();
-            return tagIds;
-        } else {
+        if (tagCursor.getCount() != 0) {
             while (tagCursor.moveToNext()) {
                 tagIds.add(String.valueOf(tagCursor.getLong(tagCursor.getColumnIndex(COL_TAG_ID))));
             }
-            tagCursor.close();
-            return tagIds;
         }
+        tagCursor.close();
+        return tagIds;
     }
 
     /**
-     * Gets the provided tag's id from the database, as well as any similar tags.
-     * @param db a readable SQLite database
+     * Gets the provided tag's id from the database.
+     *
+     * @param db  a readable SQLite database
      * @param tag the tag name
-     * @return a set containing the ids of the similar tags
+     * @return the tag id or -1 if it does not exist
      */
     public synchronized int getTagId(SQLiteDatabase db, String tag) {
         Cursor tagCursor = db.rawQuery("SELECT " + COL_TAG_ID + " " +
                 "FROM " + TAG_TABLE + " " +
                 "WHERE " + COL_TAG_NAME + " = ? " +
-                "LIMIT 1;", new String[]{ tag } );
+                "LIMIT 1;", new String[]{tag});
         int tagId;
-        //If tag does not exist, insert tag into database
         if (tagCursor.getCount() == 0) {
             tagId = -1;
         } else {
@@ -297,9 +348,10 @@ public class MyOpenHelper extends SQLiteOpenHelper {
 
     /**
      * Inserts the provided media into the database and returns its id.
-     * @param db a writable SQLite database
+     *
+     * @param db    a writable SQLite database
      * @param media the media to insert
-     * @return the id of the inserted media, or -1 if an error occured
+     * @return the id of the inserted media, or -1 if an error occurred
      */
     public synchronized int insertMedia(SQLiteDatabase db, Media media) {
         int authorId = getAuthorIdOrInsert(db, media.getAuthor());
@@ -309,7 +361,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
 
         cv.put(COL_MEDIA_FILEPATH_ID, filePathId);
         cv.put(COL_MEDIA_NAME, media.getName());
-        cv.put(COL_MEDIA_FILENAME, media.getFilePath().substring(media.getFilePath().lastIndexOf("/")+1));
+        cv.put(COL_MEDIA_FILENAME, media.getFilePath().substring(media.getFilePath().lastIndexOf("/") + 1));
         cv.put(COL_MEDIA_AUTHOR_ID, authorId);
         cv.put(COL_MEDIA_LINK, media.getLink());
         int imageId = (int) db.insert(MEDIA_TABLE, null, cv);
@@ -332,10 +384,10 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         Cursor c = db.rawQuery("SELECT " + COL_FILEPATH_ID + " " +
                         "FROM " + FILEPATH_TABLE + " " +
                         "WHERE " + FILEPATH_TABLE + "." + COL_FILEPATH_NAME + " = ?;",
-                new String[] {filePath.substring(0, filePath.lastIndexOf("/")+1) });
+                new String[]{filePath.substring(0, filePath.lastIndexOf("/") + 1)});
         if (c.getCount() <= 0) {
             ContentValues cv = new ContentValues();
-            cv.put(COL_FILEPATH_NAME, filePath.substring(0, filePath.lastIndexOf("/")+1));
+            cv.put(COL_FILEPATH_NAME, filePath.substring(0, filePath.lastIndexOf("/") + 1));
             filePathId = (int) db.insert(FILEPATH_TABLE, null, cv);
         } else {
             c.moveToFirst();
@@ -345,23 +397,30 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         return filePathId;
     }
 
+//    public synchronized ArrayList<Media> getMediaList(SQLiteDatabase db) {
+//        ArrayList<Media> mediaList = new ArrayList<>();
+//        Cursor c = db.rawQuery("SELECT ")
+//    }
+
     /**
-     * @param db a writable SQLite database
+     * @param db    a writable SQLite database
      * @param media the media object with new values
-     * @return true if the media changed in the database, false if an error occured
+     * @return true if the media changed in the database, false if an error occurred
      */
     public synchronized boolean updateMedia(SQLiteDatabase db, Media media) {
-        String[] mediaId = new String[] {String.valueOf(media.getId())};
+        String[] mediaId = new String[]{String.valueOf(media.getId())};
         ContentValues cv = new ContentValues();
         cv.put(COL_MEDIA_FILEPATH_ID, getFilepathIdOrInsert(db, media.getFilePath()));
         cv.put(COL_MEDIA_NAME, media.getName());
-        cv.put(COL_MEDIA_FILENAME, media.getFilePath().substring(media.getFilePath().lastIndexOf("/")+1));
+        cv.put(COL_MEDIA_FILENAME, media.getFilePath().substring(media.getFilePath().lastIndexOf("/") + 1));
         cv.put(COL_MEDIA_LINK, media.getLink());
         cv.put(COL_MEDIA_INDEXED, 1);
         cv.put(COL_MEDIA_AUTHOR_ID, getAuthorIdOrInsert(db, media.getAuthor()));
         boolean success = db.update(MEDIA_TABLE, cv, COL_MEDIA_ID + " = ?", mediaId) == 1;
         cv.clear();
-        if (!success) { return false; }
+        if (!success) {
+            return false;
+        }
 
         //Delete all existing media tags
         db.delete(MEDIA_TAG_TABLE, COL_MEDIA_TAG_MEDIA_ID + " = ?", mediaId);
@@ -372,22 +431,20 @@ public class MyOpenHelper extends SQLiteOpenHelper {
                 cv.put(COL_MEDIA_TAG_TAG_ID, tagId);
                 success = db.insert(MEDIA_TAG_TABLE, null, cv) != -1;
                 cv.clear();
-                if (!success) { return false; }
+                if (!success) {
+                    return false;
+                }
             }
         }
         return true;
     }
 
-//    public synchronized ArrayList<Media> getMediaList(SQLiteDatabase db) {
-//        ArrayList<Media> mediaList = new ArrayList<>();
-//        Cursor c = db.rawQuery("SELECT ")
-//    }
-
     /**
      * Wrapper for parseMediaFromCursor for a list of media.
+     *
      * @param c a cursor for the media table
      * @return a arraylist of media created from all rows in the cursor
-     * @see #parseMediaFromCursor(Cursor) 
+     * @see #parseMediaFromCursor(Cursor)
      */
     public synchronized ArrayList<Media> parseMediaListFromCursor(Cursor c) {
         ArrayList<Media> mediaList = new ArrayList<>();
@@ -403,7 +460,8 @@ public class MyOpenHelper extends SQLiteOpenHelper {
 
     /**
      * Parses a media object from the next row in the provided cursor. Dynamically sets the
-     *  media object's values based on the columns selected in the cursor.
+     * media object's values based on the columns selected in the cursor.
+     *
      * @param c a cursor for the media table
      * @return a media builder, or null if the cursor is after last row
      */
@@ -448,34 +506,8 @@ public class MyOpenHelper extends SQLiteOpenHelper {
     }
 
     /**
-     * Returns a query used to select all media all media.
-     * @return the query
-     */
-    public static String getAllMediaQuery() {
-        String query = "SELECT " +
-                MEDIA_TABLE + "." + COL_MEDIA_ID + " AS " + COL_MEDIA_ID_ALIAS + ", " +
-                MEDIA_TABLE + "." + COL_MEDIA_FILENAME + " AS " + COL_MEDIA_FILENAME_ALIAS + ", " +
-                FILEPATH_TABLE + "." + COL_FILEPATH_NAME + " AS " + COL_FILEPATH_NAME_ALIAS + ", " +
-                MEDIA_TABLE + "." + COL_MEDIA_NAME + " AS " + COL_MEDIA_NAME_ALIAS + ", " +
-                AUTHOR_TABLE + "." + COL_AUTHOR_NAME + " AS " + COL_AUTHOR_NAME_ALIAS + ", " +
-                MEDIA_TABLE + "." + COL_MEDIA_LINK + " AS " + COL_MEDIA_LINK_ALIAS + ", " +
-                columns.get(COL_MEDIA_TAGS_GROUPED_ALIAS) + " AS " + COL_MEDIA_TAGS_GROUPED_ALIAS + " ";
-
-        query += "FROM " + MEDIA_TABLE + " ";
-
-        query += FILEPATH_JOIN;
-        query += AUTHOR_JOIN;
-        query += TAG_JOIN_ALL;
-
-        query += "GROUP BY (" + columns.get(COL_MEDIA_FILENAME_ALIAS) + ") ";
-
-        query += "ORDER BY " + MEDIA_TABLE + "." + COL_MEDIA_FILENAME + " ASC";
-
-        return query;
-    }
-
-    /**
      * To get additional data for one media. Takes the media id, returns a completed Media object.
+     *
      * @param db a readable SQLite database
      * @param id the id of the media
      * @return the media with all values from the database
@@ -504,11 +536,13 @@ public class MyOpenHelper extends SQLiteOpenHelper {
 
         //System.out.println(query);
 
-        Cursor c = db.rawQuery(query, new String[] { String.valueOf(id) });
+        Cursor c = db.rawQuery(query, new String[]{String.valueOf(id)});
         Media.Builder media = parseMediaFromCursor(c);
         c.close();
-        if (media == null) { return null; }
-        media.id((int)id);
+        if (media == null) {
+            return null;
+        }
+        media.id((int) id);
         return media.build();
     }
 
@@ -521,7 +555,7 @@ public class MyOpenHelper extends SQLiteOpenHelper {
 
         query += FILEPATH_JOIN;
 
-        Cursor c = db.rawQuery(query, new String[] { });
+        Cursor c = db.rawQuery(query, new String[]{});
         Set<String> allMediaPaths = new HashSet<>();
         while (c.moveToNext()) {
             allMediaPaths.add(c.getString(c.getColumnIndex(COL_FILEPATH_NAME_ALIAS)) + c.getString(c.getColumnIndex(COL_MEDIA_FILENAME_ALIAS)));

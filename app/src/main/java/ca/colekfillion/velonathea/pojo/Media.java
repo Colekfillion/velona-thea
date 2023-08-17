@@ -15,21 +15,68 @@ public class Media {
     public Media(Media.Builder builder) {
         this.id = builder.id;
         this.name = builder.name;
-        this.filePath =  builder.fileName != null ? builder.filePath + builder.fileName : builder.filePath;
+        this.filePath = builder.fileName != null ? builder.filePath + builder.fileName : builder.filePath;
         this.author = builder.author;
         this.link = builder.link;
         this.tags = builder.tags;
     }
 
-    public int getId() { return id; }
-    public String getName() { return name; }
-    public String getFileName() { return filePath.substring(filePath.lastIndexOf("/")+1); }
-    public String getFilePath() { return filePath; }
-    public String getAuthor() { return author; }
-    public String getLink() { return link; }
-    public Set<String> getTags() { return tags; }
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getFileName() {
+        return filePath.substring(filePath.lastIndexOf("/") + 1);
+    }
+
+    public String getFilePath() {
+        return filePath;
+    }
+
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
+    }
+
+    public String getAuthor() {
+        return author;
+    }
+
+    public void setAuthor(String author) {
+        this.author = author;
+    }
+
+    public String getLink() {
+        return link;
+    }
+
+    public void setLink(String link) {
+        this.link = link;
+    }
+
+    public Set<String> getTags() {
+        return tags;
+    }
+
+    public void setTags(@NonNull Set<String> tags) {
+        this.tags = tags;
+    }
+
     public String getTagsAsString() {
-        if (tags == null) { return ""; }
+        if (tags == null) {
+            return "";
+        }
         StringBuilder sTags = new StringBuilder();
         for (String tag : tags) {
             sTags.append(tag).append(" ");
@@ -38,16 +85,13 @@ public class Media {
         return sTags.toString();
     }
 
-    public void setId(int id) { this.id = id; }
-    public void setName(String name) { this.name = name; }
-    public void setFilePath(String filePath) { this.filePath = filePath; }
-    public void setAuthor(String author) { this.author = author; }
-    public void setLink(String link) { this.link = link; }
-    public void setTags(@NonNull Set<String> tags) { this.tags = tags; }
+    public void addTag(String tag) {
+        tags.add(tag);
+    }
 
-    public void addTag(String tag) { tags.add(tag); }
-
-    public void removeTag(String tag) { tags.remove(tag); }
+    public void removeTag(String tag) {
+        tags.remove(tag);
+    }
 
     public static class Builder {
         private int id = 0;

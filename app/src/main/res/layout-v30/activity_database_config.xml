@@ -32,21 +32,21 @@
         android:id="@+id/activity_database_config_tv_loading"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:visibility="gone"/>
+        android:visibility="gone" />
 
     <ProgressBar
         android:id="@+id/activity_database_config_pb_loading"
+        style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:visibility="invisible"
-        android:max="1000"/>
+        android:max="1000"
+        android:visibility="invisible" />
 
     <TextView
         android:id="@+id/activity_database_config_tv_dbstats"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:visibility="gone"
-        android:scrollbars="vertical"/>
+        android:scrollbars="vertical"
+        android:visibility="gone" />
 
 </LinearLayout>
