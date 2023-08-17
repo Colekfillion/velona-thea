@@ -51,11 +51,11 @@ public class MediaImportFragment extends BaseDialogFragment {
 
     private Notification notification;
 
-    RelativeLayout rlImportRaw;
-    RelativeLayout rlImportFile;
+    private RelativeLayout rlImportRaw;
+    private RelativeLayout rlImportFile;
 
-    RadioGroup rgImportType;
-    EditText etInputPath;
+    private RadioGroup rgImportType;
+    private EditText etInputPath;
     private final ActivityResultLauncher<Intent> chooseDirActivity = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
@@ -76,11 +76,11 @@ public class MediaImportFragment extends BaseDialogFragment {
                     }
                 }
             });
-    Button btnChooseDir;
-    Button btnChooseFile;
-    Button btnImport;
-    ProgressBar pb;
-    TextView tvLoading;
+    private Button btnChooseDir;
+    private Button btnChooseFile;
+    private Button btnImport;
+    private ProgressBar pb;
+    private TextView tvLoading;
     private final ActivityResultLauncher<Intent> loadRowsActivity = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {

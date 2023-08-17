@@ -34,12 +34,12 @@ import ca.colekfillion.velonathea.pojo.Constants;
 public class ChooseDirFragment extends BaseDialogFragment {
 
     private final Set<String> dirNames = new LinkedHashSet<>();
-    TextView tvFolderName;
+    private TextView tvFolderName;
     private File currentDir;
     boolean showHiddenFiles;
-    ExecutorService executor = Executors.newSingleThreadExecutor();
-    ListView lvDirs;
-    Button btnConfirmDir;
+    private ExecutorService executor = Executors.newSingleThreadExecutor();
+    private ListView lvDirs;
+    private Button btnConfirmDir;
     private FolderListAdapter dnAdapter;
 
     @Override

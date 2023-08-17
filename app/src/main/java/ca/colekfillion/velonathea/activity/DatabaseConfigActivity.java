@@ -34,10 +34,10 @@ import ca.colekfillion.velonathea.pojo.Media;
 public class DatabaseConfigActivity extends BaseActivity {
 
     private static boolean busy = false; //is the database being used?
-    Button btnDebugDb;
-    Button showInvalidFiles;
-    Button btnClearDb;
-    Button btnDbExport;
+    private Button btnDebugDb;
+    private Button showInvalidFiles;
+    private Button btnClearDb;
+    private Button btnDbExport;
 
     @Override
     protected void initViews() {

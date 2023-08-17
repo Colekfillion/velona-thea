@@ -41,19 +41,19 @@ import ca.colekfillion.velonathea.pojo.Media;
 public class MediaDetailsFragment extends BaseDialogFragment {
 
     private Media media;
-    Set<String> mediaTags;
-    EditText etFilePath;
-    EditText etName;
-    AutoCompleteTextView autocTvAuthor;
-    EditText etLink;
-    AutoCompleteTextView autocTvTag;
-    RelativeLayout tagLayout;
-    ImageButton iBtnFilePath;
-    ImageButton iBtnName;
-    ImageButton iBtnAuthor;
-    ImageButton iBtnLink;
-    ImageButton iBtnTag;
-    Button btnUpdate;
+    private Set<String> mediaTags;
+    private EditText etFilePath;
+    private EditText etName;
+    private AutoCompleteTextView autocTvAuthor;
+    private EditText etLink;
+    private AutoCompleteTextView autocTvTag;
+    private RelativeLayout tagLayout;
+    private ImageButton iBtnFilePath;
+    private ImageButton iBtnName;
+    private ImageButton iBtnAuthor;
+    private ImageButton iBtnLink;
+    private ImageButton iBtnTag;
+    private Button btnUpdate;
     private int position;
 
     /**

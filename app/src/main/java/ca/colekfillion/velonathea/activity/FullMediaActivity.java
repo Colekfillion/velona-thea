@@ -31,10 +31,10 @@ import pl.droidsonroids.gif.GifImageView;
 
 public class FullMediaActivity extends CacheDependentActivity {
 
-    ViewPager2 vp;
-    ViewPagerAdapter vpAdapter;
-    String path;
-    ArrayList<Media> mediaList = new ArrayList<>(); //for scrolling between media
+    private ViewPager2 vp;
+    private ViewPagerAdapter vpAdapter;
+    private String path;
+    private ArrayList<Media> mediaList = new ArrayList<>(); //for scrolling between media
 
     @Override
     protected void initViews() {
