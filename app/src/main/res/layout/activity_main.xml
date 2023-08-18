@@ -11,9 +11,23 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal">
 
+        <Spinner
+            android:id="@+id/activity_main_spnr_filter"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_gravity="center_vertical" />
+
+        <Spinner
+            android:id="@+id/activity_main_spnr_isnot"
+            android:layout_width="110dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="center_vertical" />
+
         <FrameLayout
-            android:layout_width="260dp"
-            android:layout_height="wrap_content">
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="fill">
 
             <AutoCompleteTextView
                 android:id="@+id/activity_main_actv_input"
@@ -34,13 +48,7 @@
 
         </FrameLayout>
 
-        <Spinner
-            android:id="@+id/activity_main_spnr_filter"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_gravity="center_vertical"
-            android:layout_weight="1"
-            android:gravity="fill" />
+
     </LinearLayout>
 
     <LinearLayout

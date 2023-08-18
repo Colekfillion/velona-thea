@@ -10,6 +10,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.util.Pair;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -30,9 +31,12 @@ import androidx.core.content.ContextCompat;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -40,25 +44,29 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import ca.colekfillion.velonathea.R;
 import ca.colekfillion.velonathea.database.MyOpenHelper;
+import ca.colekfillion.velonathea.database.Query;
 import ca.colekfillion.velonathea.pojo.Constants;
 import ca.colekfillion.velonathea.pojo.Filter;
 
 //TODO: Filter presets stored in either DB or sharedprefs
 public class MainActivity extends BaseActivity {
 
-    private final ArrayList<Filter> filterList = new ArrayList<>();
+    private final ArrayList<String> filterKeys = new ArrayList<>();
     private AutoCompleteTextView actvInput;
     private ImageButton iBtnInput;
     private Spinner spnrFilter;
     private Spinner spnrSortby;
     private ListView filterListView;
     private Button btnSearch;
+    private Spinner spnrIsNot;
+    private Map<String, Filter> filterMap = new LinkedHashMap<>();
 
     @Override
     protected void initViews() {
+        spnrFilter = findViewById(R.id.activity_main_spnr_filter);
+        spnrIsNot = findViewById(R.id.activity_main_spnr_isnot);
         actvInput = findViewById(R.id.activity_main_actv_input);
         iBtnInput = findViewById(R.id.activity_main_btn_clearinput);
-        spnrFilter = findViewById(R.id.activity_main_spnr_filter);
         spnrSortby = findViewById(R.id.activity_main_spnr_sortby);
         filterListView = findViewById(R.id.activity_main_lv_filters);
         btnSearch = findViewById(R.id.activity_main_btn_search);
@@ -70,12 +78,15 @@ public class MainActivity extends BaseActivity {
         createToolbar(R.id.activity_tb_default_toolbar);
         createNotificationChannel();
 
-        iBtnInput.setOnClickListener(v -> actvInput.setText(""));
-
         ArrayAdapter<CharSequence> filterAdapter = ArrayAdapter.createFromResource(this, R.array.filters_array, android.R.layout.simple_spinner_item);
         filterAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spnrFilter.setAdapter(filterAdapter);
         actvInput.setHint(spnrFilter.getSelectedItem().toString());
+
+        ArrayAdapter<CharSequence> isNotAdapter = ArrayAdapter.createFromResource(this, R.array.isnot_array, android.R.layout.simple_spinner_item);
+        isNotAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spnrIsNot.setAdapter(isNotAdapter);
+        iBtnInput.setOnClickListener(v -> actvInput.setText(""));
 
         ArrayAdapter<CharSequence> sortbyAdapter = ArrayAdapter.createFromResource(this, R.array.sortby_array, android.R.layout.simple_spinner_item);
         sortbyAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -162,8 +173,18 @@ public class MainActivity extends BaseActivity {
         actvInput.setOnKeyListener((v, keyCode, event) -> {
             if (event.getAction() == KeyEvent.ACTION_UP &&
                     keyCode == KeyEvent.KEYCODE_ENTER) {
-                Filter newFilter = new Filter(spnrFilter.getSelectedItem().toString(), true, false, actvInput.getText().toString());
-                filterList.add(newFilter);
+                boolean include, isOr;
+                include = !spnrIsNot.getSelectedItem().toString().equals("IS NOT");
+                isOr = spnrIsNot.getSelectedItem().toString().equals("IN");
+
+                String key = spnrFilter.getSelectedItem().toString() + "_" + spnrIsNot.getSelectedItem().toString();
+                if (filterMap.get(key) != null) {
+                    filterMap.get(key).addArg(actvInput.getText().toString());
+                } else {
+                    Filter newFilter = new Filter(spnrFilter.getSelectedItem().toString(), include, isOr, new LinkedHashSet<>(Collections.singleton(actvInput.getText().toString())));
+                    filterMap.put(key, newFilter);
+                    filterKeys.add(key);
+                }
                 filterListAdapter.notifyDataSetChanged();
                 return true;
             }
@@ -171,42 +192,213 @@ public class MainActivity extends BaseActivity {
         });
 
         btnSearch.setOnClickListener(view -> {
-            Set<Integer> tagIds = new LinkedHashSet<>();
-            MyOpenHelper myOpenHelper = getMyOpenHelper();
-            SQLiteDatabase db = myOpenHelper.getReadableDatabase();
+            Bundle dataToPass = new Bundle();
+            filterMap.clear();
 
-            StringBuilder query = new StringBuilder(MyOpenHelper.BASE_QUERY + "JOIN " + MyOpenHelper.FILEPATH_TABLE + " " +
-                    "ON " + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILEPATH_ID + " = " +
-                    MyOpenHelper.FILEPATH_TABLE + "." + MyOpenHelper.COL_FILEPATH_ID + " ");
+            String key = "Filename_IN";
+            Filter newFilter = new Filter("Filename", true, true, new LinkedHashSet<>(Arrays.asList(".png", ".jpg")));
+            filterMap.put(key, newFilter);
+            filterKeys.add(key);
 
-            SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
-            boolean showHiddenFiles = prefs.getBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, false);
-            boolean having = false;
-            if (filterList.size() > 0 || !showHiddenFiles) {
-                ArrayList<String> filenames = new ArrayList<>();
-                ArrayList<String> authorNames = new ArrayList<>();
-                ArrayList<Filter> tagFilters = new ArrayList<>();
-                Set<String> joins = new LinkedHashSet<>();
-                String baseQuery;
-                for (Filter filter : filterList) {
-                    switch (filter.getType()) {
-                        case "Author":
-                            if (filter.isInclude()) {
-                                authorNames.add(filter.getArg());
+            key = "Author_IS NOT";
+            newFilter = new Filter("Author", false, false, new LinkedHashSet<>(Collections.singletonList("original")));
+            filterMap.put(key, newFilter);
+            filterKeys.add(key);
+
+            key = "Tag_IS NOT";
+            newFilter = new Filter("Tag", false, false, new LinkedHashSet<>(Collections.singletonList("dog")));
+            filterMap.put(key, newFilter);
+            filterKeys.add(key);
+
+            key = "Tag_IS";
+            newFilter = new Filter("Tag", true, false, new LinkedHashSet<>(Collections.singletonList("cat")));
+            filterMap.put(key, newFilter);
+            filterKeys.add(key);
+
+            key = "Tag_IN";
+            newFilter = new Filter("Tag", true, true, new LinkedHashSet<>(Arrays.asList("youtube", "lamp")));
+            filterMap.put(key, newFilter);
+            filterKeys.add(key);
+
+            Pair<String, String[]> queryData = createSearchQueryOld();
+            Pair<String, String[]> queryDataNew = createSearchQuery();
+
+            dataToPass.putString(Constants.MEDIA_QUERY, queryData.first);
+            dataToPass.putStringArray(Constants.QUERY_ARGS, queryData.second);
+
+            Log.d("DB", "Query: " + queryData.first);
+            Log.d("DB", "Args: " + Arrays.toString(queryData.second));
+
+            Intent intent = new Intent(this, SearchResultsActivity.class);
+            intent.putExtras(dataToPass);
+            startActivity(intent);
+        });
+    }
+
+    private Pair<String, String[]> createSearchQuery() {
+        MyOpenHelper myOpenHelper = getMyOpenHelper();
+        SQLiteDatabase db = myOpenHelper.getReadableDatabase();
+        SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
+        boolean showHiddenFiles = prefs.getBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, false);
+
+        ArrayList<String> argsList = new ArrayList<>();
+        Query.Builder qb = new Query.Builder();
+        qb.select(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_ID)
+                .select(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_FILENAME)
+                .select(MyOpenHelper.FILEPATH_TABLE, MyOpenHelper.COL_FILEPATH_NAME)
+                .from(MyOpenHelper.MEDIA_TABLE);
+        qb.join(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_FILEPATH_ID, MyOpenHelper.FILEPATH_TABLE, MyOpenHelper.COL_FILEPATH_ID);
+
+        if (filterMap.size() > 0 || !showHiddenFiles) {
+            for (Filter filter : filterMap.values()) {
+                switch (filter.getType()) {
+                    case "Filename":
+                        qb.where(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_FILENAME,
+                                filter.getArgs().size(), true, filter.isInclude(), filter.isOr());
+                        argsList.addAll(filter.getArgs());
+                        break;
+                    case "Name":
+                        qb.where(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_NAME,
+                                filter.getArgs().size(), true, filter.isInclude(), filter.isOr());
+                        argsList.addAll(filter.getArgs());
+                        break;
+                    case "Author":
+                        qb.where(MyOpenHelper.AUTHOR_TABLE, MyOpenHelper.COL_AUTHOR_NAME,
+                                filter.getArgs().size(), false, filter.isInclude(), false);
+                        qb.join(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_AUTHOR_ID, MyOpenHelper.AUTHOR_TABLE, MyOpenHelper.COL_AUTHOR_ID);
+                        argsList.addAll(filter.getArgs());
+                        break;
+                    case "Tag":
+                        if (!filter.isInclude()) {
+                            Query.Builder tagNotQb = new Query.Builder();
+                            tagNotQb.select(MyOpenHelper.COL_MEDIA_TAG_MEDIA_ID, MyOpenHelper.MEDIA_TAG_TABLE)
+                                    .from(MyOpenHelper.MEDIA_TABLE);
+                            tagNotQb.whereIn(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_TAG_TAG_ID,
+                                    filter.getArgs().size(), true);
+
+                            qb.whereIn(MyOpenHelper.MEDIA_TAG_TABLE, MyOpenHelper.COL_MEDIA_TAG_TAG_ID,
+                                    tagNotQb, false);
+                            qb.join(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_ID, MyOpenHelper.MEDIA_TAG_TABLE, MyOpenHelper.COL_MEDIA_TAG_MEDIA_ID);
+
+                            for (String tag : filter.getArgs()) {
+                                argsList.add(String.valueOf(myOpenHelper.getTagId(db, tag)));
                             }
-                            joins.add(MyOpenHelper.AUTHOR_JOIN);
+                        }
+                        break;
+                }
+            }
+            int totalTagArgs = 0;
+            if (filterMap.get("Tag_IS") != null) {
+                totalTagArgs += filterMap.get("Tag_IS").getArgs().size();
+            }
+            if (filterMap.get("Tag_IN") != null) {
+                totalTagArgs += 1;
+            }
+            if (totalTagArgs > 0) {
+                Filter filter;
+                boolean once = false;
+                if (filterMap.get("Tag_IN") != null) {
+                    filter = filterMap.get("Tag_IN");
+                    qb.whereIn(MyOpenHelper.MEDIA_TAG_TABLE, MyOpenHelper.COL_MEDIA_TAG_TAG_ID,
+                            filter.getArgs().size(), true);
+                    qb.join(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_ID, MyOpenHelper.MEDIA_TAG_TABLE, MyOpenHelper.COL_MEDIA_TAG_MEDIA_ID);
+                    for (String tag : filter.getArgs()) {
+                        argsList.add(String.valueOf(myOpenHelper.getTagId(db, tag)));
+                    }
+                    once = true;
+                }
+                if (filterMap.get("Tag_IS") != null) {
+                    filter = filterMap.get("Tag_IS");
+                    if (!once) {
+                        qb.whereIn(MyOpenHelper.MEDIA_TAG_TABLE, MyOpenHelper.COL_MEDIA_TAG_TAG_ID,
+                                1, true);
+                        qb.join(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_ID, MyOpenHelper.MEDIA_TAG_TABLE, MyOpenHelper.COL_MEDIA_TAG_MEDIA_ID);
+                        for (String tag : filter.getArgs()) {
+                            argsList.add(String.valueOf(myOpenHelper.getTagId(db, tag)));
+                            filter.getArgs().remove(tag);
                             break;
-                        case "Tag":
-                            tagFilters.add(filter);
-                            joins.add("JOIN media_tag ON media.id = media_tag.media_id ");
-                            break;
+                        }
+                        once = true;
+                    }
+                    for (Iterator<String> it = filter.getArgs().iterator(); it.hasNext(); ) {
+                        Query.Builder qbIntersect = new Query.Builder();
+                        qbIntersect.select(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_ID)
+                                .select(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_FILENAME)
+                                .select(MyOpenHelper.FILEPATH_TABLE, MyOpenHelper.COL_FILEPATH_NAME)
+                                .from(MyOpenHelper.MEDIA_TABLE);
+                        qbIntersect.join(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_FILEPATH_ID, MyOpenHelper.FILEPATH_TABLE, MyOpenHelper.COL_FILEPATH_ID);
+                        qbIntersect.join(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_ID, MyOpenHelper.MEDIA_TAG_TABLE, MyOpenHelper.COL_MEDIA_TAG_MEDIA_ID);
+                        qbIntersect.where(MyOpenHelper.MEDIA_TAG_TABLE, MyOpenHelper.COL_MEDIA_TAG_TAG_ID, 1, false, true, false);
+                        qb.intersect(qbIntersect);
+                        String tag = it.next();
+                        argsList.add(String.valueOf(myOpenHelper.getTagId(db, tag)));
                     }
                 }
-                for (String join : joins) {
-                    query.append(join);
+            }
+        }
+        qb.groupBy(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_FILENAME);
+        switch (spnrSortby.getSelectedItem().toString()) {
+            case "Filename":
+                qb.orderBy(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_FILENAME);
+                break;
+            case "Name":
+                qb.select(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_NAME);
+                qb.orderBy(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_NAME);
+                break;
+            case "Author":
+                qb.select(MyOpenHelper.AUTHOR_TABLE, MyOpenHelper.COL_AUTHOR_NAME);
+                qb.join(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_AUTHOR_ID, MyOpenHelper.AUTHOR_TABLE, MyOpenHelper.COL_AUTHOR_ID);
+                qb.orderBy(MyOpenHelper.AUTHOR_TABLE, MyOpenHelper.COL_AUTHOR_NAME);
+                break;
+            case "Random":
+                qb.orderBy("RANDOM()");
+                break;
+        }
+
+        String[] args = argsList.toArray(new String[0]);
+        String query = qb.build().getQuery();
+        return new Pair<>(query, args);
+    }
+
+    private Pair<String, String[]> createSearchQueryOld() {
+        Set<Integer> tagIds = new LinkedHashSet<>();
+        MyOpenHelper myOpenHelper = getMyOpenHelper();
+        SQLiteDatabase db = myOpenHelper.getReadableDatabase();
+
+        StringBuilder query = new StringBuilder(MyOpenHelper.BASE_QUERY + "JOIN " + MyOpenHelper.FILEPATH_TABLE + " " +
+                "ON " + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILEPATH_ID + " = " +
+                MyOpenHelper.FILEPATH_TABLE + "." + MyOpenHelper.COL_FILEPATH_ID + " ");
+
+        SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
+        boolean showHiddenFiles = prefs.getBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, false);
+        boolean having = false;
+        ArrayList<Filter> filterList = new ArrayList<>(filterMap.values());
+        if (filterList.size() > 0 || !showHiddenFiles) {
+            ArrayList<String> filenames = new ArrayList<>();
+            ArrayList<String> authorNames = new ArrayList<>();
+            ArrayList<Filter> tagFilters = new ArrayList<>();
+            Set<String> joins = new LinkedHashSet<>();
+            String baseQuery;
+            for (Filter filter : filterList) {
+                switch (filter.getType()) {
+                    case "Author":
+                        if (filter.isInclude()) {
+                            authorNames.addAll(filter.getArgs());
+                        }
+                        joins.add(MyOpenHelper.AUTHOR_JOIN);
+                        break;
+                    case "Tag":
+                        tagFilters.add(filter);
+                        joins.add("JOIN media_tag ON media.id = media_tag.media_id ");
+                        break;
                 }
-                query.append("WHERE ");
-                for (Filter filter : filterList) {
+            }
+            for (String join : joins) {
+                query.append(join);
+            }
+            query.append("WHERE ");
+            for (Filter filter : filterList) {
+                for (String arg : filter.getArgs()) {
                     switch (filter.getType()) {
                         case "Filename":
                             if (!filter.isOr()) {
@@ -230,129 +422,126 @@ public class MainActivity extends BaseActivity {
                     if (!filter.isInclude()) {
                         query.append("NOT ");
                     }
-                    query.append("LIKE \"").append(filter.getArg()).append("\" AND ");
+                    query.append("LIKE \"").append(arg).append("\" AND ");
                 }
-                for (Filter filter : filterList) {
-                    if (filter.getType().equals("Filename") && filter.isOr()) {
-                        filenames.add(filter.getArg());
+            }
+            for (Filter filter : filterList) {
+                if (filter.getType().equals("Filename") && filter.isOr()) {
+                    filenames.addAll(filter.getArgs());
+                }
+            }
+            if (filenames.size() > 0) {
+                query.append("(");
+                for (String filename : filenames) {
+                    query.append("media.filename LIKE \"").append(filename).append("\" OR ");
+                }
+                query = new StringBuilder(query.substring(0, query.length() - 4));
+                query.append(") AND ");
+            }
+            if (!showHiddenFiles) {
+                query.append("filepath.name NOT LIKE \"%/.%\" AND ");
+            }
+            //author OR
+            if (authorNames.size() > 0) {
+                query.append("author.name IN (");
+                for (String authorName : authorNames) {
+                    query.append("\"").append(authorName).append("\", ");
+                }
+                query = new StringBuilder(query.substring(0, query.length() - 2));
+                query.append(") AND ");
+            }
+            //tag NOT
+            for (Filter filter : tagFilters) {
+                if (!filter.isInclude()) {
+                    for (String tag : filter.getArgs()) {
+                        tagIds.add(myOpenHelper.getTagId(db, tag));
                     }
                 }
-                if (filenames.size() > 0) {
-                    query.append("(");
-                    for (String filename : filenames) {
-                        query.append("media.filename LIKE \"").append(filename).append("\" OR ");
-                    }
-                    query = new StringBuilder(query.substring(0, query.length() - 4));
-                    query.append(") AND ");
+            }
+            if (tagIds.size() > 0) {
+                query.append("media.id NOT IN (SELECT media_id FROM media_tag WHERE tag_id IN (");
+                for (Integer tagId : tagIds) {
+                    query.append(tagId.toString()).append(", ");
                 }
-                if (!showHiddenFiles) {
-                    query.append("filepath.name NOT LIKE \"%/.%\" AND ");
+                query = new StringBuilder(query.substring(0, query.length() - 2));
+                query.append(")) AND ");
+            }
+            //removing tag NOT filters
+            Iterator<Filter> itr = tagFilters.iterator();
+            while (itr.hasNext()) {
+                Filter filter = itr.next();
+                if (!filter.isInclude()) {
+                    itr.remove();
                 }
-                //author OR
-                if (authorNames.size() > 0) {
-                    query.append("author.name IN (");
-                    for (String authorName : authorNames) {
-                        query.append("\"").append(authorName).append("\", ");
-                    }
-                    query = new StringBuilder(query.substring(0, query.length() - 2));
-                    query.append(") AND ");
-                }
-                //tag NOT
-                for (Filter filter : tagFilters) {
-                    if (!filter.isInclude()) {
-                        tagIds.add(myOpenHelper.getTagId(db, filter.getArg()));
-                    }
-                }
-                if (tagIds.size() > 0) {
-                    query.append("media.id NOT IN (SELECT media_id FROM media_tag WHERE tag_id IN (");
-                    for (Integer tagId : tagIds) {
-                        query.append(tagId.toString()).append(", ");
-                    }
-                    query = new StringBuilder(query.substring(0, query.length() - 2));
-                    query.append(")) AND ");
-                }
-                //removing tag NOT filters
-                Iterator<Filter> itr = tagFilters.iterator();
-                while (itr.hasNext()) {
-                    Filter filter = itr.next();
-                    if (!filter.isInclude()) {
-                        itr.remove();
+            }
+            tagIds.clear();
+            baseQuery = query.toString();
+            for (Filter filter : tagFilters) {
+                if (filter.isOr()) {
+                    for (String tag : filter.getArgs()) {
+                        tagIds.add(myOpenHelper.getTagId(db, tag));
                     }
                 }
-                tagIds.clear();
-                baseQuery = query.toString();
-                for (Filter filter : tagFilters) {
-                    if (filter.isOr()) {
-                        tagIds.add(myOpenHelper.getTagId(db, filter.getArg()));
-                    }
+            }
+            if (tagIds.size() > 0) {
+                query.append("media_tag.tag_id IN (");
+                for (Integer tagId : tagIds) {
+                    query.append(tagId.toString()).append(", ");
                 }
-                if (tagIds.size() > 0) {
-                    query.append("media_tag.tag_id IN (");
-                    for (Integer tagId : tagIds) {
-                        query.append(tagId.toString()).append(", ");
-                    }
-                    query = new StringBuilder(query.substring(0, query.length() - 2));
-                    query.append(") ");
-                }
-                //if there are still more tag filters (AND filters), we need to intersect
-                if (tagIds.size() < tagFilters.size() && tagIds.size() > 0) {
-                    query.append("INTERSECT ").append(baseQuery);
-                }
-                for (Filter filter : tagFilters) {
-                    if (!filter.isOr()) {
-                        having = true;
-                        query.append("media_tag.tag_id = ").append(myOpenHelper.getTagId(db, filter.getArg())).append(" ");
+                query = new StringBuilder(query.substring(0, query.length() - 2));
+                query.append(") ");
+            }
+            //if there are still more tag filters (AND filters), we need to intersect
+            if (tagIds.size() < tagFilters.size() && tagIds.size() > 0) {
+                query.append("INTERSECT ").append(baseQuery);
+            }
+            for (Filter filter : tagFilters) {
+                if (!filter.isOr()) {
+                    having = true;
+                    for (String tag : filter.getArgs()) {
+                        query.append("media_tag.tag_id = ").append(myOpenHelper.getTagId(db, tag)).append(" ");
                         query.append("INTERSECT ").append(baseQuery);
                     }
                 }
-                if (query.toString().endsWith("INTERSECT " + baseQuery)) {
-                    query = new StringBuilder(query.substring(0, query.length() - ("INTERSECT " + baseQuery).length()));
-                }
-                query = new StringBuilder(query.toString().trim());
-                if (query.toString().endsWith("AND")) {
-                    query = new StringBuilder(query.substring(0, query.length() - 3));
-                }
+            }
+            if (query.toString().endsWith("INTERSECT " + baseQuery)) {
+                query = new StringBuilder(query.substring(0, query.length() - ("INTERSECT " + baseQuery).length()));
+            }
+            query = new StringBuilder(query.toString().trim());
+            if (query.toString().endsWith("AND")) {
+                query = new StringBuilder(query.substring(0, query.length() - 3));
+            }
 //                if (!query.endsWith("ESCAPE \"\\\"") && query.contains(" LIKE ")) {
 //                    query += "ESCAPE \"\\\"";
 //                } else {
 //                    query = query.replaceAll("ESCAPE \"\"", "");
 //                }
-                db.close();
-            }
-            query.append(") GROUP BY (" + MyOpenHelper.MEDIA_TABLE + "_" + MyOpenHelper.COL_MEDIA_FILENAME + ") ");
-            if (having) {
-                query.append("HAVING COUNT(*) >= 1 ");
-            }
-            //TODO: For ordering by columns not in the base query (base query selects media id, filename, filepath)
-            // Add SELECT column when ordering by author or media name
+            db.close();
+        }
+        query.append(") GROUP BY (" + MyOpenHelper.MEDIA_TABLE + "_" + MyOpenHelper.COL_MEDIA_FILENAME + ") ");
+        if (having) {
+            query.append("HAVING COUNT(*) >= 1 ");
+        }
+        //TODO: For ordering by columns not in the base query (base query selects media id, filename, filepath)
+        // Add SELECT column when ordering by author or media name
 
-            switch (spnrSortby.getSelectedItem().toString()) {
-                case "Random":
-                    query.append("ORDER BY RANDOM()");
-                    break;
-                case "Filename":
-                    query.append("ORDER BY media_filename");
+        switch (spnrSortby.getSelectedItem().toString()) {
+            case "Random":
+                query.append("ORDER BY RANDOM()");
+                break;
+            case "Filename":
+                query.append("ORDER BY media_filename");
 
-                    break;
-                default:
-                    query.append("ORDER BY RANDOM()");
-            }
+                break;
+            default:
+                query.append("ORDER BY RANDOM()");
+        }
 
-            query.insert(0, "SELECT * FROM (");
-            String[] args = new String[0];
+        query.insert(0, "SELECT * FROM (");
+        String[] args = new String[0];
 
 
-            Bundle dataToPass = new Bundle();
-
-            dataToPass.putString(Constants.MEDIA_QUERY, query.toString());
-            dataToPass.putStringArray(Constants.QUERY_ARGS, args);
-            Log.d("DB", "Query: " + query);
-            Log.d("DB", "Args: " + Arrays.toString(args));
-
-            Intent intent = new Intent(this, SearchResultsActivity.class);
-            intent.putExtras(dataToPass);
-            startActivity(intent);
-        });
+        return new Pair<>(query.toString(), args);
     }
 
     @Override
@@ -368,12 +557,12 @@ public class MainActivity extends BaseActivity {
 
         @Override
         public int getCount() {
-            return filterList.size();
+            return filterKeys.size();
         }
 
         @Override
         public Object getItem(int i) {
-            return filterList.get(i);
+            return filterMap.get(filterKeys.get(i));
         }
 
         @Override
@@ -389,62 +578,47 @@ public class MainActivity extends BaseActivity {
 
             Filter current = (Filter) getItem(i);
             CardView cardView = view.findViewById(R.id.filter_listview_cv);
-            TextView tvInclude = view.findViewById(R.id.filter_listview_tv_include);
             if (current.isInclude()) {
-                tvInclude.setText("+");
                 cardView.setCardBackgroundColor(ContextCompat.getColor(getApplicationContext(), R.color.green));
             } else {
                 cardView.setCardBackgroundColor(ContextCompat.getColor(getApplicationContext(), R.color.red));
-                tvInclude.setText("-");
             }
-            tvInclude.setOnClickListener(view1 -> {
-                current.setInclude(!current.isInclude());
-                if (current.isInclude()) {
-                    tvInclude.setText("+");
-                    cardView.setCardBackgroundColor(ContextCompat.getColor(getApplicationContext(), R.color.green));
-                } else {
-                    cardView.setCardBackgroundColor(ContextCompat.getColor(getApplicationContext(), R.color.red));
-                    tvInclude.setText("-");
-                }
-            });
+
+            TextView tvDesc = view.findViewById(R.id.filter_listview_tv_desc);
+            String tvDescText = "";
+            switch (current.getType()) {
+                case "Filename":
+                    tvDescText = "FN";
+                    break;
+                case "Name":
+                    tvDescText = "N";
+                    break;
+                case "Author":
+                    tvDescText = "A";
+                    break;
+                case "Tag":
+                    tvDescText = "T";
+                    break;
+            }
+            tvDescText += " ";
+            if (current.isInclude() && !current.isOr()) {
+                tvDescText += "IS";
+            } else if (!current.isInclude() && !current.isOr()) {
+                tvDescText += "IS NOT";
+            } else if (current.isInclude() && current.isOr()) {
+                tvDescText += "IN";
+            }
+            tvDesc.setText(tvDescText);
 
             TextView tvArg = view.findViewById(R.id.filter_listview_tv_arg);
-            tvArg.setText(current.getType() + ": " + current.getArg());
+            tvArg.setText(current.getArgs().toString());
 
             ImageButton iBtnClear = view.findViewById(R.id.filter_listview_imgbtn_delete);
             iBtnClear.setOnClickListener(view2 -> {
-                filterList.remove(i);
+                filterMap.remove(filterKeys.get(i));
+                filterKeys.remove(i);
                 notifyDataSetChanged();
             });
-
-            //and/or only for tags
-            TextView tvAndOr = view.findViewById(R.id.filter_listview_tv_andor);
-            if (current.getType().equals("Tag") || current.getType().equals("Filename")) {
-                if (!current.isInclude()) {
-                    //tag NOT IN is OR, cannot be AND
-                    current.setIsOr(false);
-                }
-                if (current.isOr()) {
-                    tvAndOr.setText(R.string.booleanOR);
-                } else {
-                    tvAndOr.setText(R.string.booleanAND);
-                }
-                tvAndOr.setVisibility(View.VISIBLE);
-                tvAndOr.setOnClickListener(view12 -> {
-                    if (!current.isInclude()) {
-                        current.setIsOr(false);
-                    } else {
-                        current.setIsOr(!current.isOr());
-                        if (current.isOr()) {
-                            tvAndOr.setText(R.string.booleanOR);
-                        } else {
-                            tvAndOr.setText(R.string.booleanAND);
-                        }
-                    }
-                });
-            } else {
-                tvAndOr.setVisibility(View.GONE);
-            }
 
             return view;
         }

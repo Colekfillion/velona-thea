@@ -3,11 +3,8 @@ package ca.colekfillion.velonathea.database;
 import android.util.Pair;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
-
-import ca.colekfillion.velonathea.pojo.Constants;
 
 public class Query {
     String query;
@@ -22,11 +19,12 @@ public class Query {
 
     public static class Builder {
         private String baseTable;
-        private Set<Pair<String, String>> selectColumns = new HashSet<>();
+        private Set<Pair<String, String>> selectColumns = new LinkedHashSet<>();
         private String builtQuery;
         private Set<String> joins = new LinkedHashSet<>();
         private ArrayList<String> whereClauses = new ArrayList<>();
         private String groupBy;
+        private Set<Query.Builder> intersects = new LinkedHashSet<>();
         private int havingCount = 0;
         private Set<Pair<String, String>> orderBy = new LinkedHashSet<>();
 
@@ -40,8 +38,8 @@ public class Query {
             return this;
         }
 
-        public Builder join(String table1, String column1, String table2, String column2) {
-            joins.add("JOIN " + table2 + " ON " + table1 + "." + column1 + " = " + table2 + "." + column2 + " ");
+        public Builder join(String baseTable, String baseColumn, String targetTable, String targetColumn) {
+            joins.add("JOIN " + targetTable + " ON " + baseTable + "." + baseColumn + " = " + targetTable + "." + targetColumn + " ");
             return this;
         }
 
@@ -49,43 +47,73 @@ public class Query {
 //            joins.add("LEFT JOIN ")
 //        }
 
-        public Builder whereCondition(String tableName, String columnName, ArrayList<String> values, boolean like, boolean matchAll, boolean exclude) {
+        public Builder where(String tableName, String columnName, int numValues, boolean like, boolean include, boolean or) {
             String clause = "";
-            String valueComparer = like ? "LIKE " : "= ";
-            if (exclude && like) {
-                valueComparer = "NOT " + valueComparer;
-            } else if (exclude) {
-                valueComparer = "!" + valueComparer;
+            for (int i = 0; i < numValues; i++) {
+                clause += tableName + "." + columnName + " ";
+                if (!include && !like) {
+                    clause += "!";
+                } else if (!include) {
+                    clause += "NOT ";
+                }
+                if (like) {
+                    clause += "LIKE ";
+                } else {
+                    clause += "= ";
+                }
+                clause += "? ";
+                if (or) {
+                    clause += "OR ";
+                } else {
+                    clause += "AND ";
+                }
             }
-            String joiner = matchAll ? "AND " : "OR ";
-            for (String value : values) {
-                clause += tableName + "." + columnName + " " + valueComparer + "\"";
-                clause += like ? "%" + value + "%\" " : value + "\" ";
-                clause += joiner;
+            clause = clause.trim();
+            clause = clause.substring(0, clause.length() - 3);
+            if (clause.endsWith("A")) {
+                clause = clause.substring(0, clause.length() - 1);
             }
-            clause = clause.substring(0, clause.lastIndexOf(joiner) - 1);
             whereClauses.add(clause);
             return this;
         }
 
-        public Builder whereIn(String tableName, String columnName, ArrayList<String> values, boolean exclude, int havingCount) {
-            this.havingCount += havingCount;
+        public Builder whereIn(String tableName, String columnName, int numValues, boolean include) {
             String clause = tableName + "." + columnName + " ";
-            if (exclude) {
+            if (!include) {
                 clause += "NOT ";
             }
             clause += "IN (";
-            for (String value : values) {
-                clause += value + ", ";
+            for (int i = 0; i < numValues; i++) {
+                clause += "?, ";
             }
             clause = clause.substring(0, clause.length() - 2);
-            clause += ") ";
+            clause += ")";
+            whereClauses.add(clause);
+            return this;
+        }
+
+        public Builder whereIn(String tableName, String columnName, Query.Builder qb, boolean include) {
+            String clause = tableName + "." + columnName + " ";
+            if (!include) {
+                clause += "NOT ";
+            }
+            clause += "IN (" + qb.build().getQuery() + ")";
             whereClauses.add(clause);
             return this;
         }
 
         public Builder groupBy(String tableName, String columnName) {
-            groupBy = tableName + "." + columnName;
+            groupBy = tableName + "_" + columnName;
+            return this;
+        }
+
+        public Builder orderBy(String tableName, String columnName) {
+            orderBy.add(new Pair<>(tableName, columnName));
+            return this;
+        }
+
+        public Builder orderBy(String function) {
+            orderBy.add(new Pair<>(function, null));
             return this;
         }
 
@@ -94,8 +122,8 @@ public class Query {
             return this;
         }
 
-        public Builder orderByRandom() {
-            orderBy.add(new Pair<>("RANDOM()", null));
+        public Builder intersect(Query.Builder qb) {
+            intersects.add(qb);
             return this;
         }
 
@@ -108,7 +136,7 @@ public class Query {
         public Query build() {
             builtQuery = "SELECT ";
             for (Pair<String, String> pair : selectColumns) {
-                builtQuery += pair.second + "." + pair.first + " AS " + pair.second + "_" + pair.first + ", ";
+                builtQuery += pair.first + "." + pair.second + " AS " + pair.first + "_" + pair.second + ", ";
             }
             builtQuery = builtQuery.substring(0, builtQuery.length() - 2) + " ";
 
@@ -122,30 +150,40 @@ public class Query {
 
             if (whereClauses.size() > 0) {
                 builtQuery += "WHERE ";
-                for (String whereClause : whereClauses) {
-                    builtQuery += "(" + whereClause + ") AND ";
+                for (String clause : whereClauses) {
+                    builtQuery += "(" + clause + ") AND ";
                 }
-                builtQuery = builtQuery.substring(0, builtQuery.length() - 5) + " ";
+                builtQuery = builtQuery.substring(0, builtQuery.length() - 4);
+            }
+
+            if (intersects.size() > 0) {
+                builtQuery = "SELECT * FROM (" + builtQuery;
+                for (Builder qb : intersects) {
+                    builtQuery += " INTERSECT " + qb.build().getQuery() + " ";
+                }
+                builtQuery += " ) ";
             }
 
             if (groupBy != null) {
-                builtQuery += "GROUP BY (" + groupBy + ") ";
-                if (havingCount > 0) {
-                    builtQuery += " HAVING COUNT(*) >= " + havingCount + " ";
-                }
+                builtQuery += "GROUP BY " + groupBy + " ";
+            }
+
+            if (intersects.size() > 0) {
+                builtQuery += "HAVING COUNT(*) >= " + "1" + " ";
             }
 
             if (orderBy.size() > 0) {
                 builtQuery += "ORDER BY ";
-                for (Pair<String, String> orderByPair : orderBy) {
-                    builtQuery += orderByPair.first + " ";
-                    if (!Constants.isStringEmpty(orderByPair.second)) {
-                        builtQuery += orderByPair.second;
+                for (Pair<String, String> p : orderBy) {
+                    if (p.second != null) {
+                        builtQuery += p.first + "_" + p.second + ", ";
+                    } else {
+                        builtQuery += p.first + ", ";
                     }
-                    builtQuery += ", ";
                 }
                 builtQuery = builtQuery.substring(0, builtQuery.length() - 2) + " ";
             }
+
 
             Query query = new Query(this);
             validate(query);

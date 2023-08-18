@@ -46,4 +46,9 @@
         <item>Author</item>
         <item>Random</item>
     </string-array>
+    <string-array name="isnot_array">
+        <item>IS</item>
+        <item>IS NOT</item>
+        <item>IN</item>
+    </string-array>
 </resources>

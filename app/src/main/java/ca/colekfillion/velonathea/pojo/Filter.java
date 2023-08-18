@@ -1,14 +1,19 @@
 package ca.colekfillion.velonathea.pojo;
 
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 public class Filter {
     private String type;
     private boolean include;
     private boolean isOr;
-    private String arg;
-    public Filter(String type, boolean include, boolean isOr, String arg) {
+    private Set<String> args = new LinkedHashSet<>();
+
+    public Filter(String type, boolean include, boolean isOr, Set<String> args) {
         this.type = type;
         this.include = include;
-        this.arg = arg;
+        this.isOr = isOr;
+        this.args = args;
     }
 
     public String getType() {
@@ -23,8 +28,16 @@ public class Filter {
         this.include = include;
     }
 
-    public String getArg() {
-        return arg;
+    public Set<String> getArgs() {
+        return args;
+    }
+
+    public void removeArg(String arg) {
+        args.remove(arg);
+    }
+
+    public void addArg(String arg) {
+        args.add(arg);
     }
 
     public boolean isOr() {
