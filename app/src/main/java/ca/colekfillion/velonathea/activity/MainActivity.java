@@ -3,7 +3,6 @@ package ca.colekfillion.velonathea.activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Environment;
@@ -33,7 +32,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -115,14 +113,7 @@ public class MainActivity extends BaseActivity {
                         executor.execute(() -> {
                             MyOpenHelper myOpenHelper = getMyOpenHelper();
                             SQLiteDatabase db = myOpenHelper.getReadableDatabase();
-                            Cursor c = db.rawQuery("SELECT " + MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_TAG_NAME + " FROM " + MyOpenHelper.TAG_TABLE,
-                                    new String[]{}
-                            );
-                            c.moveToFirst();
-                            while (c.moveToNext()) {
-                                tags.add(c.getString(c.getColumnIndex(MyOpenHelper.COL_TAG_NAME)));
-                            }
-                            c.close();
+                            tags.addAll(myOpenHelper.getTagNameSet(db));
                             db.close();
                             tagsAdapter.set(new ArrayAdapter<>(getApplicationContext(),
                                     R.layout.textview_autocomplete,
@@ -140,14 +131,7 @@ public class MainActivity extends BaseActivity {
                         executor.execute(() -> {
                             MyOpenHelper myOpenHelper = getMyOpenHelper();
                             SQLiteDatabase db = myOpenHelper.getReadableDatabase();
-                            Cursor c = db.rawQuery("SELECT " + MyOpenHelper.AUTHOR_TABLE + "." + MyOpenHelper.COL_AUTHOR_NAME + " FROM " + MyOpenHelper.AUTHOR_TABLE,
-                                    new String[]{}
-                            );
-                            c.moveToFirst();
-                            while (c.moveToNext()) {
-                                authors.add(c.getString(c.getColumnIndex(MyOpenHelper.COL_AUTHOR_NAME)));
-                            }
-                            c.close();
+                            authors.addAll(myOpenHelper.getAuthorSet(db));
                             db.close();
                             authorsAdapter.set(new ArrayAdapter<>(getApplicationContext(),
                                     R.layout.textview_autocomplete,
@@ -193,35 +177,8 @@ public class MainActivity extends BaseActivity {
 
         btnSearch.setOnClickListener(view -> {
             Bundle dataToPass = new Bundle();
-            filterMap.clear();
 
-            String key = "Filename_IN";
-            Filter newFilter = new Filter("Filename", true, true, new LinkedHashSet<>(Arrays.asList(".png", ".jpg")));
-            filterMap.put(key, newFilter);
-            filterKeys.add(key);
-
-            key = "Author_IS NOT";
-            newFilter = new Filter("Author", false, false, new LinkedHashSet<>(Collections.singletonList("original")));
-            filterMap.put(key, newFilter);
-            filterKeys.add(key);
-
-            key = "Tag_IS NOT";
-            newFilter = new Filter("Tag", false, false, new LinkedHashSet<>(Collections.singletonList("dog")));
-            filterMap.put(key, newFilter);
-            filterKeys.add(key);
-
-            key = "Tag_IS";
-            newFilter = new Filter("Tag", true, false, new LinkedHashSet<>(Collections.singletonList("cat")));
-            filterMap.put(key, newFilter);
-            filterKeys.add(key);
-
-            key = "Tag_IN";
-            newFilter = new Filter("Tag", true, true, new LinkedHashSet<>(Arrays.asList("youtube", "lamp")));
-            filterMap.put(key, newFilter);
-            filterKeys.add(key);
-
-            Pair<String, String[]> queryData = createSearchQueryOld();
-            Pair<String, String[]> queryDataNew = createSearchQuery();
+            Pair<String, String[]> queryData = createSearchQuery();
 
             dataToPass.putString(Constants.MEDIA_QUERY, queryData.first);
             dataToPass.putStringArray(Constants.QUERY_ARGS, queryData.second);
@@ -233,6 +190,35 @@ public class MainActivity extends BaseActivity {
             intent.putExtras(dataToPass);
             startActivity(intent);
         });
+    }
+
+    private void debugSetFilters() {
+        filterMap.clear();
+
+        String key = "Filename_IN";
+        Filter newFilter = new Filter("Filename", true, true, new LinkedHashSet<>(Arrays.asList("%3%", "%5%")));
+        filterMap.put(key, newFilter);
+        filterKeys.add(key);
+
+        key = "Filename_IS";
+        newFilter = new Filter("Filename", true, false, new LinkedHashSet<>(Arrays.asList("%_p_%", "%.jpg")));
+        filterMap.put(key, newFilter);
+        filterKeys.add(key);
+
+        key = "Author_IS NOT";
+        newFilter = new Filter("Author", false, false, new LinkedHashSet<>(Collections.singletonList("unknown")));
+        filterMap.put(key, newFilter);
+        filterKeys.add(key);
+
+        key = "Author_IS";
+        newFilter = new Filter("Author", true, false, new LinkedHashSet<>(Collections.singletonList("nekoya saki")));
+        filterMap.put(key, newFilter);
+        filterKeys.add(key);
+
+        key = "Tag_IN";
+        newFilter = new Filter("Tag", true, true, new LinkedHashSet<>(Arrays.asList("3girls", "2girls")));
+        filterMap.put(key, newFilter);
+        filterKeys.add(key);
     }
 
     private Pair<String, String[]> createSearchQuery() {
@@ -296,7 +282,6 @@ public class MainActivity extends BaseActivity {
             }
             if (totalTagArgs > 0) {
                 Filter filter;
-                boolean once = false;
                 if (filterMap.get("Tag_IN") != null) {
                     filter = filterMap.get("Tag_IN");
                     qb.whereIn(MyOpenHelper.MEDIA_TAG_TABLE, MyOpenHelper.COL_MEDIA_TAG_TAG_ID,
@@ -305,11 +290,10 @@ public class MainActivity extends BaseActivity {
                     for (String tag : filter.getArgs()) {
                         argsList.add(String.valueOf(myOpenHelper.getTagId(db, tag)));
                     }
-                    once = true;
                 }
                 if (filterMap.get("Tag_IS") != null) {
                     filter = filterMap.get("Tag_IS");
-                    if (!once) {
+                    if (filterMap.get("Tag_IN") != null) {
                         qb.whereIn(MyOpenHelper.MEDIA_TAG_TABLE, MyOpenHelper.COL_MEDIA_TAG_TAG_ID,
                                 1, true);
                         qb.join(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_ID, MyOpenHelper.MEDIA_TAG_TABLE, MyOpenHelper.COL_MEDIA_TAG_MEDIA_ID);
@@ -318,9 +302,8 @@ public class MainActivity extends BaseActivity {
                             filter.getArgs().remove(tag);
                             break;
                         }
-                        once = true;
                     }
-                    for (Iterator<String> it = filter.getArgs().iterator(); it.hasNext(); ) {
+                    for (String tag : filter.getArgs()) {
                         Query.Builder qbIntersect = new Query.Builder();
                         qbIntersect.select(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_ID)
                                 .select(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_FILENAME)
@@ -330,7 +313,6 @@ public class MainActivity extends BaseActivity {
                         qbIntersect.join(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_ID, MyOpenHelper.MEDIA_TAG_TABLE, MyOpenHelper.COL_MEDIA_TAG_MEDIA_ID);
                         qbIntersect.where(MyOpenHelper.MEDIA_TAG_TABLE, MyOpenHelper.COL_MEDIA_TAG_TAG_ID, 1, false, true, false);
                         qb.intersect(qbIntersect);
-                        String tag = it.next();
                         argsList.add(String.valueOf(myOpenHelper.getTagId(db, tag)));
                     }
                 }
@@ -358,190 +340,6 @@ public class MainActivity extends BaseActivity {
         String[] args = argsList.toArray(new String[0]);
         String query = qb.build().getQuery();
         return new Pair<>(query, args);
-    }
-
-    private Pair<String, String[]> createSearchQueryOld() {
-        Set<Integer> tagIds = new LinkedHashSet<>();
-        MyOpenHelper myOpenHelper = getMyOpenHelper();
-        SQLiteDatabase db = myOpenHelper.getReadableDatabase();
-
-        StringBuilder query = new StringBuilder(MyOpenHelper.BASE_QUERY + "JOIN " + MyOpenHelper.FILEPATH_TABLE + " " +
-                "ON " + MyOpenHelper.MEDIA_TABLE + "." + MyOpenHelper.COL_MEDIA_FILEPATH_ID + " = " +
-                MyOpenHelper.FILEPATH_TABLE + "." + MyOpenHelper.COL_FILEPATH_ID + " ");
-
-        SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
-        boolean showHiddenFiles = prefs.getBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, false);
-        boolean having = false;
-        ArrayList<Filter> filterList = new ArrayList<>(filterMap.values());
-        if (filterList.size() > 0 || !showHiddenFiles) {
-            ArrayList<String> filenames = new ArrayList<>();
-            ArrayList<String> authorNames = new ArrayList<>();
-            ArrayList<Filter> tagFilters = new ArrayList<>();
-            Set<String> joins = new LinkedHashSet<>();
-            String baseQuery;
-            for (Filter filter : filterList) {
-                switch (filter.getType()) {
-                    case "Author":
-                        if (filter.isInclude()) {
-                            authorNames.addAll(filter.getArgs());
-                        }
-                        joins.add(MyOpenHelper.AUTHOR_JOIN);
-                        break;
-                    case "Tag":
-                        tagFilters.add(filter);
-                        joins.add("JOIN media_tag ON media.id = media_tag.media_id ");
-                        break;
-                }
-            }
-            for (String join : joins) {
-                query.append(join);
-            }
-            query.append("WHERE ");
-            for (Filter filter : filterList) {
-                for (String arg : filter.getArgs()) {
-                    switch (filter.getType()) {
-                        case "Filename":
-                            if (!filter.isOr()) {
-                                query.append("media.filename ");
-                                break;
-                            }
-                            continue;
-                        case "Name":
-                            query.append("media.name ");
-                            break;
-                        case "Author":
-                            if (!filter.isInclude()) {
-                                query.append("author.name ");
-                                break;
-                            }
-                            //author OR is handled below
-                            continue;
-                        case "Tag":
-                            continue;
-                    }
-                    if (!filter.isInclude()) {
-                        query.append("NOT ");
-                    }
-                    query.append("LIKE \"").append(arg).append("\" AND ");
-                }
-            }
-            for (Filter filter : filterList) {
-                if (filter.getType().equals("Filename") && filter.isOr()) {
-                    filenames.addAll(filter.getArgs());
-                }
-            }
-            if (filenames.size() > 0) {
-                query.append("(");
-                for (String filename : filenames) {
-                    query.append("media.filename LIKE \"").append(filename).append("\" OR ");
-                }
-                query = new StringBuilder(query.substring(0, query.length() - 4));
-                query.append(") AND ");
-            }
-            if (!showHiddenFiles) {
-                query.append("filepath.name NOT LIKE \"%/.%\" AND ");
-            }
-            //author OR
-            if (authorNames.size() > 0) {
-                query.append("author.name IN (");
-                for (String authorName : authorNames) {
-                    query.append("\"").append(authorName).append("\", ");
-                }
-                query = new StringBuilder(query.substring(0, query.length() - 2));
-                query.append(") AND ");
-            }
-            //tag NOT
-            for (Filter filter : tagFilters) {
-                if (!filter.isInclude()) {
-                    for (String tag : filter.getArgs()) {
-                        tagIds.add(myOpenHelper.getTagId(db, tag));
-                    }
-                }
-            }
-            if (tagIds.size() > 0) {
-                query.append("media.id NOT IN (SELECT media_id FROM media_tag WHERE tag_id IN (");
-                for (Integer tagId : tagIds) {
-                    query.append(tagId.toString()).append(", ");
-                }
-                query = new StringBuilder(query.substring(0, query.length() - 2));
-                query.append(")) AND ");
-            }
-            //removing tag NOT filters
-            Iterator<Filter> itr = tagFilters.iterator();
-            while (itr.hasNext()) {
-                Filter filter = itr.next();
-                if (!filter.isInclude()) {
-                    itr.remove();
-                }
-            }
-            tagIds.clear();
-            baseQuery = query.toString();
-            for (Filter filter : tagFilters) {
-                if (filter.isOr()) {
-                    for (String tag : filter.getArgs()) {
-                        tagIds.add(myOpenHelper.getTagId(db, tag));
-                    }
-                }
-            }
-            if (tagIds.size() > 0) {
-                query.append("media_tag.tag_id IN (");
-                for (Integer tagId : tagIds) {
-                    query.append(tagId.toString()).append(", ");
-                }
-                query = new StringBuilder(query.substring(0, query.length() - 2));
-                query.append(") ");
-            }
-            //if there are still more tag filters (AND filters), we need to intersect
-            if (tagIds.size() < tagFilters.size() && tagIds.size() > 0) {
-                query.append("INTERSECT ").append(baseQuery);
-            }
-            for (Filter filter : tagFilters) {
-                if (!filter.isOr()) {
-                    having = true;
-                    for (String tag : filter.getArgs()) {
-                        query.append("media_tag.tag_id = ").append(myOpenHelper.getTagId(db, tag)).append(" ");
-                        query.append("INTERSECT ").append(baseQuery);
-                    }
-                }
-            }
-            if (query.toString().endsWith("INTERSECT " + baseQuery)) {
-                query = new StringBuilder(query.substring(0, query.length() - ("INTERSECT " + baseQuery).length()));
-            }
-            query = new StringBuilder(query.toString().trim());
-            if (query.toString().endsWith("AND")) {
-                query = new StringBuilder(query.substring(0, query.length() - 3));
-            }
-//                if (!query.endsWith("ESCAPE \"\\\"") && query.contains(" LIKE ")) {
-//                    query += "ESCAPE \"\\\"";
-//                } else {
-//                    query = query.replaceAll("ESCAPE \"\"", "");
-//                }
-            db.close();
-        }
-        query.append(") GROUP BY (" + MyOpenHelper.MEDIA_TABLE + "_" + MyOpenHelper.COL_MEDIA_FILENAME + ") ");
-        if (having) {
-            query.append("HAVING COUNT(*) >= 1 ");
-        }
-        //TODO: For ordering by columns not in the base query (base query selects media id, filename, filepath)
-        // Add SELECT column when ordering by author or media name
-
-        switch (spnrSortby.getSelectedItem().toString()) {
-            case "Random":
-                query.append("ORDER BY RANDOM()");
-                break;
-            case "Filename":
-                query.append("ORDER BY media_filename");
-
-                break;
-            default:
-                query.append("ORDER BY RANDOM()");
-        }
-
-        query.insert(0, "SELECT * FROM (");
-        String[] args = new String[0];
-
-
-        return new Pair<>(query.toString(), args);
     }
 
     @Override

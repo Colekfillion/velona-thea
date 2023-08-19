@@ -101,9 +101,6 @@ public class MyOpenHelper extends SQLiteOpenHelper {
             "LEFT OUTER JOIN " + TAG_TABLE + " ON " +
             MEDIA_TAG_TABLE + "." + COL_MEDIA_TAG_TAG_ID + " = " + TAG_TABLE + "." + COL_TAG_ID + " ";
 
-    private final static String TAG_JOIN = "LEFT JOIN " + MEDIA_TAG_TABLE + " ON " +
-            MEDIA_TABLE + "." + COL_MEDIA_ID + " = " + MEDIA_TAG_TABLE + "." + COL_MEDIA_TAG_MEDIA_ID + " ";
-
     public final static String[] DROP_INDEX_QUERIES = new String[]{
             "DROP INDEX IF EXISTS " + TAG_TABLE + "_" + COL_TAG_NAME + "_index;",
             "DROP INDEX IF EXISTS " + MEDIA_TABLE + "_" + COL_MEDIA_FILENAME + "_index;",
@@ -116,11 +113,6 @@ public class MyOpenHelper extends SQLiteOpenHelper {
             "CREATE UNIQUE INDEX " + MEDIA_TAG_TABLE + "_" + MEDIA_TAG_TABLE + "_id_index ON " + MEDIA_TAG_TABLE + "(" + COL_MEDIA_TAG_MEDIA_ID + ", " + COL_MEDIA_TAG_TAG_ID + ");",
             "CREATE UNIQUE INDEX " + AUTHOR_TABLE + "_" + COL_AUTHOR_NAME + "_index ON " + AUTHOR_TABLE + "(" + COL_AUTHOR_NAME + ");"
     };
-
-    public final static String BASE_QUERY = "SELECT " + MEDIA_TABLE + "." + COL_MEDIA_ID + " AS " + COL_MEDIA_ID_ALIAS + ", " +
-            MEDIA_TABLE + "." + COL_MEDIA_FILENAME + " AS " + COL_MEDIA_FILENAME_ALIAS + ", " +
-            FILEPATH_TABLE + "." + COL_FILEPATH_NAME + " AS " + COL_FILEPATH_NAME_ALIAS + " " +
-            "FROM " + MEDIA_TABLE + " ";
 
     public MyOpenHelper(Context ctx, String name, SQLiteDatabase.CursorFactory factory, int version) {
         super(ctx, name, factory, version);
@@ -301,27 +293,19 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         return tagId;
     }
 
-    /**
-     * Gets the provided tag's id from the database, as well as any similar tags.
-     *
-     * @param db  a readable SQLite database
-     * @param tag the tag name
-     * @return a set containing the ids of the similar tags
-     */
-    public synchronized Set<String> getSimilarTagIds(SQLiteDatabase db, String tag) {
-        Cursor tagCursor = db.rawQuery("SELECT " + COL_TAG_ID + " " +
-                        "FROM " + TAG_TABLE + " " +
-                        "WHERE " + COL_TAG_NAME + " LIKE ?;",
-                new String[]{"%" + tag + "%"});
-        Set<String> tagIds = new HashSet<>();
-        //If tag does not exist, insert tag into database
-        if (tagCursor.getCount() != 0) {
-            while (tagCursor.moveToNext()) {
-                tagIds.add(String.valueOf(tagCursor.getLong(tagCursor.getColumnIndex(COL_TAG_ID))));
+    public synchronized Set<String> getTagNameSet(SQLiteDatabase db) {
+        Set<String> tagSet = new HashSet<>();
+        Cursor c = db.rawQuery("SELECT " +
+                MyOpenHelper.TAG_TABLE + "." + MyOpenHelper.COL_TAG_NAME + " " +
+                "FROM " + MyOpenHelper.TAG_TABLE, null);
+        if (c.moveToFirst()) {
+            while (!c.isAfterLast()) {
+                tagSet.add(c.getString(0));
+                c.moveToNext();
             }
         }
-        tagCursor.close();
-        return tagIds;
+        c.close();
+        return tagSet;
     }
 
     /**
@@ -397,11 +381,6 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         c.close();
         return filePathId;
     }
-
-//    public synchronized ArrayList<Media> getMediaList(SQLiteDatabase db) {
-//        ArrayList<Media> mediaList = new ArrayList<>();
-//        Cursor c = db.rawQuery("SELECT ")
-//    }
 
     /**
      * @param db    a writable SQLite database

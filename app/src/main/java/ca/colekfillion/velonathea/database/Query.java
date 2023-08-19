@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+//TODO: Escape characters, add ESCAPE keyword to where clause
 public class Query {
     String query;
 
@@ -25,7 +26,6 @@ public class Query {
         private ArrayList<String> whereClauses = new ArrayList<>();
         private String groupBy;
         private Set<Query.Builder> intersects = new LinkedHashSet<>();
-        private int havingCount = 0;
         private Set<Pair<String, String>> orderBy = new LinkedHashSet<>();
 
         public Builder select(String columnName, String tableName) {
@@ -42,10 +42,6 @@ public class Query {
             joins.add("JOIN " + targetTable + " ON " + baseTable + "." + baseColumn + " = " + targetTable + "." + targetColumn + " ");
             return this;
         }
-
-//        public Builder leftJoin(String table1, String column1, String table2, String column2) {
-//            joins.add("LEFT JOIN ")
-//        }
 
         public Builder where(String tableName, String columnName, int numValues, boolean like, boolean include, boolean or) {
             String clause = "";
@@ -114,11 +110,6 @@ public class Query {
 
         public Builder orderBy(String function) {
             orderBy.add(new Pair<>(function, null));
-            return this;
-        }
-
-        public Builder having(int target) {
-            havingCount = target;
             return this;
         }
 
