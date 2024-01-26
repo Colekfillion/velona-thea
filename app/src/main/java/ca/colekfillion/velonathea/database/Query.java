@@ -28,8 +28,8 @@ public class Query {
         private Set<Query.Builder> intersects = new LinkedHashSet<>();
         private Set<Pair<String, String>> orderBy = new LinkedHashSet<>();
 
-        public Builder select(String columnName, String tableName) {
-            selectColumns.add(new Pair<>(columnName, tableName));
+        public Builder select(String tableName, String columnName) {
+            selectColumns.add(new Pair<>(tableName, columnName));
             return this;
         }
 

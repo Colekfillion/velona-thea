@@ -211,7 +211,7 @@ public class MainActivity extends BaseActivity {
         filterKeys.add(key);
 
         key = "Author_IS";
-        newFilter = new Filter("Author", true, false, new LinkedHashSet<>(Collections.singletonList("nekoya saki")));
+        newFilter = new Filter("Author", true, true, new LinkedHashSet<>(Collections.singletonList("nekoya saki")));
         filterMap.put(key, newFilter);
         filterKeys.add(key);
 
@@ -224,8 +224,15 @@ public class MainActivity extends BaseActivity {
     private Pair<String, String[]> createSearchQuery() {
         MyOpenHelper myOpenHelper = getMyOpenHelper();
         SQLiteDatabase db = myOpenHelper.getReadableDatabase();
+
         SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
         boolean showHiddenFiles = prefs.getBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, false);
+        if (!showHiddenFiles) {
+            Filter newFilter = new Filter("Folder", false, false, new LinkedHashSet<>(Collections.singleton("%/.%")));
+            String key = "Folder_IS_NOT";
+            filterMap.put(key, newFilter);
+            filterKeys.add(key);
+        }
 
         ArrayList<String> argsList = new ArrayList<>();
         Query.Builder qb = new Query.Builder();
@@ -235,7 +242,7 @@ public class MainActivity extends BaseActivity {
                 .from(MyOpenHelper.MEDIA_TABLE);
         qb.join(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_FILEPATH_ID, MyOpenHelper.FILEPATH_TABLE, MyOpenHelper.COL_FILEPATH_ID);
 
-        if (filterMap.size() > 0 || !showHiddenFiles) {
+        if (filterMap.size() > 0) {
             for (Filter filter : filterMap.values()) {
                 switch (filter.getType()) {
                     case "Filename":
@@ -249,20 +256,25 @@ public class MainActivity extends BaseActivity {
                         argsList.addAll(filter.getArgs());
                         break;
                     case "Author":
-                        qb.where(MyOpenHelper.AUTHOR_TABLE, MyOpenHelper.COL_AUTHOR_NAME,
-                                filter.getArgs().size(), false, filter.isInclude(), false);
+                        if (filter.isInclude()) {
+                            qb.whereIn(MyOpenHelper.AUTHOR_TABLE, MyOpenHelper.COL_AUTHOR_NAME,
+                                    filter.getArgs().size(), filter.isInclude());
+                        } else {
+                            qb.where(MyOpenHelper.AUTHOR_TABLE, MyOpenHelper.COL_AUTHOR_NAME,
+                                    filter.getArgs().size(), false, filter.isInclude(), false);
+                        }
                         qb.join(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_AUTHOR_ID, MyOpenHelper.AUTHOR_TABLE, MyOpenHelper.COL_AUTHOR_ID);
                         argsList.addAll(filter.getArgs());
                         break;
                     case "Tag":
                         if (!filter.isInclude()) {
                             Query.Builder tagNotQb = new Query.Builder();
-                            tagNotQb.select(MyOpenHelper.COL_MEDIA_TAG_MEDIA_ID, MyOpenHelper.MEDIA_TAG_TABLE)
-                                    .from(MyOpenHelper.MEDIA_TABLE);
-                            tagNotQb.whereIn(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_TAG_TAG_ID,
+                            tagNotQb.select(MyOpenHelper.MEDIA_TAG_TABLE, MyOpenHelper.COL_MEDIA_TAG_MEDIA_ID)
+                                    .from(MyOpenHelper.MEDIA_TAG_TABLE);
+                            tagNotQb.whereIn(MyOpenHelper.MEDIA_TAG_TABLE, MyOpenHelper.COL_MEDIA_TAG_TAG_ID,
                                     filter.getArgs().size(), true);
 
-                            qb.whereIn(MyOpenHelper.MEDIA_TAG_TABLE, MyOpenHelper.COL_MEDIA_TAG_TAG_ID,
+                            qb.whereIn(MyOpenHelper.MEDIA_TAG_TABLE, MyOpenHelper.COL_MEDIA_TAG_MEDIA_ID,
                                     tagNotQb, false);
                             qb.join(MyOpenHelper.MEDIA_TABLE, MyOpenHelper.COL_MEDIA_ID, MyOpenHelper.MEDIA_TAG_TABLE, MyOpenHelper.COL_MEDIA_TAG_MEDIA_ID);
 
@@ -270,6 +282,11 @@ public class MainActivity extends BaseActivity {
                                 argsList.add(String.valueOf(myOpenHelper.getTagId(db, tag)));
                             }
                         }
+                        break;
+                    case "Folder":
+                        qb.where(MyOpenHelper.FILEPATH_TABLE, MyOpenHelper.COL_FILEPATH_NAME,
+                                filter.getArgs().size(), true, filter.isInclude(), filter.isOr());
+                        argsList.addAll(filter.getArgs());
                         break;
                 }
             }

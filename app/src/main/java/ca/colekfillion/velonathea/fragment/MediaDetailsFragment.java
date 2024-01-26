@@ -355,6 +355,7 @@ public class MediaDetailsFragment extends BaseDialogFragment {
     @Override
     public void onDismiss(@NonNull DialogInterface dialog) {
         //getParentFragmentManager().beginTransaction().addToBackStack(Constants.FRAGMENT_MEDIA_DETAILS).commit();
+        super.onDismiss(dialog);
         startLoadingMedia();
     }
 }

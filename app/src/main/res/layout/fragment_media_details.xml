@@ -37,7 +37,7 @@
             android:id="@+id/fragment_media_details_et_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Name"
+            android:hint="@string/media_name"
             android:importantForAutofill="no"
             android:inputType="text" />
 
@@ -60,7 +60,7 @@
             android:id="@+id/fragment_media_details_autoctv_author"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/author_name"
+            android:hint="@string/media_author"
             android:inputType="text" />
 
         <ImageButton
