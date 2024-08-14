@@ -17,6 +17,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
+import androidx.fragment.app.FragmentManager;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -27,6 +28,7 @@ import java.util.concurrent.Executors;
 
 import ca.colekfillion.velonathea.R;
 import ca.colekfillion.velonathea.database.MyOpenHelper;
+import ca.colekfillion.velonathea.fragment.ExcludedFoldersFragment;
 import ca.colekfillion.velonathea.pojo.Constants;
 import ca.colekfillion.velonathea.pojo.Media;
 
@@ -38,6 +40,7 @@ public class DatabaseConfigActivity extends BaseActivity {
     private Button showInvalidFiles;
     private Button btnClearDb;
     private Button btnDbExport;
+    private Button btnEditFolders;
 
     @Override
     protected void initViews() {
@@ -45,6 +48,7 @@ public class DatabaseConfigActivity extends BaseActivity {
         showInvalidFiles = findViewById(R.id.activity_database_config_btn_invalidfiles);
         btnClearDb = findViewById(R.id.activity_database_config_btn_cleardb);
         btnDbExport = findViewById(R.id.activity_database_config_btn_export_media);
+        btnEditFolders = findViewById(R.id.activity_database_config_btn_editfolders);
     }
 
     @Override
@@ -347,6 +351,14 @@ public class DatabaseConfigActivity extends BaseActivity {
 //                    busy = false;
 //                    handler.post(() -> tvDbStats.setText(dbStats.toString()));
                 });
+            }
+        });
+
+        btnEditFolders.setOnClickListener(v -> {
+            if (!busy) {
+                FragmentManager fm = getSupportFragmentManager();
+                ExcludedFoldersFragment excludedFoldersFragment = new ExcludedFoldersFragment();
+                excludedFoldersFragment.show(fm, Constants.FRAGMENT_EXCLUDED_FOLDERS);
             }
         });
     }

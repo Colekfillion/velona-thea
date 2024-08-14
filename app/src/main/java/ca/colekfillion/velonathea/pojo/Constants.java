@@ -43,6 +43,8 @@ public class Constants {
     public static final String FRAGMENT_NEW_DIR_CALLBACK = "newDir";
 
     public static final String PREFS_TAGTYPE = "tagType";
+    public static final String FRAGMENT_EXCLUDED_FOLDERS = "excludedFoldersFragment";
+    public static final String PREFS_EXCLUDED_FOLDERS = "excludedFolders";
 
     public static boolean isStringEmpty(String string) {
         return string == null || string.equals("") || string.length() == 0;

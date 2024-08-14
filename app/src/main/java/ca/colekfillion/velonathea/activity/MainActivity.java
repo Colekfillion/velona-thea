@@ -233,6 +233,18 @@ public class MainActivity extends BaseActivity {
             filterMap.put(key, newFilter);
             filterKeys.add(key);
         }
+        Set<String> excludedFolders = new LinkedHashSet<>(prefs.getStringSet(Constants.PREFS_EXCLUDED_FOLDERS, new HashSet<>()));
+        Set<String> excludedFoldersMod = new LinkedHashSet<>();
+        if (excludedFolders.size() > 0) {
+            for (String excludedFolder :
+                    excludedFolders) {
+                excludedFoldersMod.add(excludedFolder + "%");
+            }
+            Filter newFilter = new Filter("Folder", false, true, excludedFoldersMod);
+            String key = "Folder_IS_NOT";
+            filterMap.put(key, newFilter);
+            filterKeys.add(key);
+        }
 
         ArrayList<String> argsList = new ArrayList<>();
         Query.Builder qb = new Query.Builder();

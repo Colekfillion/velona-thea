@@ -46,9 +46,13 @@
     <string name="filter_is">IS</string>
     <string name="filter_is_not">IS NOT</string>
     <string name="filter_in">IN</string>
+    <string name="edit_included_folders">Edit included folders</string>
     <string-array name="isnot_array">
         <item>IS</item>
         <item>IS NOT</item>
         <item>IN</item>
     </string-array>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="confirm">Confirm</string>
 </resources>

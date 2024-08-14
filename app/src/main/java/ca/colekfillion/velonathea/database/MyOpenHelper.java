@@ -543,4 +543,21 @@ public class MyOpenHelper extends SQLiteOpenHelper {
         c.close();
         return allMediaPaths;
     }
+
+    public synchronized String[] getDbFolders(SQLiteDatabase db) {
+        String query = "SELECT " +
+                MyOpenHelper.FILEPATH_TABLE + "." + MyOpenHelper.COL_FILEPATH_NAME + " ";
+
+        query += "FROM " + MyOpenHelper.FILEPATH_TABLE + " ";
+
+
+        Cursor c = db.rawQuery(query, new String[]{});
+        ArrayList<String> dbFolders = new ArrayList<>();
+        while (c.moveToNext()) {
+            dbFolders.add(c.getString(c.getColumnIndex(COL_FILEPATH_NAME)));
+        }
+        c.close();
+        return dbFolders.toArray(new String[0]);
+    }
 }
+

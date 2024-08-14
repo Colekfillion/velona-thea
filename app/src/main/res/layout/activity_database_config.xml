@@ -36,6 +36,12 @@
         android:layout_height="wrap_content"
         android:visibility="gone" />
 
+    <Button
+        android:id="@+id/activity_database_config_btn_editfolders"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/edit_included_folders" />
+
     <ProgressBar
         android:id="@+id/activity_database_config_pb_loading"
         style="?android:attr/progressBarStyleHorizontal"
