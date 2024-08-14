@@ -29,12 +29,16 @@ import ca.colekfillion.velonathea.pojo.Media;
 import pl.droidsonroids.gif.GifDrawable;
 import pl.droidsonroids.gif.GifImageView;
 
+//TODO: Migrate to BigImageViewer
 public class FullMediaActivity extends CacheDependentActivity {
 
-    ViewPager2 vp;
-    ViewPagerAdapter vpAdapter;
-    String path;
-    ArrayList<Media> mediaList = new ArrayList<>(); //for scrolling between media
+    private ViewPager2 vp;
+    private ArrayList<Media> mediaList = new ArrayList<>(); //for scrolling between media
+
+    @Override
+    protected void initViews() {
+        vp = findViewById(R.id.activity_full_media_vp);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,18 +49,61 @@ public class FullMediaActivity extends CacheDependentActivity {
         mediaList = loadMediaFromCache(this.getExternalFilesDir(Environment.DIRECTORY_PICTURES).getPath());
 
         SharedPreferences prefs = getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
-        path = prefs.getString(Constants.PATH, Environment.DIRECTORY_PICTURES);
+        String path = prefs.getString(Constants.PATH, Environment.DIRECTORY_PICTURES);
 
-        vp = findViewById(R.id.activity_full_media_vp);
+        ViewPagerAdapter vpAdapter;
         vp.setAdapter(vpAdapter = new ViewPagerAdapter());
         vp.setCurrentItem(data.getInt(Constants.POSITION), false);
     }
 
     @Override
-    protected void isVerified() { }
+    protected void isVerified() {
+    }
 
     @Override
-    protected int getLayoutResourceId() { return R.layout.activity_full_media; }
+    protected int getLayoutResourceId() {
+        return R.layout.activity_full_media;
+    }
+
+    /**
+     * Starts the specified videoview.
+     *
+     * @param vvVideo the videoview to start
+     */
+    public void startVideo(VideoView vvVideo) {
+        if (vvVideo != null && !vvVideo.isPlaying()) {
+            vvVideo.setOnPreparedListener(mp -> vvVideo.start());
+            vvVideo.setOnCompletionListener(mpa -> vvVideo.start());
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        VideoView vvVideo = findViewById(R.id.activity_full_media_vv_video);
+
+        stopVideo(vvVideo);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        VideoView vvVideo = findViewById(R.id.activity_full_media_vv_video);
+
+        startVideo(vvVideo);
+    }
+
+    /**
+     * Stops the specified videoview.
+     *
+     * @param vvVideo the videoview to stop
+     */
+    public void stopVideo(VideoView vvVideo) {
+        if (vvVideo != null && vvVideo.isPlaying()) {
+            vvVideo.stopPlayback();
+            vvVideo.seekTo(0); //restart
+        }
+    }
 
     /**
      * A recyclerview adapter that shows different types of media - images, video, and gifs.
@@ -81,7 +128,7 @@ public class FullMediaActivity extends CacheDependentActivity {
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType) {
             View view;
-            switch(viewType) {
+            switch (viewType) {
                 case Constants.MEDIA_TYPE_IMAGE:
                     view = LayoutInflater.from(viewGroup.getContext()).inflate(
                             R.layout.full_image, viewGroup, false);
@@ -131,7 +178,7 @@ public class FullMediaActivity extends CacheDependentActivity {
                         }
                         break;
                 }
-            //Media does not exist, blank thumbnail
+                //Media does not exist, blank thumbnail
             } else {
                 switch (holder.getItemViewType()) {
                     case Constants.MEDIA_TYPE_IMAGE:
@@ -178,7 +225,9 @@ public class FullMediaActivity extends CacheDependentActivity {
         }
 
         @Override
-        public int getItemCount() { return mediaList.size(); }
+        public int getItemCount() {
+            return mediaList.size();
+        }
 
         //3 different view types for each type of media
         public class ViewHolderImage extends RecyclerView.ViewHolder {
@@ -206,44 +255,6 @@ public class FullMediaActivity extends CacheDependentActivity {
                 super(view);
                 givGif = view.findViewById(R.id.activity_full_media_giv_gif);
             }
-        }
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        VideoView vvVideo = findViewById(R.id.activity_full_media_vv_video);
-
-        stopVideo(vvVideo);
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        VideoView vvVideo = findViewById(R.id.activity_full_media_vv_video);
-
-        startVideo(vvVideo);
-    }
-
-    /**
-     * Starts the specified videoview.
-     * @param vvVideo the videoview to start
-     */
-    public void startVideo(VideoView vvVideo) {
-         if (vvVideo != null && !vvVideo.isPlaying()){
-             vvVideo.setOnPreparedListener(mp -> vvVideo.start());
-             vvVideo.setOnCompletionListener(mpa -> vvVideo.start());
-        }
-    }
-
-    /**
-     * Stops the specified videoview.
-     * @param vvVideo the videoview to stop
-     */
-    public void stopVideo(VideoView vvVideo) {
-        if (vvVideo != null && vvVideo.isPlaying()) {
-            vvVideo.stopPlayback();
-            vvVideo.seekTo(0); //restart
         }
     }
 

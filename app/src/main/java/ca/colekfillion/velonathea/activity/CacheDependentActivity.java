@@ -15,7 +15,7 @@ import ca.colekfillion.velonathea.pojo.Media;
 
 /**
  * Special implementation of BaseActivity that will create fragments that need to access
- *  the query cache.
+ * the query cache.
  */
 public abstract class CacheDependentActivity extends BaseActivity {
 
@@ -25,33 +25,8 @@ public abstract class CacheDependentActivity extends BaseActivity {
     }
 
     /**
-     * Loads a media list from the query cache, if it exists.
-     * @param cacheFileLocation the parent folder of the query cache
-     * @return an arraylist of media with id and filename set
-     */
-    protected ArrayList<Media> loadMediaFromCache(String cacheFileLocation) {
-        ArrayList<Media> mediaList = new ArrayList<>();
-        File queryCache = new File(cacheFileLocation, Constants.QUERY_CACHE_FILENAME);
-        String content = readStringFromUri(Uri.fromFile(queryCache), this);
-
-        if (!content.equals("")) {
-            content = content.substring(content.indexOf("\n")+1); //remove query
-
-            String[] rows = content.split("\n");
-            for (String row : rows) {
-                String[] rowValues = row.split("\t");
-                Media media = new Media.Builder()
-                        .id(Integer.parseInt(rowValues[0]))
-                        .filePath(rowValues[1])
-                        .build();
-                mediaList.add(media);
-            }
-        }
-        return mediaList;
-    }
-
-    /**
      * Reads the contents of a file as a String, for use in fragments
+     *
      * @param uri the file to read
      * @return the file contents as a string
      */
@@ -69,5 +44,32 @@ public abstract class CacheDependentActivity extends BaseActivity {
             e.printStackTrace();
         }
         return text;
+    }
+
+    /**
+     * Loads a media list from the query cache, if it exists.
+     *
+     * @param cacheFileLocation the parent folder of the query cache
+     * @return an arraylist of media with id and filename set
+     */
+    protected ArrayList<Media> loadMediaFromCache(String cacheFileLocation) {
+        ArrayList<Media> mediaList = new ArrayList<>();
+        File queryCache = new File(cacheFileLocation, Constants.QUERY_CACHE_FILENAME);
+        String content = readStringFromUri(Uri.fromFile(queryCache), this);
+
+        if (!content.equals("")) {
+            content = content.substring(content.indexOf("\n") + 1); //remove query
+
+            String[] rows = content.split("\n");
+            for (String row : rows) {
+                String[] rowValues = row.split("\t");
+                Media media = new Media.Builder()
+                        .id(Integer.parseInt(rowValues[0]))
+                        .filePath(rowValues[1])
+                        .build();
+                mediaList.add(media);
+            }
+        }
+        return mediaList;
     }
 }

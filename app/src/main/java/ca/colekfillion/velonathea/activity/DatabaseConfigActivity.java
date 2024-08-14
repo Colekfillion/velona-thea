@@ -17,6 +17,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
+import androidx.fragment.app.FragmentManager;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -27,14 +28,28 @@ import java.util.concurrent.Executors;
 
 import ca.colekfillion.velonathea.R;
 import ca.colekfillion.velonathea.database.MyOpenHelper;
+import ca.colekfillion.velonathea.fragment.ExcludedFoldersFragment;
 import ca.colekfillion.velonathea.pojo.Constants;
 import ca.colekfillion.velonathea.pojo.Media;
 
 //TODO: Better notifications. Shouldn't show up after dismissal
-//TODO: Create app logo for notifications.
 public class DatabaseConfigActivity extends BaseActivity {
 
     private static boolean busy = false; //is the database being used?
+    private Button btnDebugDb;
+    private Button showInvalidFiles;
+    private Button btnClearDb;
+    private Button btnDbExport;
+    private Button btnEditFolders;
+
+    @Override
+    protected void initViews() {
+        btnDebugDb = findViewById(R.id.activity_database_config_btn_debugdb);
+        showInvalidFiles = findViewById(R.id.activity_database_config_btn_invalidfiles);
+        btnClearDb = findViewById(R.id.activity_database_config_btn_cleardb);
+        btnDbExport = findViewById(R.id.activity_database_config_btn_export_media);
+        btnEditFolders = findViewById(R.id.activity_database_config_btn_editfolders);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,7 +58,6 @@ public class DatabaseConfigActivity extends BaseActivity {
         Objects.requireNonNull(getSupportActionBar()).setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowHomeEnabled(true);
 
-        Button btnDbExport = findViewById(R.id.activity_database_config_btn_export_media);
         btnDbExport.setOnClickListener(v -> {
             if (!busy) {
                 EditText edit = new EditText(this);
@@ -109,14 +123,14 @@ public class DatabaseConfigActivity extends BaseActivity {
                             });
                         })
 
-                        .setNegativeButton(android.R.string.cancel, (click, arg) -> { })
+                        .setNegativeButton(android.R.string.cancel, (click, arg) -> {
+                        })
 
                         .create().show();
             }
         });
 
         //Delete all data from the database
-        Button btnClearDb = findViewById(R.id.activity_database_config_btn_cleardb);
         btnClearDb.setOnClickListener(v -> {
             if (!busy) {
                 AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
@@ -152,13 +166,13 @@ public class DatabaseConfigActivity extends BaseActivity {
                             });
                         })
 
-                        .setNegativeButton(R.string.no, (click, arg) -> { })
+                        .setNegativeButton(R.string.no, (click, arg) -> {
+                        })
 
                         .create().show();
             }
         });
 
-        Button showInvalidFiles = findViewById(R.id.activity_database_config_btn_invalidfiles);
 //        showInvalidFiles.setOnClickListener(v -> {
 //            if (!busy) {
 //                busy = true;
@@ -219,8 +233,7 @@ public class DatabaseConfigActivity extends BaseActivity {
 
         //Show various database statistics
         //TODO: Have additional info be shown in a popup, ex. button that says "Show duplicate files"
-        // Low priority
-        Button btnDebugDb = findViewById(R.id.activity_database_config_btn_debugdb);
+        // Like a side-by-side? Not sure what past me was thinking about here
         btnDebugDb.setOnClickListener(v -> {
             if (!busy) {
                 busy = true;
@@ -340,13 +353,24 @@ public class DatabaseConfigActivity extends BaseActivity {
                 });
             }
         });
+
+        btnEditFolders.setOnClickListener(v -> {
+            if (!busy) {
+                FragmentManager fm = getSupportFragmentManager();
+                ExcludedFoldersFragment excludedFoldersFragment = new ExcludedFoldersFragment();
+                excludedFoldersFragment.show(fm, Constants.FRAGMENT_EXCLUDED_FOLDERS);
+            }
+        });
     }
 
     @Override
-    protected int getLayoutResourceId() { return R.layout.activity_database_config; }
+    protected int getLayoutResourceId() {
+        return R.layout.activity_database_config;
+    }
 
     @Override
-    protected void isVerified() { }
+    protected void isVerified() {
+    }
 
     //No options menu
     @Override

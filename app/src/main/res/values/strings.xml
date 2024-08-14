@@ -3,20 +3,10 @@
     <string name="button_debug">Debug</string>
     <string name="button_delete">Clear database</string>
     <string name="config_menubutton">Config</string>
-    <string name="choose_root_directory">Choose root directory</string>
     <string name="show_hidden_files">Show hidden files</string>
-    <string name="random_order">Random order</string>
     <string name="image_cache_size">Image cache size</string>
     <string name="update">Update</string>
-    <string name="only_unsorted_files">Only unsorted files</string>
-    <string name="import_media_in_root_directory">Import media in root directory</string>
     <string name="go">Go</string>
-    <string name="tag_like">Tag like...</string>
-    <string name="author_name">Author name</string>
-    <string name="image_title">Image title</string>
-    <string name="only_images">Only images</string>
-    <string name="only_videos">Only videos</string>
-    <string name="import_from_file">Import from file</string>
     <string name="database_config">Database config</string>
     <string name="show_invalid_files">Show invalid files</string>
     <string name="yes">Yes</string>
@@ -25,10 +15,44 @@
     <string name="permission_denied">Permission Denied</string>
     <string name="permission_message">This app requires you to authenticate.</string>
     <string name="loading_media">Loading media</string>
-    <string name="preparing">Preparing...</string>
+    <string name="preparing">Preparing…</string>
     <string name="loading_complete">Loading complete</string>
     <string name="success">Success</string>
     <string name="fail">Failed</string>
     <string name="fail_delete_cache">Failed to delete query cache</string>
     <string name="loaded_x_media_cache">Loaded %d media from cache</string>
+    <string name="hide_screen_in_recent_apps">Hide screen in Recent Apps (requires app restart)</string>
+    <string name="media_filename">Filename</string>
+    <string name="media_name">Name</string>
+    <string name="media_author">Author</string>
+    <string name="media_tag">Tag</string>
+    <string name="media_filename_short">FN</string>
+    <string name="media_name_short">N</string>
+    <string name="media_author_short">A</string>
+    <string name="media_tag_short">T</string>
+    <string name="random">Random</string>
+    <string-array name="filters_array">
+        <item>Filename</item>
+        <item>Name</item>
+        <item>Author</item>
+        <item>Tag</item>
+    </string-array>
+    <string-array name="sortby_array">
+        <item>Filename</item>
+        <item>Name</item>
+        <item>Author</item>
+        <item>Random</item>
+    </string-array>
+    <string name="filter_is">IS</string>
+    <string name="filter_is_not">IS NOT</string>
+    <string name="filter_in">IN</string>
+    <string name="edit_included_folders">Edit included folders</string>
+    <string-array name="isnot_array">
+        <item>IS</item>
+        <item>IS NOT</item>
+        <item>IN</item>
+    </string-array>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="confirm">Confirm</string>
 </resources>

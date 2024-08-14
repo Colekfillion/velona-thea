@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <include layout="@layout/toolbar"/>
+    <include layout="@layout/toolbar" />
 
     <Button
         android:id="@+id/activity_config_btn_dbconfig"
@@ -19,16 +19,23 @@
 
     <EditText
         android:id="@+id/activity_config_et_cachesize"
-        android:inputType="number"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="150"
-        android:importantForAutofill="no" />
+        android:importantForAutofill="no"
+        android:inputType="number" />
 
     <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/activity_config_swtch_showhiddenfiles"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/show_hidden_files"/>
+        android:text="@string/show_hidden_files" />
+
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/activity_config_swtch_secure"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/hide_screen_in_recent_apps" />
+
 
 </LinearLayout>

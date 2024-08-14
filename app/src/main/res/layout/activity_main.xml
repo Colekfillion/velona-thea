@@ -1,187 +1,88 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+    android:orientation="vertical">
 
-        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-            android:orientation="vertical"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
+    <include layout="@layout/toolbar" />
 
-                <include layout="@layout/toolbar"/>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
 
-                <FrameLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
+        <Spinner
+            android:id="@+id/activity_main_spnr_filter"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_gravity="center_vertical" />
 
-                        <EditText
-                            android:id="@+id/activity_main_et_filename"
-                            android:inputType="text"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:hint="File name"
-                            android:importantForAutofill="no" />
+        <Spinner
+            android:id="@+id/activity_main_spnr_isnot"
+            android:layout_width="110dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="center_vertical" />
 
-                        <ImageButton
-                            android:id="@+id/activity_main_btn_clearfilename"
-                            android:layout_width="35dp"
-                            android:layout_height="35dp"
-                            android:layout_gravity="end"
-                            android:alpha="0.4"
-                            android:background="@drawable/x_button"
-                            android:contentDescription="Clear filename" />
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="fill">
 
-                </FrameLayout>
+            <AutoCompleteTextView
+                android:id="@+id/activity_main_actv_input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Input"
+                android:importantForAutofill="no"
+                android:inputType="text" />
 
-                <FrameLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
+            <ImageButton
+                android:id="@+id/activity_main_btn_clearinput"
+                android:layout_width="35dp"
+                android:layout_height="35dp"
+                android:layout_gravity="end"
+                android:alpha="0.4"
+                android:background="@drawable/x_button"
+                android:contentDescription="Clear input" />
 
-                        <EditText
-                            android:id="@+id/activity_main_et_name"
-                            android:inputType="text"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:hint="Name"
-                            android:importantForAutofill="no" />
+        </FrameLayout>
 
-                        <ImageButton
-                            android:id="@+id/activity_main_btn_clearname"
-                            android:layout_width="35dp"
-                            android:layout_height="35dp"
-                            android:layout_gravity="end"
-                            android:alpha="0.4"
-                            android:background="@drawable/x_button"
-                            android:contentDescription="Clear name" />
 
-                </FrameLayout>
+    </LinearLayout>
 
-                <AutoCompleteTextView
-                    android:id="@+id/activity_main_autoctv_author"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="@string/author_name"
-                    android:imeActionId="1"
-                    android:imeOptions="actionGo"
-                    android:maxLines="1"
-                    android:inputType="text"/>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
 
-                <RelativeLayout
-                    android:id="@+id/activity_main_rl_authors"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="Sort by" />
 
-                <AutoCompleteTextView
-                    android:id="@+id/activity_main_autoctv_tag"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="@string/tag_like"
-                    android:imeActionId="2"
-                    android:imeOptions="actionGo"
-                    android:maxLines="1"
-                    android:inputType="text"/>
+        <Spinner
+            android:id="@+id/activity_main_spnr_sortby"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
 
-                <RelativeLayout
-                    android:id="@+id/activity_main_rl_tags"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"/>
+        <Button
+            android:id="@+id/activity_main_btn_sortdir"
+            android:layout_width="40dp"
+            android:layout_height="wrap_content"
+            android:text="↓" />
 
-                <Button
-                    android:id="@+id/activity_main_btn_search"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/go" />
+    </LinearLayout>
 
-                <androidx.appcompat.widget.SwitchCompat
-                    android:id="@+id/activity_main_swtch_random"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/random_order"/>
+    <Button
+        android:id="@+id/activity_main_btn_search"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/go" />
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Content filters"/>
+    <ListView
+        android:id="@+id/activity_main_lv_filters"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
 
-                <RadioGroup
-                    android:id="@+id/activity_main_rg_mediatype"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-
-                        <ca.colekfillion.velonathea.pojo.UncheckableRadioButton
-                            android:id="@+id/activity_main_rg_mediatype_images"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/only_images"/>
-
-                        <ca.colekfillion.velonathea.pojo.UncheckableRadioButton
-                            android:id="@+id/activity_main_rg_mediatype_videos"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/only_videos"/>
-
-                </RadioGroup>
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Tag search options"/>
-
-                <RadioGroup
-                    android:id="@+id/activity_main_rg_tagtype"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-
-                        <RadioButton
-                            android:id="@+id/activity_main_rg_tagtype_similar"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="Match at least one tag and include similar tags"
-                            android:checked="true"/>
-
-                        <RadioButton
-                            android:id="@+id/activity_main_rg_tagtype_matchall"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="Match all tags exactly"/>
-
-                </RadioGroup>
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Exclusion filters"/>
-
-                <AutoCompleteTextView
-                    android:id="@+id/activity_main_autoctv_author_exclude"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="@string/author_name"
-                    android:imeActionId="3"
-                    android:imeOptions="actionGo"
-                    android:maxLines="1"
-                    android:inputType="text"/>
-
-                <RelativeLayout
-                    android:id="@+id/activity_main_rl_authors_exclude"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"/>
-
-<!--                <AutoCompleteTextView-->
-<!--                    android:id="@+id/activity_main_autoctv_tag_exclude"-->
-<!--                    android:layout_width="match_parent"-->
-<!--                    android:layout_height="wrap_content"-->
-<!--                    android:hint="Tag not like..."-->
-<!--                    android:imeActionId="4"-->
-<!--                    android:imeOptions="actionGo"-->
-<!--                    android:maxLines="1"-->
-<!--                    android:inputType="text"/>-->
-
-<!--                <RelativeLayout-->
-<!--                    android:id="@+id/activity_main_rl_tags_exclude"-->
-<!--                    android:layout_width="match_parent"-->
-<!--                    android:layout_height="wrap_content"/>-->
-
-        </LinearLayout>
-</ScrollView>
+</LinearLayout>

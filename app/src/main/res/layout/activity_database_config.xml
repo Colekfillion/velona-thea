@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <include layout="@layout/toolbar"/>
+    <include layout="@layout/toolbar" />
 
     <Button
         android:id="@+id/activity_database_config_btn_export_media"
@@ -34,21 +34,27 @@
         android:id="@+id/activity_database_config_tv_loading"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:visibility="gone"/>
+        android:visibility="gone" />
+
+    <Button
+        android:id="@+id/activity_database_config_btn_editfolders"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/edit_included_folders" />
 
     <ProgressBar
         android:id="@+id/activity_database_config_pb_loading"
+        style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:visibility="invisible"
-        android:max="1000"/>
+        android:max="1000"
+        android:visibility="invisible" />
 
     <TextView
         android:id="@+id/activity_database_config_tv_dbstats"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:visibility="gone"
-        android:scrollbars="vertical"/>
+        android:scrollbars="vertical"
+        android:visibility="gone" />
 
 </LinearLayout>
