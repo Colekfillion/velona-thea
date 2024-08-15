@@ -41,6 +41,11 @@ public class ChooseDirFragment extends BaseDialogFragment {
     private ListView lvDirs;
     private Button btnConfirmDir;
     private FolderListAdapter dnAdapter;
+    private final String userInputPath;
+
+    public ChooseDirFragment(String userInputPath) {
+        this.userInputPath = userInputPath;
+    }
 
     @Override
     protected void initViews(View v) {
@@ -74,8 +79,14 @@ public class ChooseDirFragment extends BaseDialogFragment {
         }
         SharedPreferences prefs = getActivity().getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
         showHiddenFiles = prefs.getBoolean(Constants.PREFS_SHOW_HIDDEN_FILES, false);
-        currentDir = new File(prefs.getString(Constants.PATH, Environment.getExternalStorageDirectory().getAbsolutePath()));
+        File inputPath = new File(userInputPath);
+        if (inputPath.isDirectory()) {
+            currentDir = inputPath;
+        } else {
+            currentDir = new File(prefs.getString(Constants.PATH, Environment.getExternalStorageDirectory().getAbsolutePath()));
+        }
 
+        System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" + inputPath.isDirectory());
         lvDirs.setAdapter(dnAdapter = new FolderListAdapter());
 
         listDirs(view);

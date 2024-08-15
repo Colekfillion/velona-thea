@@ -260,8 +260,9 @@ public class MediaImportFragment extends BaseDialogFragment {
             etInputPath.setText(newPath);
         });
         btnChooseDir.setOnClickListener(v -> {
+            String userInputPath = etInputPath.getText().toString();
             FragmentManager fm = requireActivity().getSupportFragmentManager();
-            ChooseDirFragment chooseDirFragment = new ChooseDirFragment();
+            ChooseDirFragment chooseDirFragment = new ChooseDirFragment(userInputPath);
             chooseDirFragment.show(fm, Constants.FRAGMENT_CHOOSE_DIR);
 //            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
 //            chooseDirActivity.launch(intent);
